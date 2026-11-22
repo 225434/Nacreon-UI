@@ -220,7 +220,7 @@
       } catch (error) {
         gl.deleteProgram(program);
         this.program = null;
-        if (!gl.isContextLost()) console.warn('Material Library · WebGL', error.message);
+        if (!gl.isContextLost()) console.warn('Nacreon UI · WebGL', error.message);
       } finally {
         for (const shader of shaders) gl.deleteShader(shader);
       }

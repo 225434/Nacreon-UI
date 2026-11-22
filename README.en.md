@@ -1,8 +1,8 @@
-# Material Library
+# Nacreon UI
 
-**[Live demo](https://225434.github.io/material-lib/)** · [简体中文](README.md)
+**[Live demo](https://225434.github.io/Nacreon-UI/)** · [简体中文](README.md)
 
-Material Library is a collection of adaptive Web Components with an interactive gallery. It includes form controls, navigation, data display, feedback, typography, themes, icons, and material and motion presets.
+Nacreon UI is a collection of adaptive Web Components with an interactive gallery. It includes form controls, navigation, data display, feedback, typography, themes, icons, and material and motion presets.
 
 ## Try the gallery
 

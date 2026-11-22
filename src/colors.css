@@ -1,4 +1,4 @@
-/* Material Library · sRGB. Set data-ml-theme on the page or a local container. */
+/* Nacreon UI · sRGB. Set data-ml-theme on the page or a local container. */
 :root, [data-ml-theme="light"], [data-ml-theme="warm"], [data-ml-theme="dark"] {
   --ml-color-action: var(--ml-color-blue);
 }

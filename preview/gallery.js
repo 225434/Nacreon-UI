@@ -2279,7 +2279,7 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     root.dataset.component = next;
     document.querySelector('#shortcut').removeAttribute('title');
     const { link, title, en, lead } = catalogEntries.get(next);
-    document.title = title + ' · Material Library';
+    document.title = title + ' · Nacreon UI';
     document.querySelector('#component-title').textContent = title;
     document.querySelector('#component-en').textContent = en;
     document.querySelector('#component-lead').textContent = lead;

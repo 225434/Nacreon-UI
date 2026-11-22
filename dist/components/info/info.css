@@ -1,5 +1,5 @@
 /* Generated from src/colors.css and src/themes.css and src/type-tokens.css and src/layout-tokens.css and src/material-tiers.css and src/motion-tiers.css and src/typography.css and src/appearance.css and src/hover-card.css and src/info.css by build.mjs. */
-/* Material Library · sRGB. Set data-ml-theme on the page or a local container. */
+/* Nacreon UI · sRGB. Set data-ml-theme on the page or a local container. */
 :root, [data-ml-theme="light"], [data-ml-theme="warm"], [data-ml-theme="dark"] {
   --ml-color-action: var(--ml-color-blue);
 }
