@@ -1,0 +1,93 @@
+:is(ml-date-picker, ml-time-picker) {
+  position: relative;
+  isolation: isolate;
+  inline-size: var(--ml-picker-width, 15.5rem);
+  grid-template-columns: minmax(0, 1fr) 3.35rem;
+  font-family: var(--ml-type-family, var(--ml-font-sans));
+  font-size: var(--ml-size-body);
+  line-height: var(--ml-leading-compact);
+}
+:is(ml-date-picker, ml-time-picker) > label {
+  grid-area: 1 / 1;
+  position: relative; z-index: 1;
+  display: grid; align-content: center; gap: var(--ml-space-1);
+  min-inline-size: 0; padding: .68rem .85rem;
+  color: var(--ml-muted); font-size: var(--ml-size-caption); font-weight: var(--ml-weight-medium);
+  overflow-wrap: anywhere;
+}
+:is(ml-date-picker, ml-time-picker) > input,
+:is(ml-date-picker, ml-time-picker) > label input {
+  position: relative; z-index: 1;
+  min-inline-size: 0; inline-size: 100%; margin: 0; padding: .15em 0;
+  border: 0; border-radius: .24rem;
+  background: transparent; color: var(--ml-ink);
+  font: inherit; font-size: var(--ml-size-body); font-weight: var(--ml-weight-semibold);
+  font-variant-numeric: tabular-nums; line-height: var(--ml-leading-compact);
+}
+:is(ml-date-picker, ml-time-picker) > input {
+  grid-area: 1 / 1;
+  min-block-size: 44px; padding: .35rem .85rem;
+}
+:is(ml-date-picker, ml-time-picker):has(> label + input) > label { padding-block-end: 0; }
+:is(ml-date-picker, ml-time-picker) > label + input { grid-row: 2; min-block-size: 0; padding-block: .3rem .65rem; }
+:is(ml-date-picker, ml-time-picker)[data-ml-ready] input::-webkit-calendar-picker-indicator { display: none; }
+:is(ml-date-picker, ml-time-picker) input:disabled { color: var(--ml-muted); opacity: .66; }
+:is(ml-date-picker, ml-time-picker) > ml-value-surface { grid-area: 1 / 1 / 2 / -1; }
+:is(ml-date-picker, ml-time-picker) > [data-ml-part="open"] {
+  grid-area: 1 / 2; place-self: center;
+  position: relative; z-index: 1;
+  display: grid; place-items: center; inline-size: 44px; block-size: 44px;
+  border: 0; border-radius: var(--ml-radius-md); background: transparent;
+}
+:is(ml-date-picker, ml-time-picker):has(> label + input) > :is(ml-value-surface, [data-ml-part="open"]) { grid-row: 1 / span 2; }
+:is(ml-date-picker, ml-time-picker) > [data-ml-part="open"]::before {
+  content: ""; display: block; width: 1.22rem; height: 1.22rem;
+  background: currentColor; mask: var(--ml-picker-icon) center / contain no-repeat;
+}
+:is(ml-date-picker, ml-time-picker):has(input[aria-invalid="true"]) > ml-value-surface { border-color: var(--ml-color-danger); }
+
+.ml-picker-panel {
+  position: fixed; inset: 0; isolation: isolate; box-sizing: border-box; margin: auto;
+  inline-size: min(var(--ml-picker-panel-width, 23rem), calc(100vw - 1.25rem)); max-inline-size: none;
+  max-block-size: calc(100dvh - 1.25rem); overflow: auto; overscroll-behavior: contain;
+  padding: clamp(.75rem, 4vw, 1.15rem);
+  color: var(--ml-ink); background-color: var(--ml-color-surface);
+  border: var(--ml-border-width) solid var(--ml-color-separator); border-radius: var(--ml-radius-xl);
+  box-shadow: var(--ml-shadow-overlay);
+  font: inherit; font-variant-numeric: tabular-nums;
+}
+.ml-picker-panel[open] { display: block; animation: ml-picker-in var(--ml-enter-time) var(--ml-ease) both; }
+@keyframes ml-picker-in {
+  from { opacity: 0; transform: translateY(calc(var(--ml-enter-shift) * .52)) scale(var(--ml-enter-scale)); }
+  to { opacity: 1; transform: none; }
+}
+.ml-picker-panel::backdrop { background: #10131b60; }
+.ml-picker-panel > ml-value-surface {
+  position: absolute; inset: 0; z-index: -1; border: 0; border-radius: inherit; box-shadow: none; background-color: transparent;
+}
+.ml-picker-panel > ml-value-surface > .ml-optical { opacity: .48; overflow: hidden; }
+.ml-picker-panel > footer {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--ml-space-1);
+  padding-block-start: var(--ml-space-2); border-block-start: var(--ml-border-width) solid var(--ml-color-separator);
+}
+.ml-picker-actions { display: flex; flex-wrap: wrap; gap: var(--ml-space-1); }
+.ml-picker-panel [data-ml-picker-action] {
+  min-block-size: 44px; min-inline-size: 44px; padding-inline: .82rem;
+  border: 0; border-radius: var(--ml-radius-md); background: var(--ml-color-fill); font-size: var(--ml-size-label);
+}
+.ml-picker-panel [data-ml-picker-action="quiet"] { background: transparent; }
+.ml-picker-panel [data-ml-picker-action="primary"] {
+  color: var(--ml-color-surface); background: var(--ml-accent-ink); font-weight: var(--ml-weight-semibold);
+}
+@media (hover: hover) {
+  :is(ml-date-picker, ml-time-picker) > [data-ml-part="open"]:enabled:hover,
+  .ml-picker-panel [data-ml-picker-action="quiet"]:enabled:hover {
+    background: color-mix(in srgb, var(--ml-value-accent) 11%, transparent);
+  }
+}
+@media (forced-colors: active) {
+  .ml-picker-panel { background: Canvas; border-color: CanvasText; box-shadow: none; }
+  .ml-picker-panel > ml-value-surface { display: none; }
+  .ml-picker-panel [data-ml-picker-action] { border: 1px solid ButtonText; }
+  :is(ml-date-picker, ml-time-picker) > [data-ml-part="open"]::before { forced-color-adjust: none; }
+}

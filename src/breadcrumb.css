@@ -1,0 +1,187 @@
+ml-breadcrumb {
+  /* Icon masks from icons.svg */
+  --ml-breadcrumb-ink: var(--ml-breadcrumb-accent, var(--ml-color-info));
+  container: ml-breadcrumb / inline-size;
+  display: block;
+  inline-size: var(--ml-breadcrumb-width, 100%);
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  padding: var(--ml-space-1) var(--ml-space-2);
+  border-radius: var(--ml-breadcrumb-radius, var(--ml-radius-lg));
+  font-family: var(--ml-type-family, var(--ml-font-sans));
+  font-size: var(--ml-breadcrumb-font, var(--ml-size-label));
+  line-height: var(--ml-leading-compact);
+}
+:is(ml-breadcrumb, ml-breadcrumb-panel) {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  border: var(--ml-border-width) solid color-mix(in srgb, var(--ml-color-separator) var(--ml-material-border-opacity), transparent);
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-opacity), transparent);
+  background-image: var(--ml-skin);
+  box-shadow: var(--ml-segment-relief);
+  color: var(--ml-color-text);
+  -webkit-backdrop-filter: var(--ml-filter);
+  backdrop-filter: var(--ml-filter);
+}
+:is(ml-breadcrumb, ml-breadcrumb-panel).ml-refractive {
+  -webkit-backdrop-filter: var(--ml-bend) var(--ml-filter);
+  backdrop-filter: var(--ml-bend) var(--ml-filter);
+}
+:is(ml-breadcrumb, ml-breadcrumb-panel) > .ml-optical {
+  display: var(--ml-optics); position: absolute; z-index: -1; inset: 0;
+  border-radius: inherit; pointer-events: none;
+}
+:is(ml-breadcrumb, ml-breadcrumb-panel) > .ml-optical > svg {
+  display: block; inline-size: 100%; block-size: 100%; overflow: hidden; border-radius: inherit;
+}
+ml-breadcrumb[hidden], ml-breadcrumb :is(nav, li)[hidden] { display: none !important; }
+ml-breadcrumb > nav { min-inline-size: 0; }
+ml-breadcrumb ol { margin: 0; padding: 0; list-style: none; }
+ml-breadcrumb :is(nav, .ml-breadcrumb-measure) > ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-inline-size: 0;
+}
+ml-breadcrumb[data-ml-breadcrumb-ready] > nav > ol { flex-wrap: nowrap; }
+ml-breadcrumb :is(nav, .ml-breadcrumb-measure) > ol > li {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+ml-breadcrumb :is(nav, .ml-breadcrumb-measure) > ol > li:not([hidden]) ~ li::before {
+  content: "";
+  flex: none;
+  inline-size: .78rem;
+  block-size: .78rem;
+  margin-inline: .12rem;
+  background: var(--ml-color-text-tertiary);
+  -webkit-mask: var(--ml-breadcrumb-icon-chevron-right) center / contain no-repeat;
+  mask: var(--ml-breadcrumb-icon-chevron-right) center / contain no-repeat;
+}
+ml-breadcrumb :dir(rtl) > ol > li::before { transform: scaleX(-1); }
+ml-breadcrumb > nav > ol > li:first-child { flex-shrink: 2; }
+ml-breadcrumb :is(nav, .ml-breadcrumb-measure) > ol > .ml-breadcrumb-overflow { flex: none; }
+ml-breadcrumb :is(nav, .ml-breadcrumb-measure) > ol > li > :is(a, span, button) {
+  position: relative;
+  display: block;
+  align-content: center;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  min-block-size: 2.45rem;
+  overflow: hidden;
+  padding: .45em .7em;
+  border: 0;
+  border-radius: var(--ml-radius-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+}
+ml-breadcrumb a {
+  color: var(--ml-color-text-secondary);
+  text-decoration: none;
+  font-weight: var(--ml-weight-medium);
+}
+ml-breadcrumb :is(nav, .ml-breadcrumb-measure) > ol > li > a[data-home] { padding-inline-start: 2em; }
+ml-breadcrumb a[data-home]::before, .ml-breadcrumb-overflow > button::before {
+  content: "";
+  position: absolute; inset-block-start: 50%; translate: 0 -50%;
+  inline-size: 1.18em; block-size: 1.18em; background: currentColor;
+  -webkit-mask: var(--ml-breadcrumb-glyph) center / contain no-repeat;
+  mask: var(--ml-breadcrumb-glyph) center / contain no-repeat;
+}
+ml-breadcrumb a[data-home]::before { --ml-breadcrumb-glyph: var(--ml-breadcrumb-icon-home); inset-inline-start: .56em; }
+ml-breadcrumb :is(nav, .ml-breadcrumb-measure) > ol > li > [aria-current="page"] {
+  background-color: color-mix(in srgb, var(--ml-breadcrumb-ink) 10%, transparent);
+  color: var(--ml-breadcrumb-ink);
+  font-weight: var(--ml-weight-semibold);
+}
+ml-breadcrumb .ml-breadcrumb-overflow > button {
+  inline-size: 2.45rem;
+  background: transparent; color: var(--ml-color-text-secondary);
+  cursor: pointer;
+}
+.ml-breadcrumb-overflow > button::before { --ml-breadcrumb-glyph: var(--ml-breadcrumb-icon-more); left: 50%; translate: -50% -50%; }
+ml-breadcrumb :is(a, button) {
+  touch-action: manipulation;
+  transition: var(--ml-static-transition, background-color var(--ml-tone), color var(--ml-tone), scale var(--ml-travel) var(--ml-ease));
+}
+ml-breadcrumb :is(a, button):focus-visible {
+  outline: var(--ml-focus-width) solid var(--ml-focus);
+  outline-offset: calc(-1 * var(--ml-focus-offset));
+}
+ml-breadcrumb :is(a, button):active { scale: var(--ml-press); }
+@media (hover: hover) {
+  ml-breadcrumb :is(a, button):hover { background-color: color-mix(in srgb, var(--ml-breadcrumb-ink) 9%, transparent); color: var(--ml-breadcrumb-ink); }
+}
+ml-breadcrumb .ml-breadcrumb-overflow > button[aria-expanded="true"] {
+  background-color: color-mix(in srgb, var(--ml-breadcrumb-ink) 14%, transparent); color: var(--ml-breadcrumb-ink);
+}
+.ml-breadcrumb-measure {
+  position: absolute; inset: 0 auto auto 0; inline-size: 0; block-size: 0; overflow: hidden; visibility: hidden;
+}
+ml-breadcrumb .ml-breadcrumb-measure > ol { inline-size: max-content; flex-wrap: nowrap; }
+ml-breadcrumb .ml-breadcrumb-measure > ol > li { flex: none; max-inline-size: none; }
+
+ml-breadcrumb-panel {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: var(--ml-space-1);
+  border-radius: var(--ml-radius-md);
+  background-color: color-mix(in srgb, var(--ml-color-surface) 91%, transparent);
+  box-shadow: var(--ml-shadow-overlay);
+  overflow: visible;
+  transform-origin: top center;
+}
+ml-breadcrumb-panel > .ml-optical { opacity: .55; }
+ml-breadcrumb-panel[data-side="above"] { transform-origin: bottom center; --ml-breadcrumb-enter-shift: 1; }
+ml-breadcrumb-panel:popover-open:not([data-side]) { opacity: 0; }
+ml-breadcrumb-panel:popover-open[data-side] {
+  animation: var(--ml-static-transition, ml-breadcrumb-in var(--ml-enter-time) var(--ml-ease) both);
+}
+ml-breadcrumb-panel > ol {
+  display: block;
+  box-sizing: border-box;
+  max-block-size: min(18rem, max(0px, calc(var(--ml-select-room, 18rem) - .65rem)));
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: calc(var(--ml-radius-md) - var(--ml-space-1));
+}
+ml-breadcrumb-panel > ol > li > :is(a, span) {
+  display: block;
+  align-content: center;
+  box-sizing: border-box;
+  min-block-size: 2.4rem;
+  overflow-wrap: anywhere;
+  padding: .42rem .55rem;
+  border-radius: calc(var(--ml-radius-sm) + 1px);
+}
+@keyframes ml-breadcrumb-in {
+  from { opacity: 0; translate: 0 calc(var(--ml-enter-shift) * .45 * var(--ml-breadcrumb-enter-shift, -1)); scale: var(--ml-enter-scale); }
+}
+@container ml-breadcrumb (max-width: 8rem) {
+  ml-breadcrumb[data-ml-breadcrumb-ready] > nav > ol { flex-wrap: wrap; }
+}
+@media (any-pointer: coarse) {
+  ml-breadcrumb :is(nav, .ml-breadcrumb-measure) > ol > li > :is(a, button), ml-breadcrumb-panel > ol > li > a {
+    min-block-size: 44px; min-inline-size: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(ml-breadcrumb, ml-breadcrumb-panel) { --ml-follow: 0 !important; }
+  ml-breadcrumb :is(a, button), ml-breadcrumb-panel:popover-open[data-side] { transition: none; scale: none; animation: none; }
+}
+@media (forced-colors: active) {
+  :is(ml-breadcrumb, ml-breadcrumb-panel), :is(ml-breadcrumb, ml-breadcrumb-panel).ml-refractive {
+    color: CanvasText; background: Canvas; border-color: CanvasText; box-shadow: none; backdrop-filter: none;
+  }
+  ml-breadcrumb a[href] { color: LinkText; }
+  ml-breadcrumb [aria-current="page"] { outline: 1px solid Highlight; outline-offset: -2px; }
+  ml-breadcrumb :is(nav, .ml-breadcrumb-measure) > ol > li::before,
+  ml-breadcrumb a[data-home]::before, .ml-breadcrumb-overflow > button::before {
+    forced-color-adjust: none; background-color: CanvasText;
+  }
+}

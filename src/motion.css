@@ -1,0 +1,4 @@
+/* Optional two-position layout for MaterialMotion.move(). Logical alignment also works in RTL. */
+.ml-motion-track { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; }
+.ml-motion-track > .ml-motion-item { grid-area: 1 / 1; justify-self: start; }
+.ml-motion-track[data-ml-end] > .ml-motion-item { justify-self: end; }

@@ -1,0 +1,174 @@
+:root, [data-ml-theme="light"] {
+  --ml-button-danger-surface: #fff0ee;
+  --ml-button-danger-ink: var(--ml-color-danger);
+  --ml-button-line: #9da7b2;
+}
+[data-ml-theme="warm"] {
+  --ml-button-danger-surface: #fff0e7;
+  --ml-button-danger-ink: var(--ml-color-danger);
+  --ml-button-line: #ab9d89;
+}
+[data-ml-theme="dark"] {
+  --ml-button-danger-surface: #482a2c;
+  --ml-button-danger-ink: var(--ml-color-danger);
+  --ml-button-line: #8a929d;
+}
+:root, [data-ml-material="high"] {
+  --ml-button-alpha: 77%;
+  --ml-button-quiet-tint: 14%;
+  --ml-button-coat: initial;
+  --ml-button-shadow: inset 0 1px 1px #ffffff9c, inset 0 -2px 3px #112f4426,
+    0 2px 3px #122d4521, 0 7px 14px -7px #15344d4d;
+}
+[data-ml-material="medium"] {
+  --ml-button-alpha: 89%;
+  --ml-button-quiet-tint: 12%;
+  --ml-button-coat: none;
+  --ml-button-shadow: initial;
+}
+[data-ml-material="low"] {
+  --ml-button-alpha: 100%;
+  --ml-button-quiet-tint: 5%;
+  --ml-button-coat: none;
+  --ml-button-shadow: 0 1px 2px #142b401a;
+}
+[data-ml-material="base"] {
+  --ml-button-alpha: 100%;
+  --ml-button-quiet-tint: 0%;
+  --ml-button-coat: none;
+  --ml-button-shadow: none;
+}
+ml-button {
+  --ml-button-fill: var(--ml-blue);
+  --ml-button-ink: var(--ml-on-accent);
+  --ml-button-border: transparent;
+  --ml-button-optical-opacity: .85;
+  position: relative;
+  isolation: isolate;
+  display: inline-grid;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  vertical-align: middle;
+  box-sizing: border-box;
+  border-radius: var(--ml-button-radius, var(--ml-radius-pill));
+  background-color: var(--ml-button-fill);
+  background-color: color-mix(in srgb, var(--ml-button-fill) var(--ml-button-alpha), transparent);
+  background-image: var(--ml-button-coat, radial-gradient(ellipse 76% 95% at center, var(--ml-button-fill) 34%, transparent 90%)), var(--ml-skin);
+  box-shadow: var(--ml-button-shadow, var(--ml-shadow-raised));
+  -webkit-backdrop-filter: var(--ml-filter);
+  backdrop-filter: var(--ml-filter);
+  transition: var(--ml-static-transition, scale var(--ml-travel) var(--ml-ease), translate var(--ml-travel) var(--ml-ease));
+}
+ml-button[hidden], ml-button:has(> button[hidden]) { display: none; }
+ml-button[variant="secondary"] {
+  --ml-button-fill: var(--ml-button-surface, var(--ml-color-surface));
+  --ml-button-ink: var(--ml-ink);
+  --ml-button-border: color-mix(in srgb, var(--ml-button-line) 56%, transparent);
+}
+ml-button[variant="quiet"] {
+  --ml-button-fill: color-mix(in srgb, var(--ml-button-line) var(--ml-button-quiet-tint), transparent);
+  --ml-button-ink: var(--ml-ink);
+  --ml-button-optical-opacity: .26;
+  background-image: none;
+  box-shadow: none;
+}
+ml-button[variant="danger"] {
+  --ml-button-fill: var(--ml-button-danger-surface);
+  --ml-button-ink: var(--ml-button-danger-ink);
+  --ml-button-border: color-mix(in srgb, var(--ml-button-danger-ink) 30%, transparent);
+}
+ml-button.ml-refractive {
+  -webkit-backdrop-filter: var(--ml-bend) saturate(1.15);
+  backdrop-filter: var(--ml-bend) saturate(1.15);
+}
+ml-button > .ml-optical { z-index: -1; opacity: var(--ml-button-optical-opacity); }
+/* The center carries the label. Retain the strongest reflections on the glass rim. */
+ml-button > .ml-optical svg {
+  mask-image: radial-gradient(ellipse 64% 84% at center, #0002 24%, #000a 68%, black 90%);
+}
+ml-button .ml-optical::after { box-sizing: border-box; }
+ml-button > button {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5em;
+  min-inline-size: min(100%, 44px);
+  min-block-size: max(44px, var(--ml-button-height, 2.75rem));
+  max-inline-size: 100%;
+  margin: 0;
+  padding: .45em var(--ml-button-pad, 1.25em);
+  border: var(--ml-border-width) solid var(--ml-button-border);
+  border-radius: inherit;
+  background: transparent;
+  color: var(--ml-button-ink);
+  font: inherit;
+  font-size: var(--ml-button-font, var(--ml-size-label));
+  font-weight: var(--ml-weight-semibold);
+  line-height: var(--ml-leading-compact);
+  text-align: center;
+  overflow-wrap: anywhere;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+ml-button > button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--ml-ink);
+  opacity: 0;
+  transition: var(--ml-static-transition, opacity var(--ml-tone) ease);
+}
+ml-button:not([variant="secondary"], [variant="quiet"], [variant="danger"]) > button::after { background: white; }
+ml-button > button > svg { flex: none; width: 1.13em; height: 1.13em; }
+ml-button[icon-only] > button { inline-size: max(44px, var(--ml-button-height, 2.75rem)); padding-inline: .35em; }
+ml-button > button:focus-visible { outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: var(--ml-focus-offset); }
+@media (hover: hover) {
+  ml-button > button:enabled:hover::after { opacity: .075; }
+}
+ml-button:has(> button:enabled:active) {
+  scale: var(--ml-button-down);
+  translate: 0 var(--ml-button-dip);
+  transition-duration: var(--ml-button-press-time);
+}
+ml-button > button:enabled:active::after { opacity: .18; }
+ml-button:has(> button:disabled:not([aria-busy="true"])) { opacity: .52; }
+ml-button > button:disabled { cursor: default; }
+ml-button > button[aria-busy="true"] { cursor: progress; }
+ml-button > button[aria-busy="true"] > svg { display: none; }
+ml-button > button[aria-busy="true"]::before {
+  content: "";
+  box-sizing: border-box;
+  flex: none;
+  inline-size: 1.13em;
+  block-size: 1.13em;
+  border: .125em solid currentColor;
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+  animation: var(--ml-button-spin);
+}
+@keyframes ml-button-spin { to { transform: rotate(1turn); } }
+@media (prefers-reduced-motion: reduce) {
+  ml-button { --ml-follow: 0 !important; }
+  ml-button, ml-button > button::before, ml-button > button::after {
+    animation: none !important;
+    transition: none !important;
+    scale: 1 !important;
+    translate: none !important;
+  }
+}
+@media (forced-colors: active) {
+  ml-button.ml-refractive { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  ml-button > .ml-optical { display: none; }
+  ml-button > button { border: var(--ml-border-width) solid ButtonText; background: ButtonFace; color: ButtonText; }
+  ml-button > button:disabled { border-color: GrayText; color: GrayText; }
+  ml-button > button:focus-visible { outline-color: Highlight; }
+}

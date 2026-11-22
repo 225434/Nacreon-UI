@@ -1,0 +1,44 @@
+:root {
+  /* Icon masks from icons.svg */
+}
+.ml-calendar header, .ml-calendar footer { display: flex; align-items: center; justify-content: space-between; gap: var(--ml-space-2); }
+.ml-calendar h2 { margin: .12rem 0 0; color: var(--ml-ink); font-size: var(--ml-size-heading); font-weight: var(--ml-weight-semibold); letter-spacing: var(--ml-tracking-tight); }
+.ml-calendar [data-calendar="prompt"], .ml-calendar [data-calendar="selection"] { color: var(--ml-muted); font-size: var(--ml-size-caption); line-height: var(--ml-leading-compact); }
+.ml-calendar .ml-month-nav { display: flex; }
+.ml-calendar .ml-month-nav button {
+  display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--ml-radius-md); background: transparent;
+}
+.ml-calendar .ml-month-nav button::before {
+  content: ""; display: block; width: 1.22rem; height: 1.22rem; background: currentColor; mask: center / contain no-repeat;
+}
+.ml-calendar .ml-month-nav [data-calendar="prev"]::before { mask-image: var(--ml-calendar-icon-chevron-left); }
+.ml-calendar .ml-month-nav [data-calendar="next"]::before { mask-image: var(--ml-calendar-icon-chevron-right); }
+.ml-calendar:dir(rtl) .ml-month-nav button::before { scale: -1 1; }
+.ml-calendar table {
+  width: 100%; table-layout: fixed; margin: .8rem 0 .6rem; border-collapse: separate; border-spacing: 0 .15rem; text-align: center;
+}
+.ml-calendar th { padding-block: .28rem; color: var(--ml-muted); font-size: var(--ml-size-caption); font-weight: var(--ml-weight-medium); }
+.ml-calendar td { padding: 0; }
+.ml-calendar td button {
+  display: grid; place-items: center; width: 100%; min-height: 2.58rem; border: 0; border-radius: var(--ml-radius-md);
+  color: var(--ml-ink); background: transparent; font-size: var(--ml-size-label); font-variant-numeric: tabular-nums; line-height: 1;
+}
+.ml-calendar td[data-in-range] { background-color: color-mix(in srgb, var(--ml-value-accent) 13%, transparent); }
+.ml-calendar td[data-edge], .ml-calendar td:first-child { border-start-start-radius: var(--ml-radius-md); border-end-start-radius: var(--ml-radius-md); }
+.ml-calendar td[data-edge], .ml-calendar td:last-child { border-start-end-radius: var(--ml-radius-md); border-end-end-radius: var(--ml-radius-md); }
+.ml-calendar td[data-edge] button { background: var(--ml-accent-ink); color: var(--ml-color-surface); font-weight: var(--ml-weight-bold); }
+.ml-calendar td button[aria-current="date"] { text-decoration: underline; text-underline-offset: .25em; }
+.ml-calendar td button:focus-visible { outline-offset: calc(-1 * var(--ml-focus-offset)); outline-color: var(--ml-ink); }
+.ml-calendar footer { border-top: var(--ml-border-width) solid var(--ml-color-separator); padding-block-start: var(--ml-space-2); }
+.ml-calendar [data-calendar="cancel"] { min-height: 44px; padding-inline: .85rem; border: 0; border-radius: var(--ml-radius-md); background: var(--ml-color-fill); }
+@media (hover: hover) {
+  .ml-calendar :is(.ml-month-nav button, td:not([data-edge]) button):enabled:hover {
+    background: color-mix(in srgb, var(--ml-value-accent) 12%, transparent);
+  }
+}
+@media (pointer: coarse) { .ml-calendar td button { min-height: 44px; } }
+@media (forced-colors: active) {
+  .ml-calendar td[data-edge] button { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+  .ml-calendar td[data-in-range]:not([data-edge]) button { border-block: 1px solid Highlight; }
+  .ml-calendar button::before { forced-color-adjust: none; }
+}

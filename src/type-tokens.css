@@ -1,0 +1,23 @@
+/* Relative sizes follow the reader's browser settings. All families resolve locally. */
+:where(:root) {
+  --ml-font-sans: system-ui, "Inter", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --ml-font-serif: "STIX Two Text", Georgia, "Noto Serif CJK SC", SimSun, serif;
+  --ml-font-mono: ui-monospace, Consolas, "Liberation Mono", "Microsoft YaHei", monospace;
+  --ml-size-display: clamp(2.125rem, 1.6rem + 2.5vw, 3.5rem);
+  --ml-size-title: clamp(1.625rem, 1.3rem + 1.35vw, 2.375rem);
+  --ml-size-heading: 1.25rem;
+  --ml-size-body: 1rem;
+  --ml-size-label: .875rem;
+  --ml-size-caption: .8125rem;
+  --ml-size-metric: clamp(1.625rem, 1.32rem + 1.15vw, 2.125rem);
+  --ml-weight-regular: 400;
+  --ml-weight-medium: 500;
+  --ml-weight-semibold: 600;
+  --ml-weight-bold: 700;
+  --ml-leading-tight: 1.2;
+  --ml-leading-compact: 1.4;
+  --ml-leading-body: 1.65;
+  --ml-tracking-tight: -.026em;
+  --ml-tracking-normal: 0em;
+  --ml-measure: 65ch;
+}

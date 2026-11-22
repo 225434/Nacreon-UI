@@ -1,0 +1,33 @@
+:where(ml-data-table, ml-pagination) {
+  display: block; position: relative; isolation: isolate; min-inline-size: 0; max-inline-size: 100%;
+  color: var(--ml-ink); font-variant-numeric: tabular-nums;
+  border: var(--ml-border-width) solid var(--ml-color-separator); border-radius: var(--ml-radius-lg);
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-opacity), transparent);
+  background-image: var(--ml-skin); box-shadow: var(--ml-segment-relief); backdrop-filter: var(--ml-filter);
+}
+:where(ml-data-table, ml-pagination), :where(ml-data-table, ml-pagination) * { box-sizing: border-box; }
+:is(ml-data-table, ml-pagination)[hidden], :is(ml-data-table, ml-pagination) [hidden] { display: none !important; }
+:is(ml-data-table, ml-pagination).ml-refractive { backdrop-filter: var(--ml-bend) blur(3px) saturate(1.1); }
+:is(ml-data-table, ml-pagination) > .ml-optical {
+  display: var(--ml-optics); position: absolute; z-index: -1; inset: 0; border-radius: inherit;
+  pointer-events: none; opacity: .42;
+}
+:is(ml-data-table, ml-pagination) > .ml-optical svg { display: block; width: 100%; height: 100%; border-radius: inherit; overflow: hidden; }
+:where(ml-data-table, ml-pagination) :where(button, input, select) { font: inherit; color: inherit; }
+:is(ml-data-table, ml-pagination) :is(button, input, select, [tabindex]):focus-visible {
+  outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: calc(-1 * var(--ml-focus-offset));
+}
+:where(ml-data-table, ml-pagination) button {
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation; cursor: pointer;
+  transition: background-color var(--ml-tone), color var(--ml-tone), scale var(--ml-travel) var(--ml-ease);
+}
+:where(ml-data-table, ml-pagination) button:enabled:active { scale: var(--ml-press); }
+@media (prefers-reduced-motion: reduce) {
+  :is(ml-data-table, ml-pagination) { --ml-follow: 0 !important; }
+  :is(ml-data-table, ml-pagination) :is(button, tr, td, th) { transition: none !important; animation: none !important; scale: none !important; }
+}
+@media (forced-colors: active) {
+  :is(ml-data-table, ml-pagination), :is(ml-data-table, ml-pagination).ml-refractive {
+    --ml-optics: none; background: Canvas; color: CanvasText; border-color: ButtonText; box-shadow: none; backdrop-filter: none;
+  }
+}

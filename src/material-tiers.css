@@ -1,0 +1,100 @@
+/* Shared by all standalone components and the material library. */
+:root, [data-ml-theme="light"] {
+  --ml-glass-lamp-rgb: 243 249 255;
+  --ml-glass-body-rgb: 138 192 217;
+  --ml-glass-face-gain: .135;
+  --ml-glass-shadow-rgb: 23 37 53;
+  --ml-pointer-tint-rgb: 117 176 223;
+  --ml-pointer-diffuse: .49;
+  --ml-pointer-shine: .42;
+}
+[data-ml-theme="warm"] {
+  --ml-glass-lamp-rgb: 255 242 219;
+  --ml-glass-body-rgb: 220 183 139;
+  --ml-glass-face-gain: .13;
+  --ml-glass-shadow-rgb: 49 36 24;
+  --ml-pointer-tint-rgb: 218 164 97;
+  --ml-pointer-diffuse: .51;
+  --ml-pointer-shine: .37;
+}
+[data-ml-theme="dark"] {
+  --ml-glass-lamp-rgb: 230 241 255;
+  --ml-glass-body-rgb: 75 128 159;
+  --ml-glass-face-gain: .072;
+  --ml-glass-shadow-rgb: 4 10 19;
+  --ml-pointer-tint-rgb: 138 183 220;
+  --ml-pointer-diffuse: .32;
+  --ml-pointer-shine: .17;
+}
+
+:root, [data-ml-material="high"] {
+  --ml-material-level: high;
+  --ml-material-fill-opacity: 32%;
+  --ml-material-border-opacity: 58%;
+  --ml-optics: block;
+  --ml-opacity: 72%;
+  --ml-pearl-opacity: 38%;
+  --ml-selection-opacity: 68%;
+  --ml-glass-core: initial;
+  --ml-filter: saturate(1.15);
+  --ml-skin: linear-gradient(160deg, #ffffff24, transparent 45%, #092a3210 81%, #d9faff38);
+  --ml-rail-relief: inset 0 0 0 .009em #193b3332, inset 0 .018em .028em #ffffff8f,
+    inset 0 -.033em .046em #10392f35, 0 .025em .055em #12251f20, 0 .13em .24em -.12em #162b263d;
+  --ml-gloss: radial-gradient(ellipse at 50% 48%, #ffffff24 18%, transparent 58%, #e6ffff66 83%, #ffffffaa);
+  --ml-knob-relief: inset 0 0 0 .012em #ffffffe0, inset 0 0 .075em .02em #ffffff7a,
+    0 .02em .052em #12332942, 0 .07em .15em -.04em #142d254a;
+  --ml-segment-relief: inset 0 1px 1px #ffffff82, inset 0 -1px 2px #15242c29,
+    0 1px 2px #13212916, 0 5px 12px -8px #13212952;
+  --ml-highlight-relief: inset 0 0 0 1px #ffffff30, inset 0 1px 1px #ffffffa8,
+    inset 0 -1px 2px #17293224, 0 1px 2px #19242c38, 0 3px 6px -3px #19242c36;
+}
+[data-ml-material="medium"], [data-ml-material="low"], [data-ml-material="base"] {
+  --ml-pearl-opacity: 100%;
+  --ml-selection-opacity: 100%;
+  --ml-glass-core: none;
+}
+[data-ml-material="medium"] {
+  --ml-material-level: medium;
+  --ml-material-fill-opacity: 57%;
+  --ml-material-border-opacity: 70%;
+  --ml-optics: none;
+  --ml-opacity: 88%;
+  --ml-filter: blur(7px);
+  --ml-skin: linear-gradient(165deg, #ffffff24, transparent 74%);
+  --ml-rail-relief: inset 0 .016em .033em #ffffff73, 0 .04em .09em #192a3029;
+  --ml-gloss: linear-gradient(150deg, #ffffff7d, transparent 72%);
+  --ml-knob-relief: 0 .026em .07em #17252b3d;
+  --ml-segment-relief: 0 1px 3px #19252b19;
+  --ml-highlight-relief: 0 1px 3px #19252b29;
+}
+[data-ml-material="low"] {
+  --ml-material-level: low;
+  --ml-material-fill-opacity: 100%;
+  --ml-material-border-opacity: 100%;
+  --ml-optics: none;
+  --ml-opacity: 100%;
+  --ml-filter: none;
+  --ml-skin: linear-gradient(180deg, #ffffff36, transparent 56%, #19272c08);
+  --ml-rail-relief: inset 0 .015em 0 #ffffff45;
+  --ml-gloss: none;
+  --ml-knob-relief: 0 .015em .038em #19272c2b;
+  --ml-segment-relief: none;
+  --ml-highlight-relief: inset 0 1px 0 #ffffff4d, 0 1px 1px #19272c14, 0 2px 4px -2px #19272c38;
+}
+[data-ml-material="base"] {
+  --ml-material-level: base;
+  --ml-material-fill-opacity: 100%;
+  --ml-material-border-opacity: 100%;
+  --ml-optics: none;
+  --ml-opacity: 100%;
+  --ml-filter: none;
+  --ml-skin: none;
+  --ml-rail-relief: none;
+  --ml-gloss: none;
+  --ml-knob-relief: none;
+  --ml-segment-relief: none;
+  --ml-highlight-relief: none;
+}
+@media (forced-colors: active) {
+  :root, [data-ml-material] { --ml-material-level: none !important; }
+}

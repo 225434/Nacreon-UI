@@ -1,0 +1,175 @@
+:root {
+  /* Icon masks from icons.svg */
+}
+
+ml-accordion {
+  --ml-accordion-inset: var(--ml-accordion-padding, var(--ml-space-4));
+  --ml-accordion-ink: var(--ml-accordion-accent, var(--ml-color-info));
+  --ml-accordion-icon-size: 2rem;
+  --ml-accordion-rule: color-mix(in srgb, var(--ml-color-separator) var(--ml-material-border-opacity), transparent);
+  --ml-accordion-inner-radius: max(0px, calc(var(--ml-accordion-radius, var(--ml-radius-lg)) - var(--ml-border-width)));
+  position: relative;
+  isolation: isolate;
+  display: block;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  border: var(--ml-border-width) solid var(--ml-accordion-rule);
+  border-radius: var(--ml-accordion-radius, var(--ml-radius-lg));
+  color: var(--ml-color-text);
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-opacity), transparent);
+  background-image: var(--ml-skin);
+  box-shadow: var(--ml-segment-relief);
+  -webkit-backdrop-filter: var(--ml-filter);
+  backdrop-filter: var(--ml-filter);
+  font-family: var(--ml-type-family, var(--ml-font-sans));
+  font-size: var(--ml-size-body);
+  line-height: var(--ml-leading-body);
+  overflow-wrap: anywhere;
+}
+ml-accordion.ml-refractive {
+  -webkit-backdrop-filter: var(--ml-bend) var(--ml-filter);
+  backdrop-filter: var(--ml-bend) var(--ml-filter);
+}
+ml-accordion > .ml-optical {
+  position: absolute;
+  display: var(--ml-optics);
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  opacity: .62;
+  pointer-events: none;
+}
+ml-accordion > .ml-optical > svg { display: block; width: 100%; height: 100%; border-radius: inherit; }
+ml-accordion[hidden], ml-accordion > details[hidden] { display: none !important; }
+
+ml-accordion > details {
+  --ml-accordion-fold: calc(var(--ml-travel) * .57);
+  --ml-accordion-motion: max(var(--ml-accordion-fold), var(--ml-exit-time));
+  min-inline-size: 0;
+}
+ml-accordion > details[open] {
+  --ml-accordion-fold: calc(var(--ml-travel) * .77);
+  --ml-accordion-motion: max(var(--ml-accordion-fold), var(--ml-enter-time));
+}
+ml-accordion > details:nth-child(n+2 of details:not([hidden])) {
+  border-block-start: var(--ml-border-width) solid var(--ml-accordion-rule);
+}
+ml-accordion > details > summary:first-child {
+  display: flex;
+  align-items: center;
+  gap: var(--ml-space-3);
+  box-sizing: border-box;
+  min-block-size: max(44px, var(--ml-accordion-header-size, 3.15rem));
+  padding: .5rem var(--ml-accordion-inset);
+  color: var(--ml-color-text);
+  font-weight: var(--ml-weight-semibold);
+  line-height: var(--ml-leading-compact);
+  list-style: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color var(--ml-tone) ease-out;
+}
+ml-accordion > details > summary::-webkit-details-marker { display: none; }
+ml-accordion > details:nth-child(1 of details:not([hidden])) > summary:first-child {
+  border-start-start-radius: var(--ml-accordion-inner-radius);
+  border-start-end-radius: var(--ml-accordion-inner-radius);
+}
+ml-accordion > details:nth-last-child(1 of details:not([hidden])):not([open]) > summary:first-child {
+  border-end-start-radius: var(--ml-accordion-inner-radius);
+  border-end-end-radius: var(--ml-accordion-inner-radius);
+}
+ml-accordion > details[open] > summary:first-child {
+  background-color: color-mix(in srgb, var(--ml-accordion-ink) 4%, transparent);
+}
+@media (hover: hover) {
+  ml-accordion > details > summary:first-child:hover {
+    background-color: color-mix(in srgb, var(--ml-accordion-ink) 8%, transparent);
+  }
+}
+ml-accordion > details > summary:first-child:active {
+  background-color: color-mix(in srgb, var(--ml-accordion-ink) 13%, transparent);
+}
+ml-accordion > details > summary:first-child:focus-visible {
+  outline: var(--ml-focus-width) solid var(--ml-focus);
+  outline-offset: calc(-1 * var(--ml-focus-offset));
+}
+ml-accordion > details > summary:first-child::after {
+  content: "";
+  flex: none;
+  inline-size: 1rem;
+  block-size: 1rem;
+  margin-inline-start: auto;
+  background-color: var(--ml-color-text-secondary);
+  mask: var(--ml-accordion-icon-chevron-down) center / contain no-repeat;
+  transition: transform var(--ml-accordion-fold) var(--ml-ease), background-color var(--ml-tone) ease-out;
+}
+ml-accordion > details[open] > summary:first-child::after {
+  transform: rotate(180deg);
+  background-color: var(--ml-accordion-ink);
+}
+ml-accordion > details > summary > .ml-accordion-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: var(--ml-accordion-icon-size);
+  block-size: var(--ml-accordion-icon-size);
+  border-radius: var(--ml-radius-sm);
+  color: var(--ml-accordion-ink);
+  background-color: color-mix(in srgb, currentColor 10%, transparent);
+}
+ml-accordion > details > .ml-accordion-panel {
+  display: flow-root;
+  box-sizing: border-box;
+  min-block-size: 0;
+  min-inline-size: 0;
+  padding: var(--ml-space-3) var(--ml-accordion-inset) var(--ml-space-4);
+}
+ml-accordion > details:has(> summary > .ml-accordion-icon) > .ml-accordion-panel {
+  padding-inline-start: calc(var(--ml-accordion-inset) + var(--ml-accordion-icon-size) + var(--ml-space-3));
+}
+ml-accordion > details > .ml-accordion-panel > :first-child { margin-block-start: 0; }
+ml-accordion > details > .ml-accordion-panel > :last-child { margin-block-end: 0; }
+ml-accordion > details > .ml-accordion-panel img { max-inline-size: 100%; }
+
+/* Keep the browser in charge of disclosure. The grid follows the panel's intrinsic height. */
+@supports (transition-behavior: allow-discrete) and selector(details::details-content) {
+  ml-accordion:defined > details:has(> summary:first-child + .ml-accordion-panel:last-child)::details-content {
+    display: grid;
+    grid-template-rows: minmax(0, 0fr);
+    overflow: clip;
+    transition: grid-template-rows var(--ml-accordion-fold) var(--ml-ease),
+      content-visibility var(--ml-accordion-motion) ease-out allow-discrete,
+      overflow var(--ml-accordion-motion) var(--ml-accordion-overflow, step-start) allow-discrete;
+  }
+  ml-accordion:defined > details[open]:has(> summary:first-child + .ml-accordion-panel:last-child)::details-content {
+    --ml-accordion-overflow: step-end;
+    grid-template-rows: minmax(0, 1fr);
+    overflow: visible;
+  }
+  ml-accordion:defined > details > summary:first-child + .ml-accordion-panel:last-child {
+    opacity: 0;
+    translate: 0 calc(var(--ml-enter-shift) * -.24);
+    transition: opacity var(--ml-accordion-motion) ease-out, translate var(--ml-accordion-fold) var(--ml-ease);
+  }
+  ml-accordion:defined > details[open] > summary:first-child + .ml-accordion-panel:last-child { opacity: 1; translate: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  ml-accordion > details > .ml-accordion-panel { translate: none !important; }
+}
+@media (forced-colors: active) {
+  ml-accordion, ml-accordion.ml-refractive {
+    --ml-accordion-rule: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  ml-accordion > details > summary:first-child::after {
+    forced-color-adjust: none;
+    background-color: ButtonText;
+  }
+  ml-accordion > details[open] > summary:first-child::after { background-color: Highlight; }
+  ml-accordion > details > summary:first-child:focus-visible { outline-color: Highlight; }
+}

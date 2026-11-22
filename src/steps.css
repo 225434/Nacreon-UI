@@ -1,0 +1,187 @@
+ml-steps {
+  /* Icon masks from icons.svg */
+  --ml-step-size: 2.125rem;
+  --ml-step-accent: var(--ml-steps-accent, var(--ml-color-info));
+  --ml-step-rule: color-mix(in srgb, var(--ml-color-text-tertiary) 55%, var(--ml-color-surface));
+  position: relative;
+  isolation: isolate;
+  display: block;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  padding: var(--ml-space-2) var(--ml-space-3);
+  border: var(--ml-border-width) solid color-mix(in srgb, var(--ml-color-separator) var(--ml-material-border-opacity), transparent);
+  border-radius: var(--ml-steps-radius, var(--ml-radius-lg));
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-opacity), transparent);
+  background-image: var(--ml-skin);
+  box-shadow: var(--ml-segment-relief);
+  -webkit-backdrop-filter: var(--ml-filter);
+  backdrop-filter: var(--ml-filter);
+  color: var(--ml-color-text);
+  font-family: var(--ml-type-family, var(--ml-font-sans));
+  font-size: var(--ml-steps-font, var(--ml-size-label));
+  line-height: var(--ml-leading-compact);
+}
+ml-steps.ml-refractive {
+  -webkit-backdrop-filter: var(--ml-bend) var(--ml-filter);
+  backdrop-filter: var(--ml-bend) var(--ml-filter);
+}
+ml-steps > .ml-optical {
+  display: var(--ml-optics); position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  pointer-events: none; opacity: .66;
+}
+ml-steps > .ml-optical > svg {
+  display: block; inline-size: 100%; block-size: 100%; overflow: hidden; border-radius: inherit;
+}
+ml-steps[hidden], ml-steps > ol > [hidden] { display: none !important; }
+ml-steps > ol {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+ml-steps > ol > li[data-step] { position: relative; min-inline-size: 0; }
+ml-steps > ol > li[data-step]:where(:has(~ li[data-step]:not([hidden])))::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-block-start: calc(var(--ml-space-2) + (var(--ml-step-size) - 2px) / 2);
+  inset-inline-start: calc(50% + var(--ml-step-size) / 2 + var(--ml-space-1));
+  inline-size: max(0px, calc(100% - var(--ml-step-size) - 2 * var(--ml-space-1)));
+  block-size: 2px;
+  border-radius: var(--ml-radius-pill);
+  background-color: var(--ml-step-rule);
+  transition: background-color var(--ml-tone) ease;
+}
+ml-steps > ol > li[data-complete]:not([data-error])::after { background-color: var(--ml-step-accent); }
+ml-steps > ol > li[data-step] > :is(button, a, span, div) {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: var(--ml-space-2);
+  position: relative;
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 44px;
+  padding: var(--ml-space-2);
+  border: 0;
+  border-radius: var(--ml-radius-md);
+  background: transparent;
+  color: var(--ml-color-text-secondary);
+  font: inherit;
+  font-weight: var(--ml-weight-medium);
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+ml-steps > ol > li > :is(button:enabled, a[href]) { cursor: pointer; touch-action: manipulation; }
+ml-steps > ol > li > button:disabled { opacity: 1; }
+ml-steps > ol > li > :is(button, a):focus-visible {
+  outline: var(--ml-focus-width) solid var(--ml-focus);
+  outline-offset: calc(-1 * var(--ml-focus-offset));
+}
+.ml-step-label { display: block; min-inline-size: 0; }
+.ml-step-detail {
+  display: block;
+  margin-block-start: var(--ml-space-1);
+  color: var(--ml-color-text-secondary);
+  font-size: var(--ml-size-caption);
+  font-weight: var(--ml-weight-regular);
+}
+.ml-step-marker {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: var(--ml-step-size);
+  block-size: var(--ml-step-size);
+  border: var(--ml-border-width) solid var(--ml-step-rule);
+  border-radius: 50%;
+  background-color: var(--ml-color-surface);
+  color: var(--ml-color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--ml-weight-semibold);
+  transition: var(--ml-static-transition, background-color var(--ml-tone), border-color var(--ml-tone), scale var(--ml-travel) var(--ml-ease));
+}
+ml-steps [aria-current="step"] {
+  color: var(--ml-step-accent);
+  font-weight: var(--ml-weight-semibold);
+}
+ml-steps [aria-current="step"] > .ml-step-marker {
+  color: var(--ml-color-surface);
+  background-color: var(--ml-step-accent);
+  border-color: var(--ml-step-accent);
+  outline: 2px solid color-mix(in srgb, var(--ml-step-accent) 36%, transparent);
+  outline-offset: 2px;
+  animation: var(--ml-static-transition, ml-step-current var(--ml-enter-time) var(--ml-ease) both);
+}
+ml-steps [data-ml-step-state="complete"] .ml-step-marker {
+  color: var(--ml-step-accent);
+  background-color: color-mix(in srgb, var(--ml-step-accent) 12%, var(--ml-color-surface));
+  border-color: color-mix(in srgb, var(--ml-step-accent) 34%, var(--ml-color-surface));
+  font-size: 0;
+  --ml-step-icon: var(--ml-steps-icon-check);
+}
+ml-steps [data-ml-step-state="error"] .ml-step-marker {
+  color: var(--ml-color-danger);
+  background-color: color-mix(in srgb, var(--ml-color-danger) 11%, var(--ml-color-surface));
+  border-color: var(--ml-color-danger);
+  font-size: 0;
+  --ml-step-icon: var(--ml-steps-icon-warning);
+}
+ml-steps [data-error] > [aria-current="step"] { color: var(--ml-color-danger); }
+ml-steps [data-error] [aria-current="step"] > .ml-step-marker {
+  outline-color: color-mix(in srgb, var(--ml-color-danger) 30%, transparent);
+}
+ml-steps :is([data-ml-step-state="complete"], [data-ml-step-state="error"]) .ml-step-marker::before {
+  content: ""; position: absolute; inline-size: 1.12rem; block-size: 1.12rem; background: currentColor;
+  -webkit-mask: var(--ml-step-icon) center / contain no-repeat;
+  mask: var(--ml-step-icon) center / contain no-repeat;
+}
+.ml-step-status {
+  position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+@media (hover: hover) {
+  ml-steps > ol > li > :is(button:enabled, a[href]):hover {
+    background-color: color-mix(in srgb, var(--ml-step-accent) 7%, transparent);
+    color: var(--ml-step-accent);
+  }
+}
+ml-steps > ol > li > :is(button:enabled, a[href]):active > .ml-step-marker { scale: var(--ml-press); }
+@keyframes ml-step-current { from { opacity: .7; scale: var(--ml-enter-scale); } }
+
+ml-steps:is([orientation="vertical"], [data-ml-steps-vertical]) > ol { grid-auto-flow: row; }
+ml-steps:is([orientation="vertical"], [data-ml-steps-vertical]) > ol > li[data-step] > :is(button, a, span, div) {
+  grid-template-columns: var(--ml-step-size) minmax(0, 1fr);
+  align-items: start;
+  justify-items: start;
+  column-gap: var(--ml-space-3);
+  text-align: start;
+}
+ml-steps:is([orientation="vertical"], [data-ml-steps-vertical]) :is(.ml-step-label, .ml-step-copy) { align-self: center; }
+ml-steps:is([orientation="vertical"], [data-ml-steps-vertical]) > ol > li[data-step]::after {
+  inset-inline-start: calc(var(--ml-space-2) + (var(--ml-step-size) - 2px) / 2);
+  inset-block-start: calc(var(--ml-space-2) + var(--ml-step-size) + var(--ml-space-1));
+  inset-block-end: calc(var(--ml-space-1) - var(--ml-space-2));
+  inline-size: 2px;
+  block-size: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  ml-steps { --ml-follow: 0 !important; }
+  ml-steps .ml-step-marker, ml-steps > ol > li[data-step]::after {
+    animation: none !important; transition: none !important; scale: none !important;
+  }
+}
+@media (forced-colors: active) {
+  ml-steps, ml-steps.ml-refractive { background: Canvas; color: CanvasText; border-color: CanvasText; box-shadow: none; backdrop-filter: none; }
+  ml-steps > ol > li[data-step]::after { background: GrayText; forced-color-adjust: none; }
+  ml-steps > ol > li[data-complete]:not([data-error])::after { background: Highlight; }
+  ml-steps .ml-step-marker { color: CanvasText; background: Canvas; border-color: CanvasText; }
+  ml-steps [aria-current="step"] > .ml-step-marker { outline-color: Highlight; }
+  ml-steps :is([data-ml-step-state="complete"], [data-ml-step-state="error"]) .ml-step-marker::before {
+    forced-color-adjust: none; background: CanvasText;
+  }
+}

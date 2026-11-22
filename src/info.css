@@ -1,0 +1,135 @@
+/* The same surface can hold a single field, a metric or arbitrary document content. */
+:root, [data-ml-material="high"] {
+  --ml-card-opacity: 88%;
+  --ml-card-shadow: inset 0 1px 1px #fff8, inset 0 -1px 1px #1b27301a, 0 7px 18px -11px #15243866;
+}
+[data-ml-material="medium"] { --ml-card-opacity: 94%; --ml-card-shadow: initial; }
+[data-ml-material="low"] { --ml-card-opacity: 100%; --ml-card-shadow: 0 1px 3px #17263716; }
+[data-ml-material="base"] { --ml-card-opacity: 100%; --ml-card-shadow: none; }
+
+:is(ml-info-pill, ml-info-card, ml-card) {
+  --ml-card-accent: var(--ml-color-info);
+  position: relative; isolation: isolate; box-sizing: border-box; min-inline-size: 0; max-inline-size: 100%;
+  color: var(--ml-color-text); overflow-wrap: anywhere;
+  border: var(--ml-border-width) solid var(--ml-color-separator); background-color: var(--ml-color-surface);
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-card-opacity), transparent);
+  background-image: var(--ml-skin); box-shadow: var(--ml-card-shadow, var(--ml-shadow-raised));
+  -webkit-backdrop-filter: var(--ml-filter); backdrop-filter: var(--ml-filter);
+}
+:is(ml-info-pill, ml-info-card, ml-card)[tone="neutral"] { --ml-card-accent: var(--ml-color-neutral); }
+:is(ml-info-pill, ml-info-card, ml-card)[tone="success"] { --ml-card-accent: var(--ml-color-success); }
+:is(ml-info-pill, ml-info-card, ml-card)[tone="warning"] { --ml-card-accent: var(--ml-color-warning); }
+:is(ml-info-pill, ml-info-card, ml-card)[tone="danger"] { --ml-card-accent: var(--ml-color-danger); }
+:is(ml-info-pill, ml-info-card, ml-card)[hidden] { display: none; }
+:is(ml-info-pill, ml-info-card, ml-card).ml-refractive {
+  -webkit-backdrop-filter: var(--ml-bend) blur(3px) saturate(1.1); backdrop-filter: var(--ml-bend) blur(3px) saturate(1.1);
+}
+:is(ml-info-pill, ml-info-card, ml-card) > .ml-optical { z-index: -1; opacity: .7; }
+:is(ml-info-pill, ml-info-card, ml-card) > .ml-optical svg {
+  mask-image: radial-gradient(ellipse farthest-side, transparent 40%, #0003 76%, black);
+}
+:is(ml-info-pill, ml-info-card, ml-card) > .ml-optical::after { box-sizing: border-box; }
+
+ml-info-pill {
+  display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; vertical-align: middle;
+  gap: .36em; min-block-size: max(2.1em, 32px); padding: .26em .82em; border-radius: var(--ml-radius-pill);
+  font-size: var(--ml-pill-font, var(--ml-size-label)); line-height: var(--ml-leading-compact); font-variant-numeric: tabular-nums;
+  transition: var(--ml-static-transition, border-color var(--ml-tone) ease-out);
+}
+ml-info-pill strong { font-weight: var(--ml-weight-semibold); }
+ml-info-pill .ml-pill-label { color: var(--ml-color-text-secondary); }
+ml-info-pill .ml-pill-mark, ml-info-pill .ml-pill-hint, :is(ml-info-card, ml-card) .ml-card-mark {
+  display: inline-grid; flex: none; place-items: center; color: var(--ml-card-accent);
+}
+ml-info-pill :is(.ml-pill-mark, .ml-pill-hint) { line-height: 1; }
+ml-info-pill .ml-pill-hint { margin-inline-start: .2em; }
+ml-info-pill .ml-pill-hint :is(ml-icon, svg) { width: .98em; height: .98em; }
+ml-info-pill:has(> ml-hover-card) { padding: 0; }
+ml-info-pill:has(> ml-hover-card:is(:hover, :focus-within, [data-ml-hover-open])) { border-color: var(--ml-card-accent); }
+ml-info-pill > ml-hover-card { max-inline-size: 100%; border-radius: inherit; }
+ml-info-pill > ml-hover-card > button {
+  display: inline-flex; flex-wrap: wrap; gap: .4em; min-block-size: max(2.1em, 32px); padding: .32em .88em;
+  color: var(--ml-color-text); background: transparent; border: 0; border-radius: inherit;
+  font: inherit; text-align: center; transition: var(--ml-static-transition, transform var(--ml-travel) var(--ml-ease));
+}
+ml-info-pill > ml-hover-card > button:enabled:active { transform: scale(var(--ml-press)); }
+
+ml-info-card, ml-card {
+  display: grid; align-content: start; gap: .95rem; inline-size: 100%;
+  padding: var(--ml-card-padding, clamp(1.05rem, 2.8vw, var(--ml-space-5))); border-radius: var(--ml-card-radius, 1.15rem);
+  font-size: var(--ml-size-body); line-height: 1.5;
+}
+:is(ml-info-card, ml-card) > :not(.ml-optical) { min-inline-size: 0; }
+:is(ml-info-card, ml-card) .ml-card-header { display: flex; align-items: center; gap: var(--ml-space-3); }
+:is(ml-info-card, ml-card) .ml-card-header > :not(.ml-card-mark) { min-inline-size: 0; }
+:is(ml-info-card, ml-card) .ml-card-mark {
+  inline-size: 2.45rem; block-size: 2.45rem; border-radius: var(--ml-radius-md);
+  background: color-mix(in srgb, var(--ml-card-accent) 11%, var(--ml-color-surface));
+}
+:is(ml-info-card, ml-card) .ml-card-mark :is(ml-icon, svg) { display: block; inline-size: 1.35rem; block-size: 1.35rem; }
+:is(ml-info-card, ml-card) .ml-card-title { margin: 0; font-size: var(--ml-size-heading); line-height: var(--ml-leading-compact); font-weight: var(--ml-weight-semibold); }
+:is(ml-info-card, ml-card) .ml-card-meta { margin: .12rem 0 0; font-size: var(--ml-size-caption); color: var(--ml-color-text-secondary); }
+ml-info-card .ml-info-value {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: .4rem; margin: 0;
+  font-size: var(--ml-size-metric); font-weight: var(--ml-weight-semibold); line-height: 1.05;
+  letter-spacing: var(--ml-tracking-tight); font-variant-numeric: tabular-nums;
+}
+ml-info-card .ml-info-value small {
+  color: var(--ml-color-text-secondary); font-size: var(--ml-size-label); font-weight: var(--ml-weight-medium); letter-spacing: normal; line-height: var(--ml-leading-compact);
+}
+ml-info-card progress {
+  display: block; appearance: none; box-sizing: border-box; inline-size: 100%; block-size: .42rem;
+  margin: 0; overflow: hidden; border: 0; border-radius: 99px; background: var(--ml-color-fill); color: var(--ml-card-accent); accent-color: var(--ml-card-accent);
+}
+ml-info-card progress::-webkit-progress-bar { background: var(--ml-color-fill); border-radius: 99px; }
+ml-info-card progress::-webkit-progress-value {
+  background: var(--ml-card-accent); border-radius: 99px;
+  transition: var(--ml-static-transition, width var(--ml-travel) var(--ml-ease), background-color var(--ml-tone) ease-out);
+}
+ml-info-card progress::-moz-progress-bar {
+  background: var(--ml-card-accent); border-radius: 99px;
+  transition: var(--ml-static-transition, transform var(--ml-travel) var(--ml-ease), background-color var(--ml-tone) ease-out);
+}
+:is(ml-info-card, ml-card) .ml-info-facts {
+  display: grid; gap: var(--ml-space-2); margin: 0; font-size: var(--ml-size-label); line-height: 1.5; font-variant-numeric: tabular-nums;
+}
+:is(ml-info-card, ml-card) .ml-info-facts > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .1rem var(--ml-space-3); }
+:is(ml-info-card, ml-card) .ml-info-facts dt { color: var(--ml-color-text-secondary); }
+:is(ml-info-card, ml-card) .ml-info-facts dd { margin: 0; font-weight: var(--ml-weight-medium); }
+ml-card .ml-card-body { margin: 0; font-size: var(--ml-size-body); line-height: var(--ml-leading-body); }
+ml-card .ml-card-footer { margin: 0; padding-block-start: .72rem; border-block-start: var(--ml-border-width) solid var(--ml-color-separator); }
+ml-card .ml-card-disclosure > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: .6rem; min-block-size: 2rem;
+  color: var(--ml-card-accent); border-radius: .25rem; font-size: var(--ml-size-label); font-weight: var(--ml-weight-semibold);
+  list-style: none; cursor: pointer; touch-action: manipulation;
+  transition: var(--ml-static-transition, color var(--ml-tone) ease-out);
+}
+ml-card .ml-card-disclosure > summary::-webkit-details-marker { display: none; }
+ml-card .ml-card-disclosure > summary::after {
+  content: ""; flex: none; inline-size: .46rem; block-size: .46rem; margin-inline-end: .22rem;
+  border: solid currentColor; border-width: 0 .11rem .11rem 0; transform: rotate(45deg);
+  transition: var(--ml-static-transition, transform var(--ml-travel) var(--ml-ease));
+}
+ml-card .ml-card-disclosure[open] > summary::after { transform: rotate(225deg); }
+ml-card .ml-card-disclosure > summary:hover { color: var(--ml-color-text); text-decoration: underline; text-underline-offset: .2em; }
+ml-card .ml-card-disclosure > summary:focus-visible { outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: var(--ml-focus-offset); }
+ml-card .ml-card-disclosure[open] > :not(summary) {
+  margin-block-start: .55rem; animation: var(--ml-static-transition, ml-card-reveal var(--ml-tone) ease-out);
+}
+@keyframes ml-card-reveal { from { opacity: 0; } to { opacity: 1; } }
+
+@media (pointer: coarse) {
+  ml-info-pill > ml-hover-card > button { min-block-size: 44px; }
+  ml-card .ml-card-disclosure > summary { min-block-size: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(ml-info-pill, ml-info-card, ml-card) { --ml-follow: 0 !important; --ml-static-transition: none; --ml-press: 1; }
+}
+@media (forced-colors: active) {
+  :is(ml-info-pill, ml-info-card, ml-card), :is(ml-info-pill, ml-info-card, ml-card).ml-refractive {
+    color: CanvasText; background: Canvas; border-color: CanvasText; box-shadow: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  :is(ml-info-pill, ml-info-card, ml-card) > .ml-optical { display: none; }
+  ml-info-card progress { appearance: auto; }
+}

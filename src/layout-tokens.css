@@ -1,0 +1,18 @@
+:where(:root) {
+  --ml-space-1: .25rem;
+  --ml-space-2: .5rem;
+  --ml-space-3: .75rem;
+  --ml-space-4: 1rem;
+  --ml-space-5: 1.5rem;
+  --ml-space-6: 2rem;
+  --ml-space-7: 3rem;
+  --ml-space-8: 4rem;
+  --ml-radius-sm: .5rem;
+  --ml-radius-md: .75rem;
+  --ml-radius-lg: 1rem;
+  --ml-radius-xl: 1.5rem;
+  --ml-radius-pill: 999px;
+  --ml-border-width: 1px;
+  --ml-focus-width: 2px;
+  --ml-focus-offset: 3px;
+}

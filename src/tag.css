@@ -1,0 +1,139 @@
+:root {
+  /* Icon masks from icons.svg */
+}
+:root, [data-ml-theme="light"], [data-ml-theme="warm"], [data-ml-theme="dark"] {
+  --ml-tag-neutral: var(--ml-color-neutral);
+  --ml-tag-info: var(--ml-color-info);
+  --ml-tag-success: var(--ml-color-success);
+  --ml-tag-warning: var(--ml-color-warning);
+  --ml-tag-danger: var(--ml-color-danger);
+}
+:root, [data-ml-theme="light"] {
+  --ml-tag-tint: 9%;
+}
+[data-ml-theme="warm"] {
+  --ml-tag-tint: 10%;
+}
+[data-ml-theme="dark"] {
+  --ml-tag-tint: 12%;
+}
+:root, [data-ml-material="high"] {
+  --ml-tag-alpha: 77%;
+  --ml-tag-coat: initial;
+  --ml-tag-shadow: inset 0 1px 1px #fff8, inset 0 -1px 2px #27333e1f,
+    0 2px 4px -2px #1b293b35, 0 6px 13px -7px #1c314b4d;
+}
+[data-ml-material="medium"] {
+  --ml-tag-alpha: 87%; --ml-tag-coat: none;
+  --ml-tag-shadow: initial;
+}
+[data-ml-material="low"] {
+  --ml-tag-alpha: 100%; --ml-tag-coat: none; --ml-tag-shadow: 0 1px 2px #1b293b19;
+}
+[data-ml-material="base"] {
+  --ml-tag-alpha: 100%; --ml-tag-coat: none; --ml-tag-shadow: none;
+}
+.ml-tag-group { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ml-space-2); min-inline-size: 0; }
+ml-tag {
+  --ml-tag-ink: var(--ml-tag-neutral);
+  --ml-tag-pigment: var(--ml-tag-ink);
+  --ml-tag-fill: color-mix(in srgb, var(--ml-tag-pigment) var(--ml-tag-tint), var(--ml-tag-paper, var(--ml-color-surface)));
+  --ml-tag-line: color-mix(in srgb, var(--ml-tag-pigment) 28%, transparent);
+  --ml-tag-mark: var(--ml-tag-icon-tag);
+  box-sizing: border-box; display: inline-flex; position: relative; isolation: isolate;
+  align-items: center; flex: 0 1 auto; vertical-align: middle;
+  max-inline-size: 100%; min-inline-size: 0; min-block-size: var(--ml-tag-height, 1.9rem);
+  padding: .16em var(--ml-tag-pad, .75em); gap: .38em;
+  border: var(--ml-border-width) solid var(--ml-tag-line); border-radius: var(--ml-tag-radius, var(--ml-radius-pill));
+  background-color: var(--ml-tag-fill);
+  background-color: color-mix(in srgb, var(--ml-tag-fill) var(--ml-tag-alpha), transparent);
+  background-image: var(--ml-tag-coat, radial-gradient(ellipse at center, var(--ml-tag-fill) 32%, transparent 95%)), var(--ml-skin);
+  color: var(--ml-tag-ink); box-shadow: var(--ml-tag-shadow, var(--ml-shadow-raised));
+  -webkit-backdrop-filter: var(--ml-filter); backdrop-filter: var(--ml-filter); font-size: var(--ml-tag-font, var(--ml-size-label)); font-weight: var(--ml-weight-semibold); line-height: var(--ml-leading-compact);
+  transition: var(--ml-static-transition, scale var(--ml-travel) var(--ml-ease), translate var(--ml-travel) var(--ml-ease),
+    opacity var(--ml-tone) ease, background-color var(--ml-tone) ease, border-color var(--ml-tone) ease, color var(--ml-tone) ease);
+}
+@starting-style { ml-tag { opacity: 0; scale: var(--ml-tag-enter); translate: 0 var(--ml-tag-rise); } }
+ml-tag[hidden] { display: none; }
+ml-tag[tone="info"] {
+  --ml-tag-ink: var(--ml-tag-info); --ml-tag-pigment: var(--ml-blue);
+  --ml-tag-mark: var(--ml-tag-icon-info);
+}
+ml-tag[tone="success"] {
+  --ml-tag-ink: var(--ml-tag-success);
+  --ml-tag-mark: var(--ml-tag-icon-check-circle);
+}
+ml-tag[tone="warning"] {
+  --ml-tag-ink: var(--ml-tag-warning);
+  --ml-tag-mark: var(--ml-tag-icon-clock);
+}
+ml-tag[tone="danger"] {
+  --ml-tag-ink: var(--ml-tag-danger);
+  --ml-tag-mark: var(--ml-tag-icon-warning);
+}
+ml-tag.ml-refractive { -webkit-backdrop-filter: var(--ml-bend) saturate(1.12); backdrop-filter: var(--ml-bend) saturate(1.12); }
+ml-tag > .ml-optical { z-index: -1; opacity: .85; }
+ml-tag > .ml-optical svg {
+  mask-image: radial-gradient(ellipse closest-side, transparent 73%, #0002 85%, #0009 96%, black);
+}
+ml-tag > .ml-optical::after { box-sizing: border-box; }
+ml-tag .ml-tag-text { min-inline-size: 0; overflow-wrap: anywhere; }
+ml-tag:not([kind="filter"], [kind="removable"])::before, ml-tag > button::before {
+  content: ""; display: block; flex: none; width: 1.05em; height: 1.05em;
+  background: currentColor; -webkit-mask: var(--ml-tag-mark) center / contain no-repeat;
+  mask: var(--ml-tag-mark) center / contain no-repeat;
+}
+ml-tag > button {
+  position: relative; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
+  gap: .38em; min-inline-size: 0; max-inline-size: 100%; align-self: stretch;
+  margin: 0; padding: 0; border: 0; border-radius: inherit; color: inherit; background: transparent;
+  font: inherit; line-height: inherit; text-align: start; cursor: pointer;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  transition: var(--ml-static-transition, background-color var(--ml-tone) ease);
+}
+ml-tag[kind="filter"] {
+  --ml-tag-mark: var(--ml-tag-icon-plus);
+  padding: 0;
+}
+ml-tag[kind="filter"] > button { padding: .22em var(--ml-tag-pad, .75em); }
+ml-tag[kind="filter"][selected] {
+  --ml-tag-fill: var(--ml-blue); --ml-tag-line: var(--ml-blue); --ml-tag-ink: var(--ml-on-accent);
+  --ml-tag-feedback: white;
+  --ml-tag-mark: var(--ml-tag-icon-check);
+}
+ml-tag[kind="removable"] {
+  --ml-tag-mark: var(--ml-tag-icon-close);
+  padding-block: 0; padding-inline-end: 0; gap: 0;
+}
+ml-tag[kind="removable"] > button { flex: none; min-inline-size: max(var(--ml-tag-height, 1.9rem), 28px); }
+ml-tag[kind="removable"] > button::before {
+  width: 1.14em; height: 1.14em; border-radius: 50%;
+  /* Cut the cross out of the tinted disc so the underlying material shows through. */
+  background: color-mix(in srgb, currentColor 76%, transparent);
+  -webkit-mask: linear-gradient(black, black), var(--ml-tag-mark) center / contain no-repeat;
+  mask: linear-gradient(black, black), var(--ml-tag-mark) center / contain no-repeat;
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+ml-tag > button:focus-visible { outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: var(--ml-focus-offset); }
+ml-tag:has(> button:disabled) { opacity: .53; }
+ml-tag > button:disabled { cursor: default; }
+@media (hover: hover) {
+  ml-tag > button:enabled:hover { background-color: color-mix(in srgb, var(--ml-tag-feedback, currentColor) 8%, transparent); }
+}
+ml-tag:has(> button:enabled:active) { scale: var(--ml-tag-press); }
+ml-tag > button:enabled:active { background-color: color-mix(in srgb, var(--ml-tag-feedback, currentColor) 14%, transparent); }
+@media (pointer: coarse) {
+  ml-tag:is([kind="filter"], [kind="removable"]) { min-block-size: max(var(--ml-tag-height, 1.9rem), 46px); }
+  ml-tag[kind="filter"] > button, ml-tag[kind="removable"] > button { min-inline-size: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  ml-tag { --ml-follow: 0 !important; scale: 1 !important; translate: none !important; }
+  ml-tag, ml-tag > button { transition: none !important; }
+}
+@media (forced-colors: active) {
+  ml-tag, ml-tag.ml-refractive { background: Canvas; color: CanvasText; border-color: CanvasText; box-shadow: none; backdrop-filter: none; }
+  ml-tag > .ml-optical { display: none; }
+  ml-tag[kind="filter"][selected] { background: Highlight; color: HighlightText; border-color: Highlight; }
+  ml-tag::before, ml-tag > button::before { forced-color-adjust: none; }
+  ml-tag:has(> button:disabled) { opacity: 1; color: GrayText; border-color: GrayText; }
+}

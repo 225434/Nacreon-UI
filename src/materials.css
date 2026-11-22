@@ -1,0 +1,34 @@
+ml-material {
+  position: relative; isolation: isolate; display: inline-block; box-sizing: border-box;
+  padding: var(--ml-material-padding, .7em 1.1em);
+  border: var(--ml-border-width) solid color-mix(in srgb, var(--ml-color-separator) var(--ml-material-border-opacity), transparent);
+  border-radius: var(--ml-material-radius, var(--ml-radius-lg));
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-material-fill-opacity), transparent);
+  background-image: var(--ml-skin);
+  box-shadow: var(--ml-highlight-relief);
+  -webkit-backdrop-filter: var(--ml-filter);
+  backdrop-filter: var(--ml-filter);
+  color: var(--ml-color-text);
+}
+ml-material.ml-refractive {
+  background-image: linear-gradient(to bottom, rgb(var(--ml-glass-lamp-rgb) / .045), transparent 55%);
+  box-shadow: 0 1px 2px rgb(var(--ml-glass-shadow-rgb) / .09);
+  -webkit-backdrop-filter: var(--ml-bend) var(--ml-filter);
+  backdrop-filter: var(--ml-bend) var(--ml-filter);
+}
+ml-material[hidden] { display: none !important; }
+ml-material > .ml-optical {
+  display: var(--ml-optics); position: absolute; inset: 0; z-index: -1;
+  border-radius: inherit; pointer-events: none;
+}
+ml-material > .ml-optical svg { display: block; inline-size: 100%; block-size: 100%; border-radius: inherit; overflow: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  ml-material { --ml-follow: 0 !important; }
+}
+@media (forced-colors: active) {
+  ml-material, ml-material.ml-refractive {
+    --ml-optics: none !important;
+    background: Canvas; color: CanvasText; border-color: CanvasText; box-shadow: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+}

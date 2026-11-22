@@ -1,0 +1,79 @@
+/* A native progress element remains visible until the enhanced view is ready. */
+ml-progress {
+  display: block; position: relative; box-sizing: border-box; inline-size: 100%; min-inline-size: 0;
+  color: var(--ml-color-text);
+}
+ml-progress[hidden] { display: none; }
+ml-progress > progress { inline-size: 100%; accent-color: var(--ml-progress-accent, var(--ml-color-info)); }
+ml-progress[data-ml-progress-ready] > progress {
+  position: absolute; inline-size: 1px; block-size: 1px; margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+
+ml-progress .ml-progress-view {
+  --ml-progress-ink: var(--ml-progress-accent, var(--ml-color-info));
+  display: grid; gap: var(--ml-progress-gap, var(--ml-space-2)); min-inline-size: 0;
+}
+ml-progress .ml-progress-view[data-state="paused"] { --ml-progress-ink: var(--ml-color-warning); }
+ml-progress .ml-progress-view[data-state="error"] { --ml-progress-ink: var(--ml-color-danger); }
+ml-progress .ml-progress-view[data-state="complete"] { --ml-progress-ink: var(--ml-color-success); }
+ml-progress .ml-progress-head, ml-progress .ml-progress-reading {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: .18em .55em;
+  line-height: var(--ml-leading-compact); font-size: var(--ml-progress-font, var(--ml-size-label));
+}
+ml-progress .ml-progress-label {
+  flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; font-weight: var(--ml-weight-medium);
+}
+ml-progress .ml-progress-reading { margin-inline-start: auto; color: var(--ml-progress-ink); }
+ml-progress .ml-progress-status { font-weight: var(--ml-weight-medium); }
+ml-progress .ml-progress-number {
+  font-size: var(--ml-progress-number-size, 1em); font-weight: var(--ml-weight-semibold); letter-spacing: var(--ml-tracking-tight); font-variant-numeric: tabular-nums;
+}
+ml-progress :is(.ml-progress-label, .ml-progress-status, .ml-progress-number):empty { display: none; }
+ml-progress-track {
+  display: block; position: relative; isolation: isolate; overflow: hidden; box-sizing: border-box;
+  inline-size: 100%; block-size: var(--ml-progress-height, .57rem); border-radius: var(--ml-radius-pill);
+  background-color: var(--ml-color-separator);
+  background-color: color-mix(in srgb, var(--ml-color-separator) var(--ml-opacity), transparent);
+  background-image: var(--ml-skin); box-shadow: var(--ml-highlight-relief);
+  -webkit-backdrop-filter: var(--ml-filter); backdrop-filter: var(--ml-filter);
+}
+ml-progress-track.ml-refractive {
+  -webkit-backdrop-filter: var(--ml-bend) saturate(1.1); backdrop-filter: var(--ml-bend) saturate(1.1);
+}
+ml-progress :is(.ml-progress-fill, .ml-progress-activity) {
+  position: absolute; inset-block: 0; inset-inline-start: 0;
+  border-radius: inherit; color: var(--ml-color-surface); background-color: var(--ml-progress-ink); background-image: var(--ml-skin);
+  box-shadow: var(--ml-segment-relief);
+}
+ml-progress .ml-progress-fill {
+  inline-size: var(--ml-progress-level, 0%);
+  transition: var(--ml-static-transition, inline-size max(var(--ml-travel), var(--ml-tone)) cubic-bezier(.2, .8, .28, 1), background-color var(--ml-tone) ease-out);
+}
+ml-progress .ml-progress-activity, ml-progress .ml-progress-view[data-indeterminate] .ml-progress-fill { display: none; }
+ml-progress .ml-progress-view[data-at-start] .ml-progress-fill { visibility: hidden; transition: none; }
+ml-progress-track > .ml-optical { z-index: 1; opacity: .74; }
+ml-progress-track > .ml-optical::after { box-sizing: border-box; }
+ml-progress .ml-progress-view[data-indeterminate] .ml-progress-activity {
+  display: block; inline-size: var(--ml-progress-wait-size); animation: var(--ml-progress-wait);
+  background-image: var(--ml-progress-pattern, var(--ml-skin));
+}
+ml-progress .ml-progress-view:is([data-state="paused"], [data-state="error"]) .ml-progress-activity { animation-play-state: paused; }
+@keyframes ml-progress-sweep { from { inset-inline-start: 0; } to { inset-inline-start: 68%; } }
+@keyframes ml-progress-breathe { from { opacity: .55; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  ml-progress-track { --ml-follow: 0 !important; --ml-progress-wait: none; --ml-progress-wait-size: 100%; --ml-progress-pattern: var(--ml-progress-stripes); }
+  ml-progress .ml-progress-fill { transition: none; }
+}
+@media (forced-colors: active) {
+  ml-progress-track, ml-progress-track.ml-refractive {
+    forced-color-adjust: none; border: var(--ml-border-width) solid CanvasText; background: Canvas; box-shadow: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  ml-progress :is(.ml-progress-fill, .ml-progress-activity) { background-color: Highlight; background-image: none; box-shadow: none; }
+  ml-progress .ml-progress-view[data-indeterminate] .ml-progress-activity {
+    background-image: repeating-linear-gradient(120deg, transparent 0 .32rem, Canvas .32rem .48rem);
+  }
+  ml-progress-track > .ml-optical { display: none; }
+}

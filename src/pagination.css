@@ -1,0 +1,80 @@
+:root {
+  /* Icon masks from icons.svg */
+}
+ml-pagination { container-type: inline-size; inline-size: 100%; }
+ml-pagination .ml-page-nav {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .6rem var(--ml-space-4);
+  padding: .8rem var(--ml-space-4); color: var(--ml-ink); font-size: var(--ml-size-label); line-height: var(--ml-leading-compact);
+}
+ml-pagination .ml-page-summary { grid-column: 1; grid-row: 1; color: var(--ml-muted); overflow-wrap: anywhere; }
+ml-pagination .ml-page-links, ml-pagination .ml-page-numbers, ml-pagination .ml-page-options,
+ml-pagination .ml-page-size, ml-pagination .ml-page-jump, ml-pagination .ml-page-jump label {
+  display: flex; align-items: center; gap: var(--ml-space-1); min-width: 0;
+}
+ml-pagination .ml-page-links { grid-area: 2 / 1 / 3 / -1; justify-self: start; max-inline-size: 100%; flex-wrap: wrap; }
+ml-pagination .ml-page-numbers { display: contents; }
+ml-pagination .ml-page-fraction { display: none; padding: 0 .6rem; white-space: nowrap; }
+ml-pagination[compact] .ml-page-numbers, ml-pagination .ml-page-nav[data-empty] .ml-page-numbers { display: none; }
+ml-pagination[compact] .ml-page-fraction, ml-pagination .ml-page-nav[data-empty] .ml-page-fraction { display: inline; }
+ml-pagination .ml-page-links button, ml-pagination .ml-page-jump button {
+  display: inline-grid; place-items: center; min-width: 2.25rem; min-height: 2.25rem; margin: 0;
+  padding: var(--ml-space-1) .46rem; border: var(--ml-border-width) solid transparent; border-radius: .62rem; background: transparent; line-height: 1.25;
+}
+ml-pagination .ml-page-links button[aria-current="page"] {
+  color: var(--ml-color-surface); background-color: var(--ml-accent-ink); font-weight: var(--ml-weight-semibold); box-shadow: var(--ml-highlight-relief);
+}
+ml-pagination .ml-page-links button[data-page-action] { color: var(--ml-accent-ink); }
+ml-pagination .ml-page-links button:disabled, ml-pagination .ml-page-jump :disabled, ml-pagination select:disabled {
+  opacity: .48; cursor: default;
+}
+ml-pagination .ml-page-gap { display: grid; place-items: center; min-width: 1.2rem; color: var(--ml-muted); }
+ml-pagination .ml-page-arrival { display: inline-grid; animation: ml-page-arrive var(--ml-travel) var(--ml-ease); }
+@keyframes ml-page-arrive { from { opacity: .7; scale: .93; } to { opacity: 1; scale: 1; } }
+ml-pagination [data-page-action="prev"]::before, ml-pagination [data-page-action="next"]::before,
+ml-pagination .ml-page-size > span::after {
+  content: ""; width: 1rem; height: 1rem; background: currentColor; mask: var(--ml-pagination-icon-chevron-left) center / contain no-repeat;
+}
+ml-pagination [data-page-action="next"]::before { mask-image: var(--ml-pagination-icon-chevron-right); }
+ml-pagination:dir(rtl) .ml-page-links [data-page-action]::before { transform: scaleX(-1); }
+ml-pagination .ml-page-options { grid-area: 1 / 2; justify-content: end; gap: var(--ml-space-3); flex-wrap: wrap; }
+ml-pagination .ml-page-size, ml-pagination .ml-page-jump label { gap: .38rem; white-space: nowrap; color: var(--ml-muted); }
+ml-pagination .ml-page-size > span { position: relative; display: inline-flex; }
+ml-pagination select, ml-pagination .ml-page-jump input, ml-pagination .ml-page-jump button {
+  min-width: 0; min-height: 2.1rem; border: var(--ml-border-width) solid var(--ml-color-separator); border-radius: var(--ml-radius-sm); background: var(--ml-color-surface);
+}
+ml-pagination select { appearance: none; padding: .2rem 1.48rem .2rem var(--ml-space-2); padding-inline: var(--ml-space-2) 1.48rem; cursor: pointer; color: var(--ml-ink); }
+ml-pagination .ml-page-size > span::after {
+  position: absolute; inset-inline-end: .42rem; top: calc(50% - .38rem); width: .76rem; height: .76rem;
+  mask-image: var(--ml-pagination-icon-chevron-down); pointer-events: none;
+}
+ml-pagination .ml-page-jump input { width: 3.25rem; padding: .2rem .3rem; text-align: center; color: var(--ml-ink); }
+ml-pagination .ml-page-jump button { padding-inline: .62rem; color: var(--ml-accent-ink); }
+ml-pagination .ml-page-error { grid-column: 1 / -1; color: var(--ml-color-danger); font-size: var(--ml-size-label); }
+@container (min-width: 45rem) {
+  ml-pagination .ml-page-nav:not([data-long-pages]):not(:has(.ml-page-jump:not([hidden]))) { grid-template-columns: minmax(0, 1fr) auto auto; }
+  ml-pagination .ml-page-nav:not([data-long-pages]):not(:has(.ml-page-jump:not([hidden]))) .ml-page-links { grid-area: 1 / 2; }
+  ml-pagination .ml-page-nav:not([data-long-pages]):not(:has(.ml-page-jump:not([hidden]))) .ml-page-options { grid-area: 1 / 3; }
+}
+@container (max-width: 26rem) {
+  ml-pagination .ml-page-numbers { display: none; }
+  ml-pagination .ml-page-fraction { display: inline; }
+  ml-pagination .ml-page-nav { grid-template-columns: minmax(0, 1fr); gap: var(--ml-space-2); }
+  ml-pagination .ml-page-links { grid-area: 1 / 1; }
+  ml-pagination .ml-page-summary { grid-area: 2 / 1; }
+  ml-pagination .ml-page-options { grid-area: 3 / 1; justify-content: start; }
+}
+@media (hover: hover) {
+  ml-pagination .ml-page-links button:enabled:not([aria-current]):hover, ml-pagination .ml-page-jump button:enabled:hover {
+    background: color-mix(in srgb, var(--ml-color-action) 12%, transparent);
+  }
+}
+@media (pointer: coarse) {
+  ml-pagination .ml-page-links button, ml-pagination .ml-page-jump button { min-width: 44px; min-height: 44px; }
+  ml-pagination .ml-page-options :is(input, select) { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { ml-pagination .ml-page-arrival { animation: none; } }
+@media (forced-colors: active) {
+  ml-pagination .ml-page-links button[aria-current="page"] { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+  ml-pagination button:disabled { color: GrayText; opacity: 1; }
+  ml-pagination [data-page-action]::before, ml-pagination .ml-page-size > span::after { forced-color-adjust: none; }
+}

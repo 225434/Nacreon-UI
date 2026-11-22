@@ -1,0 +1,41 @@
+:root {
+  /* Icon masks from icons.svg */
+}
+ml-time-picker { --ml-picker-icon: var(--ml-time-picker-icon-clock); --ml-picker-panel-width: 21.5rem; }
+.ml-time-panel h2 { margin: 0; font-size: var(--ml-size-body); font-weight: var(--ml-weight-semibold); }
+.ml-time-reading {
+  margin-block-start: .18rem; color: var(--ml-ink); font-size: var(--ml-size-metric); font-weight: var(--ml-weight-semibold);
+  line-height: var(--ml-leading-tight); letter-spacing: var(--ml-tracking-tight);
+}
+.ml-time-columns {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--ml-space-2);
+  margin-block: var(--ml-space-4);
+}
+.ml-time-label {
+  display: block; margin-block-end: var(--ml-space-1); text-align: center;
+  color: var(--ml-muted); font-size: var(--ml-size-caption); font-weight: var(--ml-weight-medium);
+}
+.ml-time-list {
+  position: relative; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  block-size: min(12.5rem, 39dvh); min-block-size: 3.1rem;
+  padding: var(--ml-space-1);
+  border: var(--ml-border-width) solid var(--ml-color-separator); border-radius: var(--ml-radius-md);
+  background-color: color-mix(in srgb, var(--ml-color-fill) 56%, transparent);
+}
+.ml-time-list:focus-visible { outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: 1px; }
+.ml-time-list [role="option"] {
+  display: grid; place-items: center; min-block-size: 44px;
+  border-radius: var(--ml-radius-sm); color: var(--ml-muted); cursor: pointer;
+  font-weight: var(--ml-weight-medium); touch-action: pan-y;
+  transition: background-color var(--ml-tone) ease-out, color var(--ml-tone) ease-out;
+}
+.ml-time-list [aria-selected="true"] {
+  background-color: color-mix(in srgb, var(--ml-color-info) 14%, var(--ml-color-surface));
+  color: var(--ml-accent-ink); font-weight: var(--ml-weight-semibold);
+}
+@media (hover: hover) {
+  .ml-time-list [aria-selected="false"]:hover { background-color: color-mix(in srgb, var(--ml-color-info) 8%, transparent); color: var(--ml-ink); }
+}
+@media (forced-colors: active) {
+  .ml-time-list [aria-selected="true"] { forced-color-adjust: none; color: HighlightText; background: Highlight; }
+}

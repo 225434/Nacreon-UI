@@ -1,0 +1,92 @@
+:root {
+  /* Icon masks from icons.svg */
+}
+ml-choice-group { display: block; min-inline-size: 0; max-inline-size: 100%; color: var(--ml-color-text); }
+ml-choice-group[hidden], label:has(> ml-choice)[hidden], ml-choice[hidden] { display: none; }
+ml-choice-group > fieldset { min-inline-size: 0; margin: 0; border: 0; padding: 0; }
+ml-choice-group > fieldset > legend {
+  box-sizing: border-box; max-inline-size: 100%; margin: 0 0 .32rem; padding: 0;
+  color: var(--ml-color-text); font-size: 1em; font-weight: var(--ml-weight-semibold); line-height: var(--ml-leading-compact); overflow-wrap: anywhere;
+}
+label:has(> ml-choice) {
+  display: inline-flex; align-items: center; gap: var(--ml-space-3); box-sizing: border-box;
+  min-inline-size: 44px; min-block-size: 44px; max-inline-size: 100%; padding-block: var(--ml-space-1);
+  color: var(--ml-color-text); font-size: var(--ml-size-label); line-height: var(--ml-leading-compact); overflow-wrap: anywhere;
+  cursor: pointer; touch-action: manipulation;
+}
+ml-choice-group fieldset > label:has(> ml-choice) { display: flex; }
+ml-choice-group[layout="inline"] > fieldset {
+  display: flex; flex-flow: row nowrap; align-items: center; column-gap: var(--ml-space-4);
+  box-sizing: border-box; max-inline-size: 100%; overflow-x: auto;
+  padding-inline: .375rem; scroll-padding-inline: .375rem;
+}
+ml-choice-group[layout="inline"] > fieldset > label:has(> ml-choice) {
+  flex: none; max-inline-size: none; white-space: nowrap;
+}
+label:has(> ml-choice > input:disabled) { color: var(--ml-color-text-tertiary); cursor: not-allowed; }
+
+ml-choice {
+  --ml-choice-fill: var(--ml-color-surface);
+  --ml-choice-line: color-mix(in srgb, var(--ml-color-text-tertiary) 83%, var(--ml-color-surface));
+  --ml-choice-active: var(--ml-choice-accent, var(--ml-color-action));
+  position: relative; isolation: isolate; box-sizing: border-box; display: inline-grid; place-items: center;
+  flex: none; inline-size: var(--ml-choice-size, 1.25rem); block-size: var(--ml-choice-size, 1.25rem);
+  vertical-align: middle; border-radius: 27%; border: var(--ml-border-width) solid var(--ml-choice-line);
+  background-color: var(--ml-choice-fill); background-image: var(--ml-skin); box-shadow: var(--ml-segment-relief);
+  background-color: color-mix(in srgb, var(--ml-choice-fill) var(--ml-opacity), transparent);
+  -webkit-backdrop-filter: var(--ml-filter); backdrop-filter: var(--ml-filter);
+  transition: background-color var(--ml-tone) ease, border-color var(--ml-tone) ease, transform var(--ml-travel) var(--ml-ease);
+}
+ml-choice.ml-refractive {
+  -webkit-backdrop-filter: var(--ml-bend) saturate(1.12); backdrop-filter: var(--ml-bend) saturate(1.12);
+}
+ml-choice > .ml-optical { opacity: .68; }
+ml-choice > .ml-optical svg { mask-image: radial-gradient(ellipse farthest-side, transparent 33%, #000a 83%, black); }
+ml-choice > input:is([type="checkbox"], [type="radio"]) {
+  position: absolute; z-index: 2; inset: 0; box-sizing: border-box; inline-size: 100%; block-size: 100%;
+  margin: 0; padding: 0; opacity: 0; cursor: inherit;
+}
+ml-choice:has(> input[type="radio"]) { border-radius: 50%; }
+ml-choice:has(> input:checked, > input[type="checkbox"]:indeterminate) {
+  --ml-choice-fill: var(--ml-choice-active);
+  --ml-choice-line: color-mix(in srgb, var(--ml-choice-active) 86%, #173355);
+  background-color: var(--ml-choice-fill);
+}
+ml-choice::after {
+  content: ""; position: absolute; z-index: 1; pointer-events: none; inset: 0; margin: auto;
+  inline-size: 100%; block-size: 100%; background: var(--ml-choice-ink, white);
+  -webkit-mask: var(--ml-choice-icon-check) center / 118% no-repeat;
+  mask: var(--ml-choice-icon-check) center / 118% no-repeat;
+  opacity: 0; transform: scale(var(--ml-choice-rest-scale));
+  transition: opacity var(--ml-tone) ease, transform var(--ml-travel) var(--ml-ease);
+}
+ml-choice:has(> input[type="radio"])::after {
+  inline-size: 43%; block-size: 43%; border-radius: 50%; -webkit-mask: none; mask: none;
+}
+ml-choice:has(> input[type="checkbox"]:indeterminate)::after {
+  inline-size: 55%; block-size: max(2px, .1em); border-radius: 1em; -webkit-mask: none; mask: none;
+}
+ml-choice:has(> input:checked, > input[type="checkbox"]:indeterminate)::after { opacity: 1; transform: none; }
+ml-choice:has(> input:focus-visible) { outline: var(--ml-focus-width) solid var(--ml-choice-active); outline-offset: var(--ml-focus-offset); }
+ml-choice:has(> input[aria-invalid="true"]) { border-color: var(--ml-color-danger); outline-color: var(--ml-color-danger); }
+ml-choice:has(> input:disabled) { opacity: .58; }
+label:has(> ml-choice):active > ml-choice:not(:has(> input:disabled)) { transform: scale(var(--ml-choice-press-scale)); }
+
+@media (prefers-reduced-motion: reduce) {
+  ml-choice { --ml-follow: 0 !important; --ml-choice-press-scale: 1; }
+  ml-choice, ml-choice::after { transition: none; }
+}
+@media (forced-colors: active) {
+  ml-choice, ml-choice.ml-refractive {
+    forced-color-adjust: none; background: Canvas; border-color: ButtonText; box-shadow: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  ml-choice:has(> input:checked, > input[type="checkbox"]:indeterminate) { background: Highlight; border-color: Highlight; }
+  ml-choice:has(> input:disabled) { border-color: GrayText; opacity: 1; }
+  ml-choice:has(> input:disabled:checked, > input[type="checkbox"]:disabled:indeterminate) { background: GrayText; }
+  ml-choice::after { background: HighlightText; }
+  ml-choice:has(> input[aria-invalid="true"]) { border-color: ButtonText; border-style: dashed; }
+  ml-choice:has(> input:focus-visible) { outline-color: Highlight; }
+  ml-choice > .ml-optical { display: none; }
+  label:has(> ml-choice > input:disabled) { color: GrayText; }
+}

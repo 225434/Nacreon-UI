@@ -1,0 +1,30 @@
+ml-stepper { inline-size: 15rem; grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem; row-gap: var(--ml-space-2); }
+ml-stepper > label { grid-column: 1 / 3; }
+ml-stepper > [data-ml-part="reading"] { max-width: 100%; color: var(--ml-muted); font-size: .8em; }
+ml-stepper > ml-value-surface { grid-area: 2 / 1 / 3 / -1; }
+ml-stepper > input { min-inline-size: 0; }
+ml-stepper[data-ml-ready] > input {
+  grid-area: 2 / 2 / 3 / 3; position: relative; width: 100%; min-height: 44px; margin: 0; padding: var(--ml-space-1) .1rem;
+  appearance: textfield; -moz-appearance: textfield; border: 0; border-radius: .32rem;
+  color: var(--ml-ink); background: transparent; font: inherit; font-size: 1.08em; font-weight: var(--ml-weight-semibold);
+  font-variant-numeric: tabular-nums; text-align: center; z-index: 1;
+}
+ml-stepper > input::-webkit-inner-spin-button, ml-stepper > input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+ml-stepper > button {
+  display: grid; place-content: center; grid-row: 2; position: relative; z-index: 1; min-height: 44px;
+  padding: 0; border: 0; background: transparent; border-radius: var(--ml-radius-md); color: var(--ml-accent-ink);
+}
+ml-stepper > [data-ml-part="minus"] { grid-column: 1; }
+ml-stepper > [data-ml-part="plus"] { grid-column: 3; }
+ml-stepper > button::before, ml-stepper > [data-ml-part="plus"]::after {
+  content: ""; grid-area: 1 / 1; place-self: center; width: .9rem; height: 2px; background: currentColor; border-radius: 2px;
+}
+ml-stepper > [data-ml-part="plus"]::after { transform: rotate(90deg); }
+ml-stepper > input:disabled { color: var(--ml-muted); }
+ml-stepper > button:enabled:active { background-color: color-mix(in srgb, var(--ml-value-accent) 15%, transparent); }
+@media (hover: hover) {
+  ml-stepper > button:enabled:hover { background-color: color-mix(in srgb, var(--ml-value-accent) 10%, transparent); }
+}
+@media (forced-colors: active) {
+  ml-stepper > button::before, ml-stepper > [data-ml-part="plus"]::after { forced-color-adjust: none; }
+}

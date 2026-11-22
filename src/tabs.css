@@ -1,0 +1,188 @@
+ml-tabs {
+  --ml-tabs-ink: var(--ml-tabs-accent, var(--ml-color-info));
+  --ml-tabs-inset: var(--ml-space-2);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  box-sizing: border-box;
+  min-inline-size: 0;
+  inline-size: 100%;
+  border: var(--ml-border-width) solid color-mix(in srgb, var(--ml-color-separator) var(--ml-material-border-opacity), transparent);
+  border-radius: var(--ml-tabs-radius, var(--ml-radius-xl));
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-opacity), transparent);
+  background-image: var(--ml-skin);
+  box-shadow: var(--ml-segment-relief);
+  -webkit-backdrop-filter: var(--ml-filter);
+  backdrop-filter: var(--ml-filter);
+  color: var(--ml-color-text);
+  font-family: var(--ml-type-family, var(--ml-font-sans));
+  font-size: var(--ml-size-body);
+  line-height: var(--ml-leading-body);
+}
+ml-tabs.ml-refractive {
+  -webkit-backdrop-filter: var(--ml-bend) var(--ml-filter);
+  backdrop-filter: var(--ml-bend) var(--ml-filter);
+}
+ml-tabs > .ml-optical {
+  display: var(--ml-optics);
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  opacity: .62;
+  pointer-events: none;
+}
+ml-tabs > .ml-optical > svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+ml-tabs > [data-ml-tablist] {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-self: start;
+  align-items: stretch;
+  gap: var(--ml-space-1);
+  min-inline-size: 0;
+  padding: var(--ml-tabs-inset) var(--ml-space-3);
+  border-block-end: var(--ml-border-width) solid var(--ml-color-separator);
+  border-start-start-radius: inherit;
+  border-start-end-radius: inherit;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ml-color-separator) transparent;
+}
+ml-tabs > [data-ml-tablist] > button[data-tab] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: .48em;
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  max-inline-size: 100%;
+  margin: 0;
+  padding: .42em var(--ml-tabs-tab-padding, var(--ml-space-3));
+  border: 0;
+  border-radius: var(--ml-radius-md);
+  background: transparent;
+  color: var(--ml-color-text-secondary);
+  font: inherit;
+  font-size: var(--ml-size-label);
+  font-weight: var(--ml-weight-medium);
+  line-height: var(--ml-leading-compact);
+  text-align: start;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: var(--ml-static-transition, background-color var(--ml-tone), color var(--ml-tone));
+}
+ml-tabs button[data-tab] > :is(svg, ml-icon) {
+  flex: none;
+  inline-size: 1.1rem;
+  block-size: 1.1rem;
+}
+ml-tabs > [data-ml-tablist] > button[aria-selected="true"] {
+  color: var(--ml-tabs-ink);
+  font-weight: var(--ml-weight-semibold);
+}
+ml-tabs > [data-ml-tablist] > button:is(:disabled, [aria-disabled="true"]) {
+  color: var(--ml-color-text-tertiary);
+  opacity: .64;
+  cursor: default;
+}
+ml-tabs > [data-ml-tablist] > button[aria-disabled="true"] { pointer-events: none; }
+@media (hover: hover) {
+  ml-tabs > [data-ml-tablist] > button:not(:disabled, [aria-disabled="true"]):hover {
+    background-color: color-mix(in srgb, var(--ml-tabs-ink) 8%, transparent);
+  }
+}
+ml-tabs > [data-ml-tablist] > button:focus-visible, ml-tabs > [data-panel]:focus-visible {
+  outline: var(--ml-focus-width) solid var(--ml-focus);
+  outline-offset: calc(-1 * var(--ml-focus-offset));
+}
+
+.ml-tabs-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: var(--ml-tab-w, 0px);
+  height: var(--ml-tab-h, 0px);
+  translate: var(--ml-tab-x, 0px) var(--ml-tab-y, 0px);
+  pointer-events: none;
+  transition: var(--ml-static-transition, translate var(--ml-travel) var(--ml-ease),
+    width var(--ml-travel) var(--ml-ease), height var(--ml-travel) var(--ml-ease));
+}
+.ml-tabs-marker::before {
+  content: "";
+  position: absolute;
+  inset-inline: var(--ml-space-3);
+  inset-block-end: 0;
+  block-size: 3px;
+  border-radius: var(--ml-radius-pill);
+  background: var(--ml-tabs-ink);
+}
+ml-tabs[variant="pill"] .ml-tabs-marker::before {
+  inset: 0;
+  block-size: auto;
+  border-radius: var(--ml-radius-pill);
+  border: var(--ml-border-width) solid color-mix(in srgb, var(--ml-tabs-ink) 22%, transparent);
+  background-color: color-mix(in srgb, var(--ml-tabs-ink) 12%, var(--ml-color-surface));
+  background-image: var(--ml-skin);
+  box-shadow: var(--ml-highlight-relief);
+}
+ml-tabs[variant="pill"] > [data-ml-tablist] > button { border-radius: var(--ml-radius-pill); }
+
+ml-tabs[data-ml-vertical] {
+  grid-template-columns: minmax(0, var(--ml-tabs-side-width, min(31%, 10.25rem))) minmax(0, 1fr);
+}
+ml-tabs[data-ml-vertical] > [data-ml-tablist] {
+  flex-direction: column;
+  align-self: stretch;
+  max-block-size: var(--ml-tabs-side-height, 26rem);
+  padding-inline: var(--ml-tabs-inset);
+  border-block-end: 0;
+  border-inline-end: var(--ml-border-width) solid var(--ml-color-separator);
+  border-start-end-radius: 0;
+  border-end-start-radius: inherit;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+ml-tabs[data-ml-vertical] > [data-ml-tablist] > button { min-inline-size: 0; }
+ml-tabs[data-ml-vertical]:not([variant="pill"]) .ml-tabs-marker::before {
+  inset-inline: 0 auto;
+  inset-block: var(--ml-space-3);
+  inline-size: 3px;
+  block-size: auto;
+}
+
+ml-tabs > [data-panel] {
+  min-inline-size: 0;
+  padding: var(--ml-tabs-panel-padding, clamp(var(--ml-space-3), 4vw, var(--ml-space-5)));
+  border-radius: var(--ml-radius-lg);
+  overflow-wrap: anywhere;
+  animation: var(--ml-static-transition, ml-tabs-fade var(--ml-enter-time) var(--ml-front-ease));
+}
+ml-tabs[hidden], ml-tabs > [hidden], ml-tabs > [data-ml-tablist] > :is([hidden], [data-ml-tab-orphan]) { display: none !important; }
+@keyframes ml-tabs-fade { from { opacity: 0; } }
+
+@media (forced-colors: active) {
+  ml-tabs, ml-tabs.ml-refractive {
+    color: CanvasText; background: Canvas; border-color: CanvasText; box-shadow: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  ml-tabs > [data-ml-tablist] { border-color: CanvasText; }
+  ml-tabs > [data-ml-tablist] > button[aria-selected="true"] {
+    color: Highlight; text-decoration: underline; text-underline-offset: .22em;
+  }
+}

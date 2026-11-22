@@ -1,0 +1,787 @@
+/* Generated from src/colors.css and src/themes.css and src/type-tokens.css and src/layout-tokens.css and src/material-tiers.css and src/motion-tiers.css and src/typography.css and src/appearance.css and src/button.css and src/form.css by build.mjs. */
+/* Material Library · sRGB. Set data-ml-theme on the page or a local container. */
+:root, [data-ml-theme="light"], [data-ml-theme="warm"], [data-ml-theme="dark"] {
+  --ml-color-action: var(--ml-color-blue);
+}
+
+/* Base hues shared by the light and warm themes. */
+:root, [data-ml-theme="light"], [data-ml-theme="warm"] {
+  --ml-color-blue: #0088ff;
+  --ml-color-indigo: #6155f5;
+  --ml-color-purple: #cb30e0;
+  --ml-color-pink: #ff2d55;
+  --ml-color-red: #ff383c;
+  --ml-color-orange: #ff8d28;
+  --ml-color-yellow: #ffcc00;
+  --ml-color-green: #34c759;
+  --ml-color-mint: #00c8b3;
+  --ml-color-teal: #00c3d0;
+  --ml-color-cyan: #00c0e8;
+  --ml-color-brown: #ac7f5e;
+
+  /* Darker inks for small text on light and tinted surfaces. */
+  --ml-color-info: #195ac8;
+  --ml-color-success: #007029;
+  --ml-color-warning: #a24400;
+  --ml-color-danger: #bf1125;
+  --ml-color-neutral: #515154;
+
+  --ml-color-background: #f2f2f7;
+  --ml-color-surface: #ffffff;
+  --ml-color-fill: #e5e5ea;
+  --ml-color-separator: #d1d1d6;
+  --ml-color-text: #1d1d1f;
+  --ml-color-text-secondary: #48484a;
+  --ml-color-text-tertiary: #636366;
+}
+
+[data-ml-theme="warm"] {
+  --ml-color-neutral: #615950;
+  --ml-color-background: #f8f5ef;
+  --ml-color-surface: #fffdf8;
+  --ml-color-fill: #f1ece3;
+  --ml-color-separator: #dfd8ca;
+  --ml-color-text: #2d2923;
+  --ml-color-text-secondary: #625b50;
+  --ml-color-text-tertiary: #70695e;
+}
+
+[data-ml-theme="dark"] {
+  --ml-color-blue: #0091ff;
+  --ml-color-indigo: #6d7cff;
+  --ml-color-purple: #db34f2;
+  --ml-color-pink: #ff375f;
+  --ml-color-red: #ff4245;
+  --ml-color-orange: #ff9230;
+  --ml-color-yellow: #ffd600;
+  --ml-color-green: #30d158;
+  --ml-color-mint: #00dac3;
+  --ml-color-teal: #00d2e0;
+  --ml-color-cyan: #3cd3fe;
+  --ml-color-brown: #b78a66;
+
+  --ml-color-info: #5cb8ff;
+  --ml-color-success: #4ad968;
+  --ml-color-warning: #ffa056;
+  --ml-color-danger: #ff8588;
+  --ml-color-neutral: #c7c7cc;
+
+  --ml-color-background: #000000;
+  --ml-color-surface: #1c1c1e;
+  --ml-color-fill: #2c2c2e;
+  --ml-color-separator: #3a3a3c;
+  --ml-color-text: #f5f5f7;
+  --ml-color-text-secondary: #c7c7cc;
+  --ml-color-text-tertiary: #aeaeb2;
+}
+
+/* A named scope also sets the appearance of native controls inside it. */
+[data-ml-theme="light"], [data-ml-theme="warm"] { color-scheme: light; }
+[data-ml-theme="dark"] { color-scheme: dark; }
+/* Components resolve elevation on the painted surface so nested themes use their own shadows. */
+:root, [data-ml-theme="light"] {
+  --ml-shadow-raised: 0 2px 6px rgb(20 32 48 / .10);
+  --ml-shadow-overlay: 0 8px 28px rgb(20 32 48 / .18);
+}
+[data-ml-theme="warm"] {
+  --ml-shadow-raised: 0 2px 6px rgb(65 45 24 / .12);
+  --ml-shadow-overlay: 0 8px 28px rgb(65 45 24 / .18);
+}
+[data-ml-theme="dark"] {
+  --ml-shadow-raised: 0 2px 6px rgb(0 0 0 / .38);
+  --ml-shadow-overlay: 0 8px 28px rgb(0 0 0 / .56);
+}
+[data-ml-theme-surface] { background-color: var(--ml-color-background); color: var(--ml-color-text); }
+@media (forced-colors: active) {
+  [data-ml-theme-surface] { color: CanvasText; background-color: Canvas; }
+}
+
+/* Relative sizes follow the reader's browser settings. All families resolve locally. */
+:where(:root) {
+  --ml-font-sans: system-ui, "Inter", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --ml-font-serif: "STIX Two Text", Georgia, "Noto Serif CJK SC", SimSun, serif;
+  --ml-font-mono: ui-monospace, Consolas, "Liberation Mono", "Microsoft YaHei", monospace;
+  --ml-size-display: clamp(2.125rem, 1.6rem + 2.5vw, 3.5rem);
+  --ml-size-title: clamp(1.625rem, 1.3rem + 1.35vw, 2.375rem);
+  --ml-size-heading: 1.25rem;
+  --ml-size-body: 1rem;
+  --ml-size-label: .875rem;
+  --ml-size-caption: .8125rem;
+  --ml-size-metric: clamp(1.625rem, 1.32rem + 1.15vw, 2.125rem);
+  --ml-weight-regular: 400;
+  --ml-weight-medium: 500;
+  --ml-weight-semibold: 600;
+  --ml-weight-bold: 700;
+  --ml-leading-tight: 1.2;
+  --ml-leading-compact: 1.4;
+  --ml-leading-body: 1.65;
+  --ml-tracking-tight: -.026em;
+  --ml-tracking-normal: 0em;
+  --ml-measure: 65ch;
+}
+
+:where(:root) {
+  --ml-space-1: .25rem;
+  --ml-space-2: .5rem;
+  --ml-space-3: .75rem;
+  --ml-space-4: 1rem;
+  --ml-space-5: 1.5rem;
+  --ml-space-6: 2rem;
+  --ml-space-7: 3rem;
+  --ml-space-8: 4rem;
+  --ml-radius-sm: .5rem;
+  --ml-radius-md: .75rem;
+  --ml-radius-lg: 1rem;
+  --ml-radius-xl: 1.5rem;
+  --ml-radius-pill: 999px;
+  --ml-border-width: 1px;
+  --ml-focus-width: 2px;
+  --ml-focus-offset: 3px;
+}
+
+/* Shared by all standalone components and the material library. */
+:root, [data-ml-theme="light"] {
+  --ml-glass-lamp-rgb: 243 249 255;
+  --ml-glass-body-rgb: 138 192 217;
+  --ml-glass-face-gain: .135;
+  --ml-glass-shadow-rgb: 23 37 53;
+  --ml-pointer-tint-rgb: 117 176 223;
+  --ml-pointer-diffuse: .49;
+  --ml-pointer-shine: .42;
+}
+[data-ml-theme="warm"] {
+  --ml-glass-lamp-rgb: 255 242 219;
+  --ml-glass-body-rgb: 220 183 139;
+  --ml-glass-face-gain: .13;
+  --ml-glass-shadow-rgb: 49 36 24;
+  --ml-pointer-tint-rgb: 218 164 97;
+  --ml-pointer-diffuse: .51;
+  --ml-pointer-shine: .37;
+}
+[data-ml-theme="dark"] {
+  --ml-glass-lamp-rgb: 230 241 255;
+  --ml-glass-body-rgb: 75 128 159;
+  --ml-glass-face-gain: .072;
+  --ml-glass-shadow-rgb: 4 10 19;
+  --ml-pointer-tint-rgb: 138 183 220;
+  --ml-pointer-diffuse: .32;
+  --ml-pointer-shine: .17;
+}
+
+:root, [data-ml-material="high"] {
+  --ml-material-level: high;
+  --ml-material-fill-opacity: 32%;
+  --ml-material-border-opacity: 58%;
+  --ml-optics: block;
+  --ml-opacity: 72%;
+  --ml-pearl-opacity: 38%;
+  --ml-selection-opacity: 68%;
+  --ml-glass-core: initial;
+  --ml-filter: saturate(1.15);
+  --ml-skin: linear-gradient(160deg, #ffffff24, transparent 45%, #092a3210 81%, #d9faff38);
+  --ml-rail-relief: inset 0 0 0 .009em #193b3332, inset 0 .018em .028em #ffffff8f,
+    inset 0 -.033em .046em #10392f35, 0 .025em .055em #12251f20, 0 .13em .24em -.12em #162b263d;
+  --ml-gloss: radial-gradient(ellipse at 50% 48%, #ffffff24 18%, transparent 58%, #e6ffff66 83%, #ffffffaa);
+  --ml-knob-relief: inset 0 0 0 .012em #ffffffe0, inset 0 0 .075em .02em #ffffff7a,
+    0 .02em .052em #12332942, 0 .07em .15em -.04em #142d254a;
+  --ml-segment-relief: inset 0 1px 1px #ffffff82, inset 0 -1px 2px #15242c29,
+    0 1px 2px #13212916, 0 5px 12px -8px #13212952;
+  --ml-highlight-relief: inset 0 0 0 1px #ffffff30, inset 0 1px 1px #ffffffa8,
+    inset 0 -1px 2px #17293224, 0 1px 2px #19242c38, 0 3px 6px -3px #19242c36;
+}
+[data-ml-material="medium"], [data-ml-material="low"], [data-ml-material="base"] {
+  --ml-pearl-opacity: 100%;
+  --ml-selection-opacity: 100%;
+  --ml-glass-core: none;
+}
+[data-ml-material="medium"] {
+  --ml-material-level: medium;
+  --ml-material-fill-opacity: 57%;
+  --ml-material-border-opacity: 70%;
+  --ml-optics: none;
+  --ml-opacity: 88%;
+  --ml-filter: blur(7px);
+  --ml-skin: linear-gradient(165deg, #ffffff24, transparent 74%);
+  --ml-rail-relief: inset 0 .016em .033em #ffffff73, 0 .04em .09em #192a3029;
+  --ml-gloss: linear-gradient(150deg, #ffffff7d, transparent 72%);
+  --ml-knob-relief: 0 .026em .07em #17252b3d;
+  --ml-segment-relief: 0 1px 3px #19252b19;
+  --ml-highlight-relief: 0 1px 3px #19252b29;
+}
+[data-ml-material="low"] {
+  --ml-material-level: low;
+  --ml-material-fill-opacity: 100%;
+  --ml-material-border-opacity: 100%;
+  --ml-optics: none;
+  --ml-opacity: 100%;
+  --ml-filter: none;
+  --ml-skin: linear-gradient(180deg, #ffffff36, transparent 56%, #19272c08);
+  --ml-rail-relief: inset 0 .015em 0 #ffffff45;
+  --ml-gloss: none;
+  --ml-knob-relief: 0 .015em .038em #19272c2b;
+  --ml-segment-relief: none;
+  --ml-highlight-relief: inset 0 1px 0 #ffffff4d, 0 1px 1px #19272c14, 0 2px 4px -2px #19272c38;
+}
+[data-ml-material="base"] {
+  --ml-material-level: base;
+  --ml-material-fill-opacity: 100%;
+  --ml-material-border-opacity: 100%;
+  --ml-optics: none;
+  --ml-opacity: 100%;
+  --ml-filter: none;
+  --ml-skin: none;
+  --ml-rail-relief: none;
+  --ml-gloss: none;
+  --ml-knob-relief: none;
+  --ml-segment-relief: none;
+  --ml-highlight-relief: none;
+}
+@media (forced-colors: active) {
+  :root, [data-ml-material] { --ml-material-level: none !important; }
+}
+
+/* Shared motion tiers. build.mjs includes only the marked component sections used by each bundle. */
+
+:root { --ml-spring: cubic-bezier(.2, 1.23, .37, 1); }
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --ml-spring: linear(0, .09 5%, .33 12%, .69 22%, .91 32%, 1.025 44%, 1.038 52%,
+      1.014 64%, .997 78%, 1);
+  }
+}
+:root, [data-ml-motion="high"] {
+  --ml-motion-level: high;
+  --ml-down-scale: .96 .93; --ml-down-shift: 1.5px; --ml-down-time: 115ms;
+  --ml-enter-time: 370ms; --ml-exit-time: 150ms; --ml-enter-shift: 14px; --ml-enter-scale: .93;
+  --ml-travel: 530ms;
+  --ml-leading: 415ms;
+  --ml-tone: 180ms;
+  --ml-ease: var(--ml-spring);
+  --ml-front-ease: cubic-bezier(.18, .84, .28, 1);
+  --ml-press: .972;
+  --ml-press-x: 1.085;
+  --ml-press-y: .95;
+  --ml-follow: 1;
+}
+:root, [data-ml-motion="high"], [data-ml-motion="medium"], [data-ml-motion="low"] {
+  --ml-static-transition: initial;
+}
+[data-ml-motion="medium"], [data-ml-motion="low"], [data-ml-motion="base"] {
+  --ml-press: 1;
+  --ml-press-x: 1;
+  --ml-press-y: 1;
+  --ml-follow: 0;
+}
+[data-ml-motion="medium"] {
+  --ml-motion-level: medium;
+  --ml-down-scale: .977; --ml-down-shift: 1px; --ml-down-time: 110ms;
+  --ml-enter-time: 185ms; --ml-exit-time: 135ms; --ml-enter-shift: 8px; --ml-enter-scale: .985;
+  --ml-travel: 220ms;
+  --ml-leading: 220ms;
+  --ml-tone: 150ms;
+  --ml-ease: cubic-bezier(.2, .75, .28, 1);
+  --ml-front-ease: var(--ml-ease);
+}
+[data-ml-motion="low"] {
+  --ml-motion-level: low;
+  --ml-enter-time: 115ms; --ml-exit-time: 95ms;
+  --ml-travel: 0s;
+  --ml-leading: 0s;
+  --ml-tone: 115ms;
+  --ml-ease: ease-out;
+  --ml-front-ease: var(--ml-ease);
+}
+[data-ml-motion="base"] {
+  --ml-motion-level: base;
+  --ml-enter-time: 0s; --ml-exit-time: 0s;
+  --ml-static-transition: none;
+  --ml-travel: 0s;
+  --ml-leading: 0s;
+  --ml-tone: 0s;
+  --ml-ease: linear;
+  --ml-front-ease: var(--ml-ease);
+}
+
+[data-ml-motion="low"], [data-ml-motion="base"] {
+  --ml-down-scale: 1; --ml-down-shift: 0px; --ml-down-time: 0s;
+  --ml-enter-shift: 0px; --ml-enter-scale: 1;
+}
+
+/* @component button */
+:root, [data-ml-motion] {
+  --ml-button-down: var(--ml-down-scale);
+  --ml-button-dip: var(--ml-down-shift);
+  --ml-button-press-time: var(--ml-down-time);
+}
+:root, [data-ml-motion="high"] { --ml-button-spin: ml-button-spin .78s linear infinite; }
+[data-ml-motion="medium"] { --ml-button-spin: ml-button-spin 1s linear infinite; }
+[data-ml-motion="low"], [data-ml-motion="base"] { --ml-button-spin: none; }
+
+/* @component shared */
+@media (prefers-reduced-motion: reduce) {
+  :root, [data-ml-motion] {
+    --ml-follow: 0; --ml-travel: 0s; --ml-leading: 0s; --ml-tone: 0s;
+    --ml-down-scale: 1; --ml-down-shift: 0px; --ml-down-time: 0s;
+    --ml-enter-time: 0s; --ml-exit-time: 0s; --ml-static-transition: none;
+  }
+}
+
+/* Select the HTML element for its meaning and its type role for its appearance. */
+[data-ml-font="sans"] { --ml-type-family: var(--ml-font-sans); font-family: var(--ml-type-family); }
+[data-ml-font="serif"] { --ml-type-family: var(--ml-font-serif); font-family: var(--ml-type-family); }
+[data-ml-font="mono"] { --ml-type-family: var(--ml-font-mono); font-family: var(--ml-type-family); }
+[data-ml-type] {
+  font-family: var(--ml-type-family, var(--ml-font-sans));
+  font-size: var(--ml-size-body); font-weight: var(--ml-weight-regular); line-height: var(--ml-leading-body);
+  letter-spacing: var(--ml-tracking-normal); font-variant-numeric: normal; overflow-wrap: anywhere;
+}
+[data-ml-type="display"], [data-ml-type="title"], [data-ml-type="metric"] {
+  line-height: var(--ml-leading-tight); letter-spacing: var(--ml-tracking-tight);
+}
+[data-ml-type="display"] { font-size: var(--ml-size-display); font-weight: var(--ml-weight-bold); }
+[data-ml-type="title"] { font-size: var(--ml-size-title); font-weight: var(--ml-weight-semibold); }
+[data-ml-type="heading"] {
+  font-size: var(--ml-size-heading); font-weight: var(--ml-weight-semibold); line-height: var(--ml-leading-compact);
+}
+[data-ml-type="label"] {
+  font-size: var(--ml-size-label); font-weight: var(--ml-weight-medium); line-height: var(--ml-leading-compact);
+}
+[data-ml-type="caption"] { font-size: var(--ml-size-caption); line-height: var(--ml-leading-compact); }
+[data-ml-type="metric"] { font-size: var(--ml-size-metric); font-weight: var(--ml-weight-semibold); font-variant-numeric: tabular-nums; }
+[data-ml-type="code"] {
+  font-family: var(--ml-type-family, var(--ml-font-mono)); font-size: var(--ml-size-label); font-variant-numeric: tabular-nums;
+}
+[data-ml-prose] { max-inline-size: var(--ml-measure); overflow-wrap: anywhere; }
+[data-ml-prose] > :where(h1, h2, h3, p, pre) { margin-block: 0; }
+[data-ml-prose] > :where(h1, h2, h3, p, pre) + :where(h1, h2, h3, p, pre) { margin-block-start: 1em; }
+
+/* Appearance tokens inherit, so different specimens can coexist on one page. */
+:where(
+  ml-material, ml-switch, ml-button, ml-dialog, ml-drawer, ml-tag, ml-select, .ml-select-field,
+  ml-hover-card, ml-badge, ml-info-pill, ml-info-card, ml-card, ml-progress, ml-toast, ml-banner,
+  ml-island, ml-input, ml-choice-group, label:has(> ml-choice), ml-list-item, ml-list-group,
+  ml-menu, ml-menu-panel, ml-slider, ml-stepper, ml-date-range, ml-data-table, ml-pagination, ml-toolbar, ml-sidebar
+) {
+  font-family: var(--ml-type-family, var(--ml-font-sans));
+  font-size: var(--ml-size-body);
+  line-height: var(--ml-leading-compact);
+}
+:root, [data-ml-theme="light"], [data-ml-theme="warm"], [data-ml-theme="dark"] {
+  --ml-blue: var(--ml-color-action);
+  --ml-on-accent: #000;
+  --ml-accent-ink: var(--ml-color-info);
+  --ml-focus: var(--ml-blue);
+  --ml-accent: var(--ml-color-green);
+  --ml-ink: var(--ml-color-text);
+  --ml-muted: var(--ml-color-text-secondary);
+}
+:root, [data-ml-theme="light"] {
+  --ml-off: #8e8e93;
+  --ml-bed: #e2e6ea;
+  --ml-selected: #fff;
+  --ml-pearl: #f8faf9;
+  --ml-edge: #808890;
+}
+[data-ml-theme="warm"] {
+  --ml-off: #a49d93;
+  --ml-bed: #e9e2d7;
+  --ml-selected: #fffdf7;
+  --ml-pearl: #fffdf5;
+  --ml-edge: #9c9284;
+}
+[data-ml-theme="dark"] {
+  --ml-off: #636366;
+  --ml-bed: var(--ml-color-surface);
+  --ml-selected: var(--ml-color-fill);
+  --ml-pearl: #f2f5f5;
+  --ml-edge: #848a93;
+}
+
+/* These defaults can be loaded again by another standalone component. */
+:where(ml-switch, ml-button, ml-dialog, ml-tag, ml-select, ml-hover-card, ml-badge, ml-info-pill, ml-info-card, ml-card, ml-progress, ml-toast, ml-banner, ml-island, ml-input, ml-choice, ml-list-item, ml-list-group, ml-menu, ml-menu-panel) .ml-optical {
+  display: var(--ml-optics);
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+:where(ml-switch, ml-button, ml-dialog, ml-tag, ml-select, ml-hover-card, ml-badge, ml-info-pill, ml-info-card, ml-card, ml-progress, ml-toast, ml-banner, ml-island, ml-input, ml-choice, ml-list-item, ml-list-group, ml-menu, ml-menu-panel) .ml-optical > svg { display: block; width: 100%; height: 100%; overflow: hidden; border-radius: inherit; }
+:where(ml-switch, ml-button, ml-dialog, ml-tag, ml-select, ml-hover-card, ml-badge, ml-info-pill, ml-info-card, ml-card, ml-progress, ml-toast, ml-banner, ml-island, ml-input, ml-choice, ml-list-item, ml-list-group, ml-menu, ml-menu-panel) .ml-optical::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--ml-rim, 1px);
+  color: rgb(var(--ml-glass-lamp-rgb, 243 249 255));
+  background: conic-gradient(from -36deg, currentColor, transparent 72deg, transparent 222deg,
+    color-mix(in srgb, currentColor 16%, transparent) 270deg, currentColor);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: .21;
+}
+
+.ml-optical {
+  box-shadow: var(--ml-cast-x, 0px) var(--ml-cast-y, 1px) var(--ml-penumbra, 3px)
+    rgb(var(--ml-glass-shadow-rgb, 23 37 53) / var(--ml-cast-opacity, .14));
+}
+.ml-optical > canvas {
+  position: absolute; inset: 0; display: none; inline-size: 100%; block-size: 100%;
+  border-radius: inherit; pointer-events: none;
+}
+.ml-optical[data-ml-renderer="webgl"] > canvas { display: block; }
+/* Keep the SVG filter definitions available to the native backdrop. */
+.ml-optical[data-ml-renderer="webgl"] > svg > :not(defs) { display: none; }
+.ml-optical[data-ml-renderer="webgl"]::after { visibility: hidden; }
+
+/* Each CSS surface uses the same lamp position in its own coordinate system. */
+.ml-optical[data-ml-light] {
+  --ml-optics: block;
+  --ml-light-at: at var(--ml-light-x) var(--ml-light-y);
+  box-shadow: none;
+}
+.ml-optical[data-ml-light]:not([data-ml-lit]) { visibility: hidden; }
+.ml-optical[data-ml-light]::after { visibility: hidden; }
+.ml-optical[data-ml-light="base"]::before,
+.ml-optical[data-ml-light="medium"]::before {
+  content: ""; position: absolute; inset: 0; box-sizing: border-box; padding: 1.5px;
+  border-radius: inherit; pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+.ml-optical[data-ml-light="base"]::before {
+  background: radial-gradient(circle var(--ml-light-reach) var(--ml-light-at),
+    color-mix(in srgb, var(--ml-color-action) 60%, rgb(var(--ml-glass-lamp-rgb))) 14%, transparent 100%);
+}
+.ml-optical[data-ml-light="low"] {
+  background: radial-gradient(circle var(--ml-light-reach) var(--ml-light-at),
+    rgb(var(--ml-pointer-tint-rgb) / var(--ml-pointer-diffuse)),
+    rgb(var(--ml-pointer-tint-rgb) / calc(var(--ml-pointer-diffuse) * .55)) 40%, transparent 100%);
+}
+.ml-optical[data-ml-light="medium"] {
+  background:
+    radial-gradient(circle calc(var(--ml-light-reach) * .77) var(--ml-light-at),
+      rgb(var(--ml-glass-lamp-rgb) / var(--ml-pointer-shine)), transparent 100%),
+    radial-gradient(circle calc(var(--ml-light-reach) * 1.75) var(--ml-light-at),
+      rgb(var(--ml-pointer-tint-rgb) / var(--ml-pointer-diffuse)) 8%,
+      rgb(var(--ml-pointer-tint-rgb) / calc(var(--ml-pointer-diffuse) * .61)) 50%, transparent 100%);
+  box-shadow: var(--ml-light-cast-x) var(--ml-light-cast-y) calc(var(--ml-light-reach) * .085)
+    rgb(var(--ml-glass-shadow-rgb) / var(--ml-light-shadow-alpha));
+}
+.ml-optical[data-ml-light="medium"]::before {
+  background: radial-gradient(circle calc(var(--ml-light-reach) * 1.27) var(--ml-light-at),
+    rgb(var(--ml-glass-lamp-rgb) / .8), transparent 100%);
+}
+@media (forced-colors: active) {
+  .ml-optical { display: none !important; }
+}
+
+:root, [data-ml-theme="light"] {
+  --ml-button-danger-surface: #fff0ee;
+  --ml-button-danger-ink: var(--ml-color-danger);
+  --ml-button-line: #9da7b2;
+}
+[data-ml-theme="warm"] {
+  --ml-button-danger-surface: #fff0e7;
+  --ml-button-danger-ink: var(--ml-color-danger);
+  --ml-button-line: #ab9d89;
+}
+[data-ml-theme="dark"] {
+  --ml-button-danger-surface: #482a2c;
+  --ml-button-danger-ink: var(--ml-color-danger);
+  --ml-button-line: #8a929d;
+}
+:root, [data-ml-material="high"] {
+  --ml-button-alpha: 77%;
+  --ml-button-quiet-tint: 14%;
+  --ml-button-coat: initial;
+  --ml-button-shadow: inset 0 1px 1px #ffffff9c, inset 0 -2px 3px #112f4426,
+    0 2px 3px #122d4521, 0 7px 14px -7px #15344d4d;
+}
+[data-ml-material="medium"] {
+  --ml-button-alpha: 89%;
+  --ml-button-quiet-tint: 12%;
+  --ml-button-coat: none;
+  --ml-button-shadow: initial;
+}
+[data-ml-material="low"] {
+  --ml-button-alpha: 100%;
+  --ml-button-quiet-tint: 5%;
+  --ml-button-coat: none;
+  --ml-button-shadow: 0 1px 2px #142b401a;
+}
+[data-ml-material="base"] {
+  --ml-button-alpha: 100%;
+  --ml-button-quiet-tint: 0%;
+  --ml-button-coat: none;
+  --ml-button-shadow: none;
+}
+ml-button {
+  --ml-button-fill: var(--ml-blue);
+  --ml-button-ink: var(--ml-on-accent);
+  --ml-button-border: transparent;
+  --ml-button-optical-opacity: .85;
+  position: relative;
+  isolation: isolate;
+  display: inline-grid;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  vertical-align: middle;
+  box-sizing: border-box;
+  border-radius: var(--ml-button-radius, var(--ml-radius-pill));
+  background-color: var(--ml-button-fill);
+  background-color: color-mix(in srgb, var(--ml-button-fill) var(--ml-button-alpha), transparent);
+  background-image: var(--ml-button-coat, radial-gradient(ellipse 76% 95% at center, var(--ml-button-fill) 34%, transparent 90%)), var(--ml-skin);
+  box-shadow: var(--ml-button-shadow, var(--ml-shadow-raised));
+  -webkit-backdrop-filter: var(--ml-filter);
+  backdrop-filter: var(--ml-filter);
+  transition: var(--ml-static-transition, scale var(--ml-travel) var(--ml-ease), translate var(--ml-travel) var(--ml-ease));
+}
+ml-button[hidden], ml-button:has(> button[hidden]) { display: none; }
+ml-button[variant="secondary"] {
+  --ml-button-fill: var(--ml-button-surface, var(--ml-color-surface));
+  --ml-button-ink: var(--ml-ink);
+  --ml-button-border: color-mix(in srgb, var(--ml-button-line) 56%, transparent);
+}
+ml-button[variant="quiet"] {
+  --ml-button-fill: color-mix(in srgb, var(--ml-button-line) var(--ml-button-quiet-tint), transparent);
+  --ml-button-ink: var(--ml-ink);
+  --ml-button-optical-opacity: .26;
+  background-image: none;
+  box-shadow: none;
+}
+ml-button[variant="danger"] {
+  --ml-button-fill: var(--ml-button-danger-surface);
+  --ml-button-ink: var(--ml-button-danger-ink);
+  --ml-button-border: color-mix(in srgb, var(--ml-button-danger-ink) 30%, transparent);
+}
+ml-button.ml-refractive {
+  -webkit-backdrop-filter: var(--ml-bend) saturate(1.15);
+  backdrop-filter: var(--ml-bend) saturate(1.15);
+}
+ml-button > .ml-optical { z-index: -1; opacity: var(--ml-button-optical-opacity); }
+/* The center carries the label. Retain the strongest reflections on the glass rim. */
+ml-button > .ml-optical svg {
+  mask-image: radial-gradient(ellipse 64% 84% at center, #0002 24%, #000a 68%, black 90%);
+}
+ml-button .ml-optical::after { box-sizing: border-box; }
+ml-button > button {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5em;
+  min-inline-size: min(100%, 44px);
+  min-block-size: max(44px, var(--ml-button-height, 2.75rem));
+  max-inline-size: 100%;
+  margin: 0;
+  padding: .45em var(--ml-button-pad, 1.25em);
+  border: var(--ml-border-width) solid var(--ml-button-border);
+  border-radius: inherit;
+  background: transparent;
+  color: var(--ml-button-ink);
+  font: inherit;
+  font-size: var(--ml-button-font, var(--ml-size-label));
+  font-weight: var(--ml-weight-semibold);
+  line-height: var(--ml-leading-compact);
+  text-align: center;
+  overflow-wrap: anywhere;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+ml-button > button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--ml-ink);
+  opacity: 0;
+  transition: var(--ml-static-transition, opacity var(--ml-tone) ease);
+}
+ml-button:not([variant="secondary"], [variant="quiet"], [variant="danger"]) > button::after { background: white; }
+ml-button > button > svg { flex: none; width: 1.13em; height: 1.13em; }
+ml-button[icon-only] > button { inline-size: max(44px, var(--ml-button-height, 2.75rem)); padding-inline: .35em; }
+ml-button > button:focus-visible { outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: var(--ml-focus-offset); }
+@media (hover: hover) {
+  ml-button > button:enabled:hover::after { opacity: .075; }
+}
+ml-button:has(> button:enabled:active) {
+  scale: var(--ml-button-down);
+  translate: 0 var(--ml-button-dip);
+  transition-duration: var(--ml-button-press-time);
+}
+ml-button > button:enabled:active::after { opacity: .18; }
+ml-button:has(> button:disabled:not([aria-busy="true"])) { opacity: .52; }
+ml-button > button:disabled { cursor: default; }
+ml-button > button[aria-busy="true"] { cursor: progress; }
+ml-button > button[aria-busy="true"] > svg { display: none; }
+ml-button > button[aria-busy="true"]::before {
+  content: "";
+  box-sizing: border-box;
+  flex: none;
+  inline-size: 1.13em;
+  block-size: 1.13em;
+  border: .125em solid currentColor;
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+  animation: var(--ml-button-spin);
+}
+@keyframes ml-button-spin { to { transform: rotate(1turn); } }
+@media (prefers-reduced-motion: reduce) {
+  ml-button { --ml-follow: 0 !important; }
+  ml-button, ml-button > button::before, ml-button > button::after {
+    animation: none !important;
+    transition: none !important;
+    scale: 1 !important;
+    translate: none !important;
+  }
+}
+@media (forced-colors: active) {
+  ml-button.ml-refractive { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  ml-button > .ml-optical { display: none; }
+  ml-button > button { border: var(--ml-border-width) solid ButtonText; background: ButtonFace; color: ButtonText; }
+  ml-button > button:disabled { border-color: GrayText; color: GrayText; }
+  ml-button > button:focus-visible { outline-color: Highlight; }
+}
+
+ml-form {
+  --ml-form-icon-error-circle: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%228.7%22%2F%3E%3Cpath%20d%3D%22M7.8%2012h8.4%22%2F%3E%3C%2Fsvg%3E");
+  --ml-form-line: color-mix(in srgb, var(--ml-color-text-tertiary) 44%, var(--ml-color-surface));
+  --ml-form-danger-fill: color-mix(in srgb, var(--ml-color-danger) 9%, var(--ml-color-surface));
+  --ml-select-width: 100%;
+  --ml-multi-width: 100%;
+  --ml-file-width: 100%;
+  container: ml-form / inline-size;
+  position: relative;
+  isolation: isolate;
+  display: block;
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding: var(--ml-form-padding, clamp(.85rem, 3vw, 1.6rem));
+  border: var(--ml-border-width) solid color-mix(in srgb, var(--ml-color-separator) var(--ml-material-border-opacity), transparent);
+  border-radius: var(--ml-form-radius, var(--ml-radius-xl));
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-material-fill-opacity), transparent);
+  background-image: var(--ml-skin);
+  box-shadow: var(--ml-highlight-relief);
+  -webkit-backdrop-filter: var(--ml-filter);
+  backdrop-filter: var(--ml-filter);
+  color: var(--ml-color-text);
+  font: var(--ml-size-body)/var(--ml-leading-compact) var(--ml-font-sans);
+  text-align: start;
+}
+ml-form.ml-refractive {
+  background-image: none;
+  -webkit-backdrop-filter: var(--ml-bend) var(--ml-filter);
+  backdrop-filter: var(--ml-bend) var(--ml-filter);
+}
+ml-form > .ml-optical {
+  position: absolute; z-index: -1; inset: 0; display: var(--ml-optics);
+  border-radius: inherit; pointer-events: none;
+}
+ml-form > .ml-optical > svg { display: block; inline-size: 100%; block-size: 100%; border-radius: inherit; overflow: hidden; }
+ml-form[hidden], ml-form :is(.ml-form-section, .ml-form-field, .ml-form-hint, .ml-form-error, .ml-form-summary, .ml-form-result)[hidden] {
+  display: none !important;
+}
+ml-form > form { display: grid; min-inline-size: 0; gap: var(--ml-space-5); margin: 0; }
+ml-form :where(.ml-form-section, fieldset.ml-form-field) { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
+ml-form .ml-form-section > legend {
+  max-inline-size: 100%; margin: 0 0 var(--ml-space-4); padding: 0; overflow-wrap: anywhere;
+  font-size: var(--ml-size-heading); font-weight: var(--ml-weight-semibold); letter-spacing: var(--ml-tracking-tight);
+}
+ml-form :where(.ml-form-grid, .ml-form-field) { display: grid; grid-template-columns: minmax(0, 1fr); min-inline-size: 0; }
+ml-form .ml-form-grid { align-items: start; gap: var(--ml-space-4) var(--ml-space-5); }
+ml-form .ml-form-field { gap: var(--ml-space-2); }
+ml-form .ml-form-label {
+  display: block; margin: 0; padding: 0; overflow-wrap: anywhere;
+  color: var(--ml-color-text); font-size: var(--ml-size-label); font-weight: var(--ml-weight-semibold);
+}
+ml-form fieldset.ml-form-field > legend { margin-block-end: var(--ml-space-2); }
+ml-form .ml-form-required { color: var(--ml-color-danger); margin-inline-start: .16em; }
+ml-form :where(.ml-form-hint, .ml-form-error, .ml-form-result) {
+  min-inline-size: 0; margin: 0; overflow-wrap: anywhere; font-size: var(--ml-size-caption); line-height: var(--ml-leading-body);
+}
+ml-form .ml-form-hint { color: var(--ml-color-text-secondary); }
+ml-form .ml-form-error { display: flex; align-items: baseline; gap: .4em; color: var(--ml-color-danger); }
+ml-form :is(.ml-form-error, .ml-form-summary > p)::before {
+  content: ""; flex: none; align-self: flex-start; inline-size: 1.1em; block-size: 1.1em;
+  margin-block-start: .15em; background-color: currentColor;
+  -webkit-mask: var(--ml-form-icon-error-circle) center / contain no-repeat;
+  mask: var(--ml-form-icon-error-circle) center / contain no-repeat;
+}
+ml-form .ml-form-field > :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), textarea, select) {
+  box-sizing: border-box; inline-size: 100%; min-inline-size: 0; min-block-size: 2.8rem;
+  margin: 0; padding: .55rem .75rem;
+  border: var(--ml-border-width) solid var(--ml-form-line); border-radius: var(--ml-radius-md);
+  background: var(--ml-color-surface); color: var(--ml-color-text); font: inherit;
+  transition: border-color var(--ml-tone) ease;
+}
+ml-form .ml-form-field > textarea { resize: vertical; }
+ml-form .ml-form-field > :is(input, textarea, select)[aria-invalid="true"] { border-color: var(--ml-color-danger); }
+ml-form ml-select:has(> select[aria-invalid="true"]) { --ml-select-line: var(--ml-color-danger); }
+ml-form :is(.ml-form-field > :is(input, textarea, select), .ml-form-summary, .ml-form-summary button):focus-visible {
+  outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: var(--ml-focus-offset);
+}
+ml-form .ml-form-actions {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--ml-space-2) var(--ml-space-3);
+  padding-block-start: var(--ml-space-4); border-block-start: var(--ml-border-width) solid var(--ml-color-separator);
+}
+ml-form .ml-form-result { color: var(--ml-color-success); font-weight: var(--ml-weight-medium); }
+ml-form .ml-form-result:not(:empty) { flex-basis: 100%; }
+ml-form .ml-form-summary {
+  display: grid; gap: var(--ml-space-2); padding: var(--ml-space-3) var(--ml-space-4);
+  scroll-margin-block: var(--ml-space-4);
+  border: var(--ml-border-width) solid color-mix(in srgb, var(--ml-color-danger) 27%, var(--ml-form-danger-fill));
+  border-radius: var(--ml-radius-md); background: var(--ml-form-danger-fill); color: var(--ml-color-text);
+  font-size: var(--ml-size-label); line-height: var(--ml-leading-body); overflow-wrap: anywhere;
+}
+ml-form .ml-form-summary > p { display: flex; gap: var(--ml-space-2); margin: 0; color: var(--ml-color-danger); }
+ml-form .ml-form-summary > ul { display: grid; gap: var(--ml-space-1); list-style: none; margin: 0; padding: 0; }
+ml-form .ml-form-summary button {
+  max-inline-size: 100%; min-block-size: 1.55rem; padding: 0; border: 0; background: transparent;
+  color: var(--ml-color-danger); font: inherit; font-weight: var(--ml-weight-medium); text-align: start;
+  text-decoration: underline; text-underline-offset: .18em; overflow-wrap: anywhere; cursor: pointer;
+}
+ml-form .ml-form-live {
+  position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+ml-form :is(.ml-form-error, .ml-form-summary):not([hidden]) {
+  animation: var(--ml-static-transition, ml-form-feedback-in var(--ml-enter-time) var(--ml-ease) both);
+}
+@keyframes ml-form-feedback-in { from { opacity: 0; translate: 0 calc(var(--ml-enter-shift) * -.3); } }
+
+@container ml-form (min-width: 28rem) {
+  ml-form[layout="columns"] .ml-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  ml-form[layout="columns"] .ml-form-field[data-span="full"] { grid-column: 1 / -1; }
+  ml-form[layout="horizontal"] .ml-form-field:has(> .ml-form-label):not(fieldset) {
+    grid-template-columns: var(--ml-form-label-width, minmax(6rem, 10rem)) minmax(0, 1fr);
+    column-gap: var(--ml-space-4);
+  }
+  ml-form[layout="horizontal"] .ml-form-field:not(fieldset) > .ml-form-label {
+    grid-area: 1 / 1;
+    padding-block-start: .7rem;
+  }
+  ml-form[layout="horizontal"] .ml-form-field:has(> .ml-form-label):not(fieldset) > :not(.ml-form-label) { grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+  ml-form { --ml-follow: 0 !important; }
+  ml-form :is(.ml-form-error, .ml-form-summary):not([hidden]) { animation: none; }
+}
+@media (forced-colors: active) {
+  ml-form, ml-form.ml-refractive, ml-form .ml-form-summary {
+    background: Canvas; color: CanvasText; border-color: CanvasText; box-shadow: none; backdrop-filter: none;
+  }
+  ml-form :is(.ml-form-error, .ml-form-summary > p)::before { forced-color-adjust: none; background-color: CanvasText; }
+  ml-form .ml-form-field > :is(input, textarea, select)[aria-invalid="true"], ml-form ml-select > select[aria-invalid="true"] {
+    border: var(--ml-border-width) dashed CanvasText;
+  }
+}

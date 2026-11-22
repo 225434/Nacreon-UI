@@ -1,0 +1,167 @@
+:root {
+  /* Icon masks from icons.svg */
+}
+
+ml-empty-state {
+  --ml-empty-glyph: var(--ml-empty-state-icon-archive);
+  --ml-empty-ink: var(--ml-color-info);
+  --ml-empty-tint: var(--ml-empty-color, var(--ml-empty-ink));
+  position: relative;
+  isolation: isolate;
+  display: block;
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  container: ml-empty / inline-size;
+  color: var(--ml-color-text);
+  font-family: var(--ml-type-family, var(--ml-font-sans));
+  font-size: var(--ml-size-body);
+  line-height: var(--ml-leading-compact);
+}
+ml-empty-state[kind="search"] {
+  --ml-empty-glyph: var(--ml-empty-state-icon-search);
+  --ml-empty-ink: var(--ml-color-indigo);
+}
+ml-empty-state[kind="error"] {
+  --ml-empty-glyph: var(--ml-empty-state-icon-error-circle);
+  --ml-empty-ink: var(--ml-color-danger);
+}
+ml-empty-state[kind="restricted"] {
+  --ml-empty-glyph: var(--ml-empty-state-icon-lock);
+  --ml-empty-ink: var(--ml-color-warning);
+}
+ml-empty-state[variant="panel"] {
+  border: var(--ml-border-width) solid color-mix(in srgb, var(--ml-color-separator) var(--ml-material-border-opacity), transparent);
+  border-radius: var(--ml-empty-radius, var(--ml-radius-xl));
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-opacity), transparent);
+  background-image: var(--ml-skin);
+  box-shadow: var(--ml-highlight-relief);
+  -webkit-backdrop-filter: var(--ml-filter);
+  backdrop-filter: var(--ml-filter);
+}
+ml-empty-state[variant="panel"].ml-refractive {
+  -webkit-backdrop-filter: var(--ml-bend) var(--ml-filter);
+  backdrop-filter: var(--ml-bend) var(--ml-filter);
+}
+ml-empty-state > .ml-optical {
+  display: var(--ml-optics);
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  opacity: .72;
+  pointer-events: none;
+}
+ml-empty-state > .ml-optical > svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+ml-empty-state > .ml-empty-content {
+  --ml-empty-icon-size: 4.25rem;
+  display: grid;
+  justify-items: center;
+  gap: var(--ml-space-3);
+  padding: clamp(var(--ml-space-4), 6cqi, var(--ml-space-7));
+  text-align: center;
+  overflow-wrap: anywhere;
+  animation: var(--ml-static-transition, ml-empty-enter var(--ml-enter-time) var(--ml-ease));
+}
+.ml-empty-content > .ml-empty-icon {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: min(var(--ml-empty-icon-size), 100%);
+  aspect-ratio: 1;
+  border-radius: var(--ml-radius-lg);
+  border: var(--ml-border-width) solid color-mix(in srgb, var(--ml-empty-tint) 20%, var(--ml-color-separator));
+  background-color: color-mix(in srgb, var(--ml-empty-tint) 12%, var(--ml-color-surface));
+  background-image: var(--ml-skin);
+  color: var(--ml-empty-tint);
+  box-shadow: var(--ml-highlight-relief);
+}
+.ml-empty-icon:not(:has(> *))::before {
+  content: "";
+  inline-size: 52%;
+  aspect-ratio: 1;
+  background: currentColor;
+  mask: var(--ml-empty-glyph) center / contain no-repeat;
+}
+.ml-empty-icon > :is(svg, img) { display: block; inline-size: 54%; block-size: auto; }
+.ml-empty-copy { min-inline-size: 0; max-inline-size: min(100%, 38rem); }
+.ml-empty-copy > .ml-empty-title {
+  margin: 0;
+  color: var(--ml-color-text);
+  font-size: var(--ml-empty-title-size, var(--ml-size-heading));
+  font-weight: var(--ml-weight-semibold);
+  line-height: var(--ml-leading-tight);
+  letter-spacing: var(--ml-tracking-tight);
+  text-wrap: balance;
+}
+.ml-empty-copy > .ml-empty-description {
+  margin: var(--ml-space-2) 0 0;
+  color: var(--ml-color-text-secondary);
+  font-size: var(--ml-size-label);
+  line-height: var(--ml-leading-body);
+}
+.ml-empty-content > .ml-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  gap: var(--ml-space-2);
+}
+.ml-empty-actions > a {
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  min-block-size: 44px;
+  max-inline-size: 100%;
+  padding-inline: var(--ml-space-2);
+  color: var(--ml-accent-ink);
+  font-size: var(--ml-size-label);
+  font-weight: var(--ml-weight-medium);
+  text-underline-offset: .18em;
+}
+.ml-empty-actions :focus-visible {
+  outline: var(--ml-focus-width) solid var(--ml-focus);
+  outline-offset: var(--ml-focus-offset);
+}
+
+ml-empty-state[density="compact"] > .ml-empty-content { --ml-empty-icon-size: 2.625rem; padding: var(--ml-space-4); }
+:where(ml-empty-state[density="compact"]) .ml-empty-icon { border-radius: var(--ml-radius-md); }
+ml-empty-state[density="compact"] .ml-empty-title { font-size: var(--ml-empty-title-size, var(--ml-size-body)); }
+ml-empty-state[density="compact"] .ml-empty-description { margin-block-start: var(--ml-space-1); }
+@container ml-empty (min-width: 16rem) {
+  ml-empty-state[density="compact"] > .ml-empty-content {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    column-gap: var(--ml-space-3);
+    row-gap: var(--ml-space-2);
+    text-align: start;
+  }
+  ml-empty-state[density="compact"] > .ml-empty-content:has(> .ml-empty-icon:not([hidden])) {
+    grid-template-columns: var(--ml-empty-icon-size) minmax(0, 1fr);
+  }
+  :where(ml-empty-state[density="compact"]) .ml-empty-icon { align-self: start; }
+  :where(ml-empty-state[density="compact"]) :is(.ml-empty-copy, .ml-empty-actions) { grid-column: -2 / -1; }
+  :where(ml-empty-state[density="compact"]) .ml-empty-title { text-wrap: wrap; }
+  :where(ml-empty-state[density="compact"]) .ml-empty-actions { justify-content: start; }
+}
+ml-empty-state[hidden], ml-empty-state > [hidden], .ml-empty-content > [hidden] { display: none !important; }
+
+@keyframes ml-empty-enter {
+  from { opacity: 0; translate: 0 var(--ml-enter-shift); scale: var(--ml-enter-scale); }
+}
+@media (forced-colors: active) {
+  ml-empty-state[variant="panel"], ml-empty-state[variant="panel"].ml-refractive, .ml-empty-content > .ml-empty-icon {
+    border-color: CanvasText; background: Canvas; color: CanvasText; box-shadow: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  .ml-empty-icon::before { forced-color-adjust: none; background: CanvasText; }
+  .ml-empty-actions :focus-visible { outline-color: Highlight; }
+}

@@ -1,0 +1,97 @@
+/* Generated from src/colors.css, src/themes.css by build.mjs. */
+/* Material Library · sRGB. Set data-ml-theme on the page or a local container. */
+:root, [data-ml-theme="light"], [data-ml-theme="warm"], [data-ml-theme="dark"] {
+  --ml-color-action: var(--ml-color-blue);
+}
+
+/* Base hues shared by the light and warm themes. */
+:root, [data-ml-theme="light"], [data-ml-theme="warm"] {
+  --ml-color-blue: #0088ff;
+  --ml-color-indigo: #6155f5;
+  --ml-color-purple: #cb30e0;
+  --ml-color-pink: #ff2d55;
+  --ml-color-red: #ff383c;
+  --ml-color-orange: #ff8d28;
+  --ml-color-yellow: #ffcc00;
+  --ml-color-green: #34c759;
+  --ml-color-mint: #00c8b3;
+  --ml-color-teal: #00c3d0;
+  --ml-color-cyan: #00c0e8;
+  --ml-color-brown: #ac7f5e;
+
+  /* Darker inks for small text on light and tinted surfaces. */
+  --ml-color-info: #195ac8;
+  --ml-color-success: #007029;
+  --ml-color-warning: #a24400;
+  --ml-color-danger: #bf1125;
+  --ml-color-neutral: #515154;
+
+  --ml-color-background: #f2f2f7;
+  --ml-color-surface: #ffffff;
+  --ml-color-fill: #e5e5ea;
+  --ml-color-separator: #d1d1d6;
+  --ml-color-text: #1d1d1f;
+  --ml-color-text-secondary: #48484a;
+  --ml-color-text-tertiary: #636366;
+}
+
+[data-ml-theme="warm"] {
+  --ml-color-neutral: #615950;
+  --ml-color-background: #f8f5ef;
+  --ml-color-surface: #fffdf8;
+  --ml-color-fill: #f1ece3;
+  --ml-color-separator: #dfd8ca;
+  --ml-color-text: #2d2923;
+  --ml-color-text-secondary: #625b50;
+  --ml-color-text-tertiary: #70695e;
+}
+
+[data-ml-theme="dark"] {
+  --ml-color-blue: #0091ff;
+  --ml-color-indigo: #6d7cff;
+  --ml-color-purple: #db34f2;
+  --ml-color-pink: #ff375f;
+  --ml-color-red: #ff4245;
+  --ml-color-orange: #ff9230;
+  --ml-color-yellow: #ffd600;
+  --ml-color-green: #30d158;
+  --ml-color-mint: #00dac3;
+  --ml-color-teal: #00d2e0;
+  --ml-color-cyan: #3cd3fe;
+  --ml-color-brown: #b78a66;
+
+  --ml-color-info: #5cb8ff;
+  --ml-color-success: #4ad968;
+  --ml-color-warning: #ffa056;
+  --ml-color-danger: #ff8588;
+  --ml-color-neutral: #c7c7cc;
+
+  --ml-color-background: #000000;
+  --ml-color-surface: #1c1c1e;
+  --ml-color-fill: #2c2c2e;
+  --ml-color-separator: #3a3a3c;
+  --ml-color-text: #f5f5f7;
+  --ml-color-text-secondary: #c7c7cc;
+  --ml-color-text-tertiary: #aeaeb2;
+}
+
+/* A named scope also sets the appearance of native controls inside it. */
+[data-ml-theme="light"], [data-ml-theme="warm"] { color-scheme: light; }
+[data-ml-theme="dark"] { color-scheme: dark; }
+/* Components resolve elevation on the painted surface so nested themes use their own shadows. */
+:root, [data-ml-theme="light"] {
+  --ml-shadow-raised: 0 2px 6px rgb(20 32 48 / .10);
+  --ml-shadow-overlay: 0 8px 28px rgb(20 32 48 / .18);
+}
+[data-ml-theme="warm"] {
+  --ml-shadow-raised: 0 2px 6px rgb(65 45 24 / .12);
+  --ml-shadow-overlay: 0 8px 28px rgb(65 45 24 / .18);
+}
+[data-ml-theme="dark"] {
+  --ml-shadow-raised: 0 2px 6px rgb(0 0 0 / .38);
+  --ml-shadow-overlay: 0 8px 28px rgb(0 0 0 / .56);
+}
+[data-ml-theme-surface] { background-color: var(--ml-color-background); color: var(--ml-color-text); }
+@media (forced-colors: active) {
+  [data-ml-theme-surface] { color: CanvasText; background-color: Canvas; }
+}

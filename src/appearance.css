@@ -1,0 +1,122 @@
+/* Appearance tokens inherit, so different specimens can coexist on one page. */
+:where(
+  ml-material, ml-switch, ml-button, ml-dialog, ml-drawer, ml-tag, ml-select, .ml-select-field,
+  ml-hover-card, ml-badge, ml-info-pill, ml-info-card, ml-card, ml-progress, ml-toast, ml-banner,
+  ml-island, ml-input, ml-choice-group, label:has(> ml-choice), ml-list-item, ml-list-group,
+  ml-menu, ml-menu-panel, ml-slider, ml-stepper, ml-date-range, ml-data-table, ml-pagination, ml-toolbar, ml-sidebar
+) {
+  font-family: var(--ml-type-family, var(--ml-font-sans));
+  font-size: var(--ml-size-body);
+  line-height: var(--ml-leading-compact);
+}
+:root, [data-ml-theme="light"], [data-ml-theme="warm"], [data-ml-theme="dark"] {
+  --ml-blue: var(--ml-color-action);
+  --ml-on-accent: #000;
+  --ml-accent-ink: var(--ml-color-info);
+  --ml-focus: var(--ml-blue);
+  --ml-accent: var(--ml-color-green);
+  --ml-ink: var(--ml-color-text);
+  --ml-muted: var(--ml-color-text-secondary);
+}
+:root, [data-ml-theme="light"] {
+  --ml-off: #8e8e93;
+  --ml-bed: #e2e6ea;
+  --ml-selected: #fff;
+  --ml-pearl: #f8faf9;
+  --ml-edge: #808890;
+}
+[data-ml-theme="warm"] {
+  --ml-off: #a49d93;
+  --ml-bed: #e9e2d7;
+  --ml-selected: #fffdf7;
+  --ml-pearl: #fffdf5;
+  --ml-edge: #9c9284;
+}
+[data-ml-theme="dark"] {
+  --ml-off: #636366;
+  --ml-bed: var(--ml-color-surface);
+  --ml-selected: var(--ml-color-fill);
+  --ml-pearl: #f2f5f5;
+  --ml-edge: #848a93;
+}
+
+/* These defaults can be loaded again by another standalone component. */
+:where(ml-switch, ml-button, ml-dialog, ml-tag, ml-select, ml-hover-card, ml-badge, ml-info-pill, ml-info-card, ml-card, ml-progress, ml-toast, ml-banner, ml-island, ml-input, ml-choice, ml-list-item, ml-list-group, ml-menu, ml-menu-panel) .ml-optical {
+  display: var(--ml-optics);
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+:where(ml-switch, ml-button, ml-dialog, ml-tag, ml-select, ml-hover-card, ml-badge, ml-info-pill, ml-info-card, ml-card, ml-progress, ml-toast, ml-banner, ml-island, ml-input, ml-choice, ml-list-item, ml-list-group, ml-menu, ml-menu-panel) .ml-optical > svg { display: block; width: 100%; height: 100%; overflow: hidden; border-radius: inherit; }
+:where(ml-switch, ml-button, ml-dialog, ml-tag, ml-select, ml-hover-card, ml-badge, ml-info-pill, ml-info-card, ml-card, ml-progress, ml-toast, ml-banner, ml-island, ml-input, ml-choice, ml-list-item, ml-list-group, ml-menu, ml-menu-panel) .ml-optical::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--ml-rim, 1px);
+  color: rgb(var(--ml-glass-lamp-rgb, 243 249 255));
+  background: conic-gradient(from -36deg, currentColor, transparent 72deg, transparent 222deg,
+    color-mix(in srgb, currentColor 16%, transparent) 270deg, currentColor);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: .21;
+}
+
+.ml-optical {
+  box-shadow: var(--ml-cast-x, 0px) var(--ml-cast-y, 1px) var(--ml-penumbra, 3px)
+    rgb(var(--ml-glass-shadow-rgb, 23 37 53) / var(--ml-cast-opacity, .14));
+}
+.ml-optical > canvas {
+  position: absolute; inset: 0; display: none; inline-size: 100%; block-size: 100%;
+  border-radius: inherit; pointer-events: none;
+}
+.ml-optical[data-ml-renderer="webgl"] > canvas { display: block; }
+/* Keep the SVG filter definitions available to the native backdrop. */
+.ml-optical[data-ml-renderer="webgl"] > svg > :not(defs) { display: none; }
+.ml-optical[data-ml-renderer="webgl"]::after { visibility: hidden; }
+
+/* Each CSS surface uses the same lamp position in its own coordinate system. */
+.ml-optical[data-ml-light] {
+  --ml-optics: block;
+  --ml-light-at: at var(--ml-light-x) var(--ml-light-y);
+  box-shadow: none;
+}
+.ml-optical[data-ml-light]:not([data-ml-lit]) { visibility: hidden; }
+.ml-optical[data-ml-light]::after { visibility: hidden; }
+.ml-optical[data-ml-light="base"]::before,
+.ml-optical[data-ml-light="medium"]::before {
+  content: ""; position: absolute; inset: 0; box-sizing: border-box; padding: 1.5px;
+  border-radius: inherit; pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+.ml-optical[data-ml-light="base"]::before {
+  background: radial-gradient(circle var(--ml-light-reach) var(--ml-light-at),
+    color-mix(in srgb, var(--ml-color-action) 60%, rgb(var(--ml-glass-lamp-rgb))) 14%, transparent 100%);
+}
+.ml-optical[data-ml-light="low"] {
+  background: radial-gradient(circle var(--ml-light-reach) var(--ml-light-at),
+    rgb(var(--ml-pointer-tint-rgb) / var(--ml-pointer-diffuse)),
+    rgb(var(--ml-pointer-tint-rgb) / calc(var(--ml-pointer-diffuse) * .55)) 40%, transparent 100%);
+}
+.ml-optical[data-ml-light="medium"] {
+  background:
+    radial-gradient(circle calc(var(--ml-light-reach) * .77) var(--ml-light-at),
+      rgb(var(--ml-glass-lamp-rgb) / var(--ml-pointer-shine)), transparent 100%),
+    radial-gradient(circle calc(var(--ml-light-reach) * 1.75) var(--ml-light-at),
+      rgb(var(--ml-pointer-tint-rgb) / var(--ml-pointer-diffuse)) 8%,
+      rgb(var(--ml-pointer-tint-rgb) / calc(var(--ml-pointer-diffuse) * .61)) 50%, transparent 100%);
+  box-shadow: var(--ml-light-cast-x) var(--ml-light-cast-y) calc(var(--ml-light-reach) * .085)
+    rgb(var(--ml-glass-shadow-rgb) / var(--ml-light-shadow-alpha));
+}
+.ml-optical[data-ml-light="medium"]::before {
+  background: radial-gradient(circle calc(var(--ml-light-reach) * 1.27) var(--ml-light-at),
+    rgb(var(--ml-glass-lamp-rgb) / .8), transparent 100%);
+}
+@media (forced-colors: active) {
+  .ml-optical { display: none !important; }
+}

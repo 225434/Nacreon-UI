@@ -1,0 +1,23 @@
+/* Document defaults for pages using the full design system. */
+:where(html, body) { color: var(--ml-color-text); background-color: var(--ml-color-background); }
+:where(html) { font-family: var(--ml-type-family, var(--ml-font-sans)); }
+:where(body) {
+  font-size: var(--ml-size-body); font-weight: var(--ml-weight-regular);
+  line-height: var(--ml-leading-body); letter-spacing: var(--ml-tracking-normal);
+}
+:where(h1) {
+  font-size: var(--ml-size-title); font-weight: var(--ml-weight-semibold);
+  line-height: var(--ml-leading-tight); letter-spacing: var(--ml-tracking-tight);
+}
+:where(h2, h3, h4, h5, h6) {
+  font-size: var(--ml-size-heading); font-weight: var(--ml-weight-semibold); line-height: var(--ml-leading-compact);
+}
+:where(label, legend) { font-size: var(--ml-size-label); }
+:where(small, figcaption) { font-size: var(--ml-size-caption); }
+:where(code, pre, kbd, samp) { font-family: var(--ml-type-family, var(--ml-font-mono)); }
+:where(button, input, select, textarea) { font: inherit; }
+:where(:focus-visible) { outline: var(--ml-focus-width) solid var(--ml-color-action); outline-offset: var(--ml-focus-offset); }
+@media (forced-colors: active) {
+  :where(html, body) { background-color: Canvas; color: CanvasText; }
+  :where(:focus-visible) { outline-color: Highlight; }
+}

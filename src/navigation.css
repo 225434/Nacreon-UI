@@ -1,0 +1,42 @@
+:where(ml-toolbar, ml-sidebar) {
+  position: relative; isolation: isolate; box-sizing: border-box; min-inline-size: 0; max-inline-size: 100%;
+  border: var(--ml-border-width) solid var(--ml-color-separator); border-radius: var(--ml-radius-lg); color: var(--ml-ink);
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-opacity), transparent);
+  background-image: var(--ml-skin); box-shadow: var(--ml-segment-relief);
+  -webkit-backdrop-filter: var(--ml-filter); backdrop-filter: var(--ml-filter);
+}
+:is(ml-toolbar, ml-sidebar) * { box-sizing: border-box; }
+:is(ml-toolbar, ml-sidebar)[hidden], :is(ml-toolbar, ml-sidebar) [hidden] { display: none !important; }
+:is(ml-toolbar, ml-sidebar).ml-refractive { -webkit-backdrop-filter: var(--ml-bend) blur(3px) saturate(1.1); backdrop-filter: var(--ml-bend) blur(3px) saturate(1.1); }
+:is(ml-toolbar, ml-sidebar) > .ml-optical {
+  display: var(--ml-optics); position: absolute; z-index: -1; inset: 0; border-radius: inherit;
+  pointer-events: none; opacity: .46;
+}
+:is(ml-toolbar, ml-sidebar) > .ml-optical svg { display: block; inline-size: 100%; block-size: 100%; overflow: hidden; border-radius: inherit; }
+:where(ml-toolbar, ml-sidebar) :where(button, a[data-action], a[data-value]) {
+  appearance: none; display: inline-flex; align-items: center; gap: var(--ml-space-2); min-inline-size: 0; max-inline-size: 100%;
+  min-block-size: 2.3rem; padding: .4rem .68rem; border: var(--ml-border-width) solid transparent; border-radius: var(--ml-radius-md);
+  background: transparent; color: inherit; font: inherit; font-size: var(--ml-size-label); line-height: var(--ml-leading-compact); font-weight: var(--ml-weight-medium);
+  text-decoration: none; text-align: start; overflow-wrap: anywhere; cursor: pointer; touch-action: manipulation;
+  transition: background-color var(--ml-tone), color var(--ml-tone), scale var(--ml-travel) var(--ml-ease);
+}
+:where(ml-toolbar, ml-sidebar) :is(button, a):focus-visible { outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: calc(-1 * var(--ml-focus-offset)); }
+@media (hover: hover) {
+  :where(ml-toolbar, ml-sidebar) :is(button, a):where(:not(:disabled, [aria-disabled="true"])):hover {
+    background-color: color-mix(in srgb, currentColor 8%, transparent);
+  }
+}
+:where(ml-toolbar, ml-sidebar) :is(button, a):where(:not(:disabled, [aria-disabled="true"])):active { scale: var(--ml-press); }
+:where(ml-toolbar, ml-sidebar) :is(:disabled, [aria-disabled="true"]) { opacity: .48; cursor: default; }
+:where(ml-toolbar, ml-sidebar) :is([data-action], [data-value]) > :is(svg, ml-icon) { flex: none; inline-size: 1.15rem; block-size: 1.15rem; }
+@media (any-pointer: coarse) {
+  :is(ml-toolbar, ml-sidebar) :is(button, a) { min-block-size: 44px; min-inline-size: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(ml-toolbar, ml-sidebar) { --ml-follow: 0 !important; }
+  :is(ml-toolbar, ml-sidebar), :is(ml-toolbar, ml-sidebar) :is(button, a) { transition: none !important; scale: none !important; }
+}
+@media (forced-colors: active) {
+  :is(ml-toolbar, ml-sidebar), :is(ml-toolbar, ml-sidebar).ml-refractive { --ml-optics: none; background: Canvas; color: CanvasText; border-color: ButtonText; backdrop-filter: none; box-shadow: none; }
+  :is(ml-toolbar, ml-sidebar) :is([aria-current="page"], [aria-pressed="true"]) { border-color: Highlight; text-decoration: underline; }
+}

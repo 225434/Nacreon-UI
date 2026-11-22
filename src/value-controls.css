@@ -1,0 +1,48 @@
+:is(ml-slider, ml-stepper, ml-date-range, ml-date-picker, ml-time-picker) {
+  --ml-value-accent: var(--ml-color-action);
+  display: grid;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  color: var(--ml-ink);
+  font-variant-numeric: tabular-nums;
+}
+:is(ml-slider, ml-stepper, ml-date-range, ml-date-picker, ml-time-picker)[hidden],
+:is(ml-slider, ml-stepper, ml-date-range, ml-date-picker, ml-time-picker):not([data-ml-ready]) > [data-ml-part],
+:is(ml-slider, ml-stepper, ml-date-range, ml-date-picker, ml-time-picker) [hidden] { display: none !important; }
+:is(ml-slider, ml-stepper, ml-date-range, ml-date-picker, ml-time-picker), :is(ml-slider, ml-stepper, ml-date-range, ml-date-picker, ml-time-picker) * { box-sizing: border-box; }
+:where(ml-slider, ml-stepper) > label {
+  grid-row: 1; justify-self: start; align-self: baseline;
+  min-width: 0; padding-inline-end: .55rem; font-size: var(--ml-size-label); font-weight: var(--ml-weight-semibold); overflow-wrap: anywhere;
+}
+:where(ml-slider, ml-stepper) > [data-ml-part="reading"] {
+  grid-row: 1; grid-column: -2 / -1; justify-self: end; align-self: baseline;
+  color: var(--ml-accent-ink); font-size: .94em; font-weight: var(--ml-weight-semibold);
+}
+ml-value-surface {
+  display: block; position: relative; min-width: 0; pointer-events: none; isolation: isolate;
+  border: var(--ml-border-width) solid var(--ml-color-separator); border-radius: var(--ml-radius-md);
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-opacity), transparent);
+  background-image: var(--ml-skin); box-shadow: var(--ml-segment-relief);
+  backdrop-filter: var(--ml-filter);
+}
+ml-value-surface.ml-refractive { backdrop-filter: var(--ml-bend) blur(3px) saturate(1.12); }
+ml-value-surface > .ml-optical {
+  display: var(--ml-optics); position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+}
+ml-value-surface > .ml-optical svg { display: block; width: 100%; height: 100%; overflow: hidden; border-radius: inherit; }
+:is(ml-slider, ml-stepper, ml-date-range, ml-date-picker, ml-time-picker) :is(button, input):focus-visible { outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: var(--ml-focus-offset); }
+:where(ml-stepper, ml-date-range, ml-date-picker, ml-time-picker) button {
+  font: inherit; color: var(--ml-accent-ink); cursor: pointer;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  transition: background-color var(--ml-tone), scale var(--ml-travel) var(--ml-ease);
+}
+:is(ml-stepper, ml-date-range, ml-date-picker, ml-time-picker) button:enabled:active { scale: var(--ml-value-press); }
+:is(ml-stepper, ml-date-range, ml-date-picker, ml-time-picker) button:disabled { color: var(--ml-muted); opacity: .4; cursor: default; }
+@media (prefers-reduced-motion: reduce) {
+  ml-value-surface { --ml-follow: 0 !important; }
+  :is(ml-slider, ml-stepper, ml-date-range, ml-date-picker, ml-time-picker) * { transition: none !important; animation: none !important; scale: none !important; }
+}
+@media (forced-colors: active) {
+  ml-value-surface, ml-value-surface.ml-refractive { --ml-optics: none; background: Field; border-color: ButtonText; box-shadow: none; backdrop-filter: none; }
+  :is(ml-stepper, ml-date-range, ml-date-picker, ml-time-picker) button:disabled { color: GrayText; opacity: 1; }
+}
