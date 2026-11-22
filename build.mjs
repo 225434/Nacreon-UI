@@ -1,9 +1,12 @@
+import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 // Every public pair works from file:// on its own and uses one glass scene per document.
 // Components with bundled actions include the library's buttons.
 const here = name => new URL(name, import.meta.url);
 const designDir = 'dist/design/';
+const motionSection = /(?=^\/\* @component )/m;
+const bundleSections = new Map();
 async function writeChanged(name, content) {
   const target = here(name);
   let previous;
@@ -14,21 +17,24 @@ async function writeChanged(name, content) {
   await writeFile(target, content);
 }
 const components = {
-  materials: ['materials'], motion: ['materials', 'motion'],
   switch: ['switch'], button: ['button'], dialog: ['button', 'dialog'], tag: ['tag'],
-  select: ['select'], 'multi-select': ['multi-select'], 'hover-card': ['hover-card'], tooltip: ['tooltip'], badge: ['tag', 'badge'], info: ['hover-card', 'info'],
-  'file-upload': ['button', 'progress', 'file-upload'],
-  form: ['button', 'form'],
-  'media-viewer': ['media-viewer'],
-  progress: ['progress'], loading: ['materials', 'loading'], feedback: ['feedback'], island: ['island'], input: ['input'], choice: ['choice'],
-  list: ['list'], accordion: ['accordion'], menu: ['menu'], 'empty-state': ['button', 'empty-state'],
+  select: ['select'], 'multi-select': ['multi-select'], 'file-upload': ['button', 'progress', 'file-upload'], form: ['button', 'form'],
+  'hover-card': ['hover-card'], tooltip: ['tooltip'], badge: ['tag', 'badge'], info: ['hover-card', 'info'],
+  progress: ['progress'], loading: ['materials', 'loading'], feedback: ['feedback'], island: ['island'], input: ['input'],
   slider: ['value-controls', 'slider'], stepper: ['value-controls', 'stepper'],
   'date-range': ['value-controls', 'calendar', 'date-range'],
   'date-picker': ['value-controls', 'calendar', 'picker-field', 'date-picker'],
   'time-picker': ['value-controls', 'picker-field', 'time-picker'],
+  choice: ['choice'], list: ['list'], accordion: ['accordion'], 'empty-state': ['button', 'empty-state'],
   pagination: ['pagination'], 'data-table': ['pagination', 'data-table'],
-  toolbar: ['toolbar'], sidebar: ['sidebar'], tabs: ['tabs'], breadcrumb: ['breadcrumb'], steps: ['steps'], tree: ['tree'], drawer: ['button', 'dialog', 'drawer'],
+  toolbar: ['toolbar'], sidebar: ['sidebar'], tabs: ['tabs'], breadcrumb: ['breadcrumb'], steps: ['steps'], tree: ['tree'],
+  'media-viewer': ['media-viewer'], drawer: ['button', 'dialog', 'drawer'], menu: ['menu'],
+  materials: ['materials'], motion: ['materials', 'motion'],
 };
+function bundlePath(name, ext) {
+  const directory = ['global', 'materials', 'motion', 'icons'].includes(name) ? designDir : 'dist/components/' + name + '/';
+  return directory + name + '.' + ext;
+}
 const iconSheet = (await readFile(here('src/icons.svg'), 'utf8')).trim();
 // Embed only the glyphs used by each standalone stylesheet.
 const maskIcons = {
@@ -66,10 +72,17 @@ function iconMasks(component) {
   }).join('\n');
 }
 function motionForBundle(css, parts) {
-  return css.split(/(?=^\/\* @component )/m).filter(section => {
+  return css.split(motionSection).filter(section => {
     const name = section.match(/^\/\* @component ([\w-]+) \*\//)?.[1];
     return !name || name === 'shared' || parts.includes(name);
   }).join('');
+}
+async function writeBundle(file, sources, sections, separator) {
+  const header = '/* Generated from ' + sources.join(separator) + ' by build.mjs. */\n';
+  const bodies = sections.map(section => section.trimEnd());
+  await writeChanged(file, header + bodies.join('\n\n') + '\n');
+  bundleSections.set(file, bodies.flatMap((section, i) =>
+    sources[i] === 'src/motion-tiers.css' ? section.split(motionSection).map(block => block.trimEnd()) : [section]));
 }
 const tokenSources = ['src/colors.css', 'src/themes.css', 'src/type-tokens.css', 'src/layout-tokens.css', 'src/material-tiers.css', 'src/motion-tiers.css'];
 const foundations = [...tokenSources, 'src/typography.css'];
@@ -85,14 +98,13 @@ for (const [file, sources] of Object.entries(resourceSheets)) {
     const text = await readFile(here(source), 'utf8');
     return (source === 'src/motion-tiers.css' ? motionForBundle(text, []) : text).trimEnd();
   }));
-  await writeChanged(designDir + file, '/* Generated from ' + sources.join(', ') + ' by build.mjs. */\n' + css.join('\n\n') + '\n');
+  await writeBundle(designDir + file, sources, css, ', ');
 }
 for (const ext of ['css', 'js']) {
   const sharedSources = ext === 'css' ? [...foundations, 'src/appearance.css'] : ['src/glass-shader.js', 'src/glass.js'];
   const common = await Promise.all(sharedSources.map(source => readFile(here(source), 'utf8')));
   for (const [name, parts] of Object.entries(components)) {
-    const directory = ['materials', 'motion'].includes(name) ? designDir : 'dist/components/' + name + '/';
-    const file = directory + name + '.' + ext;
+    const file = bundlePath(name, ext);
     const bundled = ext === 'css' && name === 'multi-select' ? ['select', ...parts] : parts;
     const sources = bundled.map(part => 'src/' + part + '.' + ext);
     const navigation = parts.some(part => ['toolbar', 'sidebar', 'tabs', 'tree'].includes(part));
@@ -110,22 +122,52 @@ for (const ext of ['css', 'js']) {
     }
     const inputs = [...sharedSources, ...sources];
     const shared = common.map((source, i) => sharedSources[i] === 'src/motion-tiers.css' ? motionForBundle(source, bundled) : source);
-    const header = '/* Generated from ' + inputs.join(' and ') + ' by build.mjs. */\n';
-    await writeChanged(file, header + [...shared, ...sections].map(section => section.trimEnd()).join('\n\n') + '\n');
+    await writeBundle(file, inputs, [...shared, ...sections], ' and ');
   }
 }
 
 // Keep the gallery's local <use> references and the standalone script in sync with the SVG sheet.
 const iconSources = ['src/glass-shader.js', 'src/glass.js', 'src/icons.js', 'src/icon-motion.js', 'src/icon-material.js'];
 const [shader, scene, iconRuntime, iconMotion, iconMaterial] = await Promise.all(iconSources.map(file => readFile(here(file), 'utf8')));
+const icons = iconRuntime.replace("/* ICON_SHEET */ ''", () => JSON.stringify(iconSheet))
+  .replace('  /* ICON_MOTION */', () => iconMotion.trimEnd().replace(/^.+/gm, line => '  ' + line))
+  .replace('  /* ICON_MATERIAL */', () => iconMaterial.trimEnd().replace(/^.+/gm, line => '  ' + line));
+bundleSections.set(designDir + 'icons.js', [shader.trimEnd(), scene.trimEnd(), icons.trimEnd()]);
 // Keep the embedded Chinese catalog UTF-8 when the host page uses a legacy encoding.
 await writeChanged(designDir + 'icons.svg', iconSheet + '\n');
 await writeChanged(designDir + 'icons.js', '\uFEFF/* Generated from src/icons.svg and ' + iconSources.join(', ') + ' by build.mjs. */\n' + shader.trimEnd() + '\n\n' + scene.trimEnd() + '\n\n' +
-  iconRuntime.replace("/* ICON_SHEET */ ''", () => JSON.stringify(iconSheet))
-    .replace('  /* ICON_MOTION */', () => iconMotion.trimEnd().replace(/^.+/gm, line => '  ' + line))
-    .replace('  /* ICON_MATERIAL */', () => iconMaterial.trimEnd().replace(/^.+/gm, line => '  ' + line)));
+  icons);
 
-const gallery = await readFile(here('index.html'), 'utf8');
+const galleryComponents = Object.keys(components).filter(name => name !== 'pagination'); // Included with the data table.
+const galleryScripts = galleryComponents.slice();
+galleryScripts.splice(galleryScripts.indexOf('materials'), 0, 'icons');
+const sectionsFor = (names, ext) => names.flatMap(name => bundleSections.get(bundlePath(name, ext)));
+const readPreview = files => Promise.all(files.map(file => readFile(here('preview/' + file), 'utf8')));
+const galleryStyles = sectionsFor(['global', ...galleryComponents], 'css');
+// Repeated CSS keeps its last cascade position. Shared scripts execute at their first occurrence.
+const uniqueStyles = [...new Set(galleryStyles.toReversed())].reverse();
+const uniqueScripts = [...new Set(sectionsFor(galleryScripts, 'js'))];
+const controllers = [
+  'motion', 'foundations', 'navigation', 'empty-state', 'loading', 'tabs', 'breadcrumb', 'steps', 'tree',
+  'media-viewer', 'tooltip', 'accordion', 'multi-select', 'file-upload', 'form',
+].map(name => 'preview-' + name + '.js');
+const galleryAssets = {
+  'gallery.css': [...uniqueStyles, ...await readPreview(['preview.css', 'preview-foundations.css'])],
+  'components.js': uniqueScripts,
+  'gallery.js': await readPreview([...controllers, 'preview.js']),
+};
+
+let gallery = await readFile(here('index.html'), 'utf8');
+for (const [file, sections] of Object.entries(galleryAssets)) {
+  const content = '/* Generated for the gallery by build.mjs. */\n'
+    + sections.map(section => section.trimEnd()).join('\n\n') + '\n';
+  const path = 'preview/' + file;
+  await writeChanged(path, content);
+  const revision = createHash('sha256').update(content).digest('hex').slice(0, 12);
+  const reference = new RegExp('"' + ('./' + path).replaceAll('.', '\\.') + '(?:\\?v=[\\da-f]+)?"');
+  if (!reference.test(gallery)) throw new Error('Missing gallery reference to ' + path);
+  gallery = gallery.replace(reference, '"./' + path + '?v=' + revision + '"');
+}
 const sprite = /<svg class="icon-defs"[^>]*>[\s\S]*?<\/svg>/;
 if (!sprite.test(gallery)) throw new Error('Gallery icon sheet is missing');
 const gallerySheet = iconSheet.replace('<svg ', '<svg class="icon-defs" aria-hidden="true" focusable="false" ');
