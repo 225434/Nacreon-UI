@@ -1,8 +1,8 @@
 # Material Library
 
-[简体中文](README.md)
+**[Live demo](https://225434.github.io/material-lib/)** · [简体中文](README.md)
 
-Material Library is a collection of adaptive Web Components with an offline gallery. It includes form controls, navigation, data display, feedback, typography, themes, icons, and material and motion presets.
+Material Library is a collection of adaptive Web Components with an interactive gallery. It includes form controls, navigation, data display, feedback, typography, themes, icons, and material and motion presets.
 
 ## Try the gallery
 
