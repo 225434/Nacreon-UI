@@ -7,7 +7,7 @@
   <meta name="description" content="在 Nacreon UI 中试用自适应组件，切换浅色、暖色和深色主题，挑选配色与 SVG 图标。">
   <title>切换组件 · Nacreon UI</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./preview/gallery.css?v=00f18ac89e70">
+  <link rel="stylesheet" href="./preview/gallery.css?v=9ffa9a4b9187">
   <style id="navigation-demo-style">
     .ml-nav-sample { container: nav-sample / inline-size; box-sizing: border-box; min-inline-size: 0; color: var(--ml-ink); font-family: var(--ml-type-family, var(--ml-font-sans)); text-align: start; }
     .ml-nav-sample *, .ml-nav-board * { box-sizing: border-box; }
@@ -134,8 +134,8 @@
     .ml-menu-sample dd { margin: 0; font-variant-numeric: tabular-nums; }
     .ml-menu-sample .sample-undo { min-height: 44px; padding: .4rem .65rem; border: var(--ml-border-width) solid var(--ml-color-separator); border-radius: .6rem; background: var(--ml-color-surface); color: var(--ml-accent-ink); font: inherit; cursor: pointer; }
   </style>
-  <script defer src="./preview/components.js?v=d2b94b7ba664"></script>
-  <script defer src="./preview/gallery.js?v=8bca84c32bba"></script>
+  <script defer src="./preview/components.js?v=448185b94b5d"></script>
+  <script defer src="./preview/gallery.js?v=8413e4b5de49"></script>
 </head>
 <body>
   <svg class="icon-defs" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
@@ -1105,6 +1105,10 @@
               <label><input type="radio" name="motion" value="medium"><span>中</span></label>
               <label><input type="radio" name="motion" value="high" checked><span>高</span></label>
             </div>
+          </fieldset>
+          <fieldset class="appearance-field" id="glass-density-field" hidden>
+            <legend>玻璃浓度</legend><span class="field-note" id="density-note">适中</span>
+            <ml-slider unit="×" style="--ml-thumb: 1.35rem"><label class="sr-only" for="glass-density">玻璃浓度</label><input type="range" id="glass-density" min="0.4" max="2" step="0.1" value="1"></ml-slider>
           </fieldset>
         </aside>
       </div>

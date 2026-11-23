@@ -12,8 +12,8 @@
       light: '局部柔光', litDescription: '指针在实色表面照出一小片柔光。' },
     { value: 'medium', label: '中', name: '磨砂玻璃', note: '磨砂半透', description: '半透明表面柔化后方线条。',
       light: '磨砂散射', litDescription: '光晕在磨砂层里散开，软阴影偏向背光侧。' },
-    { value: 'high', label: '高', name: '实心流体玻璃', note: '实心流体玻璃', description: '凸面放大底纹，光线透过带色的玻璃内部。',
-      light: '玻璃聚光', litDescription: '迎光弧面亮起，对侧透出一道聚光。' },
+    { value: 'high', label: '高', name: '实心流体玻璃', note: '实心流体玻璃', description: '凸面均匀放大底纹，光线透过带色的玻璃内部，厚处色深。',
+      light: '玻璃聚光', litDescription: '迎光弧面锐亮，对侧聚出光斑，边缘泛出光谱色散。' },
   ].map(Object.freeze));
 
   class MaterialSurface extends GlassControl {
@@ -25,6 +25,16 @@
     get glassBackdrop() { return this.#backdrop; }
     get glassBackdropVersion() { return versions.get(this.#backdrop) || 0; }
     get backdrop() { return this.#backdrop; }
+
+    // Pressing anywhere on the sample sends a liquid rebound over its glass.
+    // A press on its own control still uses the control's ripple instead.
+    handleEvent(event) {
+      const action = event.target.closest?.('button, select, input[type="checkbox"], input[type="radio"]');
+      super.handleEvent(event);
+      if (event.type !== 'pointerdown' || (action && action.parentElement === this)) return;
+      if (!event.isPrimary || event.button !== 0 || event.defaultPrevented) return;
+      this.pulse(event.clientX, event.clientY);
+    }
 
     // Supply the visible, axis-aligned background canvas for texture refraction.
     set backdrop(canvas) {

@@ -90,14 +90,14 @@ function createIconMaterial(art, motion) {
     // Gradients live with the glyph, so each instance inherits its own CSS color.
     const ink = 'currentColor', glint = colors.light;
     if (!reference) {
-      gradient('ink', [[0, ink], [.36, ink], [.46, ink, .76], [.55, ink], [.86, ink], [1, ink, .90]]);
+      gradient('ink', [[0, ink], [.36, ink], [.46, ink, .84], [.55, ink], [.86, ink], [1, ink, .95]]);
       // A horizontal or vertical stroke has an empty object bounding box. Use the 24-unit glyph space.
       axes[0].setAttribute('gradientUnits', 'userSpaceOnUse');
-      if (faces.has('pane')) gradient('pane', [[0, ink, colors.pane * 1.7], [.29, glint, .42],
+      if (faces.has('pane')) gradient('pane', [[0, ink, colors.pane * 1.7], [.29, glint, .34],
         [.47, ink, colors.pane * .55], [.73, ink, colors.pane], [1, ink, colors.pane * 1.75]]);
       if (faces.has('lens')) gradient('lens', [[0, glint, .96], [.10, glint, .72], [.29, ink, colors.lens],
         [.57, ink, colors.lens * .40], [.81, ink, colors.lens], [1, ink, .66]], true);
-      if (faces.has('alloy')) gradient('alloy', [[0, ink, .72], [.27, ink, colors.alloy], [.43, glint, .80],
+      if (faces.has('alloy')) gradient('alloy', [[0, ink, .72], [.27, ink, colors.alloy], [.43, glint, .72],
         [.54, ink, .24], [.78, ink, colors.alloy], [1, ink, .74]]);
       setAttribute('stroke', url('ink') + ' currentColor');
     }
@@ -113,14 +113,14 @@ function createIconMaterial(art, motion) {
     const blur = node(filter, 'feGaussianBlur', { in: 'SourceAlpha', result: 'height' });
     const back = node(filter, 'feOffset', { in: 'height', result: 'behind' });
     node(filter, 'feComposite', { in: 'SourceAlpha', in2: 'behind', operator: 'out', result: 'lip' });
-    node(filter, 'feFlood', { 'flood-color': glint, 'flood-opacity': '.68', result: 'frost' });
+    node(filter, 'feFlood', { 'flood-color': glint, 'flood-opacity': '.52', result: 'frost' });
     node(filter, 'feComposite', { in: 'frost', in2: 'lip', operator: 'in', result: 'rim' });
     const front = node(filter, 'feOffset', { in: 'height', result: 'ahead' });
     node(filter, 'feComposite', { in: 'SourceAlpha', in2: 'ahead', operator: 'out', result: 'backEdge' });
-    node(filter, 'feFlood', { 'flood-color': colors.shade, 'flood-opacity': '.58', result: 'shadow' });
+    node(filter, 'feFlood', { 'flood-color': colors.shade, 'flood-opacity': '.66', result: 'shadow' });
     node(filter, 'feComposite', { in: 'shadow', in2: 'backEdge', operator: 'in', result: 'depth' });
-    const shine = node(filter, 'feSpecularLighting', { in: 'height', specularConstant: '.63',
-      specularExponent: '16', 'lighting-color': glint, result: 'reflection' });
+    const shine = node(filter, 'feSpecularLighting', { in: 'height', specularConstant: '.7',
+      specularExponent: '26', 'lighting-color': glint, result: 'reflection' });
     const lamp = node(shine, 'fePointLight', {});
     node(filter, 'feComposite', { in: 'reflection', in2: 'SourceAlpha', operator: 'in', result: 'gloss' });
     const merge = node(filter, 'feMerge', {});

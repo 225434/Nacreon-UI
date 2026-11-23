@@ -44,6 +44,17 @@
       this.#pulse = null;
     }
 
+    // A surface with no press target of its own can still rebound like liquid.
+    pulse(x, y) {
+      const content = this.glassContent;
+      const style = getComputedStyle(this);
+      if (!this.#scene || !content || style.getPropertyValue('--ml-optics').trim() !== 'block'
+        || !this.#canMove(content, style)) return false;
+      this.#pulse = { x, y, start: this.#scene.win.performance.now() };
+      this.#scene.wake(waveDuration + 35);
+      return true;
+    }
+
     #canMove(content, style) {
       return style.getPropertyValue('--ml-follow').trim() === '1'
         && !content.matches(':disabled, [disabled]')

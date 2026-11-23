@@ -177,7 +177,8 @@
   --ml-pearl-opacity: 38%;
   --ml-selection-opacity: 68%;
   --ml-glass-core: initial;
-  --ml-filter: saturate(1.15);
+  --ml-glass-density: 1;
+  --ml-filter: blur(1.1px) saturate(1.18);
   --ml-skin: linear-gradient(160deg, #ffffff24, transparent 45%, #092a3210 81%, #d9faff38);
   --ml-rail-relief: inset 0 0 0 .009em #193b3332, inset 0 .018em .028em #ffffff8f,
     inset 0 -.033em .046em #10392f35, 0 .025em .055em #12251f20, 0 .13em .24em -.12em #162b263d;
@@ -435,7 +436,7 @@
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  opacity: .21;
+  opacity: .13;
 }
 
 .ml-optical {

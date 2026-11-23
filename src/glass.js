@@ -2,7 +2,7 @@
   'use strict';
 
   const key = Symbol.for('material-lib.glass.v1');
-  if (globalThis[key]?.version >= 6) return;
+  if (globalThis[key]?.version >= 8) return;
   const previousScene = globalThis[key]?.GlassScene;
   const { optics } = globalThis[Symbol.for('material-lib.glass-shader.v1')];
 
@@ -94,7 +94,7 @@
     const relative = r => Math.round(r / shortSide * 32) / 32;
     const roundX = corners.x.map(relative), roundY = corners.y.map(relative);
     const relativeRadius = Math.max(.001, Math.round(Math.min(1, 2 * optics.maxRadius / shortSide) * 1000) / 1000);
-    const resolution = Math.max(64, Math.min(256, 2 ** Math.ceil(Math.log2(shortSide * dpr))));
+    const resolution = Math.max(64, Math.min(512, 2 ** Math.ceil(Math.log2(shortSide * dpr))));
     const key = [aspectX, aspectY, roundX, roundY, relativeRadius, resolution].join('/');
     if (normalMaps.has(key)) return normalMaps.get(key);
     const canvas = document.createElement('canvas');
@@ -116,7 +116,7 @@
         const arc = Math.sqrt(1 - edge * edge);
         const crown = optics.base + optics.crown * archX * archY;
         const frontHeight = arc * crown;
-        const rimSlope = crown / optics.rim * edge / Math.max(.085, arc);
+        const rimSlope = crown / optics.rim * edge / Math.max(.15, arc);
         const gx = 2 * optics.crown * arc * u * archY / halfW + sample.nx * rimSlope;
         const gy = 2 * optics.crown * arc * v * archX / halfH + sample.ny * rimSlope;
         // Snell refraction of a perpendicular viewing ray, followed by the flat rear interface.
@@ -126,8 +126,10 @@
         const exitCos2 = 1 - optics.index ** 2 * (rayX * rayX + rayY * rayY);
         const t = Math.max(0, Math.min(1, exitCos2 / .16));
         const escape = t * t * (3 - 2 * t);
-        const travel = optics.chord * frontHeight / (eta - bend)
+        let travel = optics.chord * frontHeight / (eta - bend)
           + optics.index * optics.clearance * arc * escape / Math.sqrt(Math.max(.16, exitCos2));
+        // Ease the rays near the rim so the lens magnifies evenly instead of smearing.
+        travel /= 1 + Math.hypot(rayX, rayY) * travel / 1.35;
         pixels.data[i] = 255 * (.5 + rayX * travel / optics.mapRange);
         pixels.data[i + 1] = 255 * (.5 + rayY * travel / optics.mapRange);
         pixels.data[i + 2] = 255 * frontHeight / (optics.base + optics.crown);
@@ -230,11 +232,11 @@
             <feColorMatrix in="surface" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 1 0 0" result="height"/>
             <feGaussianBlur in="height" result="dome"/>
             <feDiffuseLighting in="dome" lighting-color="white" result="illumination"><fePointLight/></feDiffuseLighting>
-            <feComponentTransfer in="height" result="density"><feFuncA type="table" tableValues="0 .075 .145 .21 .27"/></feComponentTransfer>
+            <feComponentTransfer in="height" result="density"><feFuncA type="table" tableValues="0 .085 .16 .235 .31"/></feComponentTransfer>
             <feFlood flood-color="rgb(var(--ml-glass-body-rgb, 138 192 217))" result="bodyTint"/>
             <feComposite in="bodyTint" in2="density" operator="in" result="body"/>
             <feComposite in="body" in2="illumination" operator="arithmetic" k1=".35" k2=".65" result="litBody"/>
-            <feSpecularLighting in="dome" specularExponent="23" lighting-color="currentColor" result="shine">
+            <feSpecularLighting in="dome" specularExponent="30" lighting-color="currentColor" result="shine">
               <fePointLight/>
             </feSpecularLighting>
             <feGaussianBlur in="shine" result="polished"/>
@@ -242,11 +244,11 @@
             <feComposite in2="SourceAlpha" operator="in"/>
           </filter>
           <radialGradient id="${id}-glint" gradientUnits="userSpaceOnUse">
-            <stop stop-color="currentColor"/><stop offset=".45" stop-color="currentColor" stop-opacity=".54"/>
+            <stop stop-color="currentColor"/><stop offset=".40" stop-color="currentColor" stop-opacity=".62"/>
             <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
           </radialGradient>
           <radialGradient id="${id}-caustic" gradientUnits="userSpaceOnUse">
-            <stop stop-color="currentColor"/><stop offset=".36" stop-color="currentColor" stop-opacity=".68"/>
+            <stop stop-color="currentColor"/><stop offset=".32" stop-color="currentColor" stop-opacity=".74"/>
             <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
           </radialGradient>
         </defs>
@@ -257,6 +259,7 @@
           <circle fill="none" stroke="#fff" opacity="0"/>
         </g>
         <path fill="url(#${id}-caustic)"/>
+        <path fill="none" stroke="#0a1420"/>
         <path fill="none" stroke="url(#${id}-glint)"/>
       </svg>`;
       const svg = this.layer.firstElementChild;
@@ -267,7 +270,8 @@
       this.diffuse = svg.querySelector('feDiffuseLighting');
       this.lamps = svg.querySelectorAll('fePointLight');
       [this.glint, this.caustic] = svg.querySelectorAll('radialGradient');
-      [this.face, this.dome, this.causticFace, this.interiorLight, this.litRim] = svg.querySelectorAll('path');
+      [this.face, this.dome, this.causticFace, this.interiorLight, this.darkRim, this.litRim] = svg.querySelectorAll('path');
+      this.bodyDensity = svg.querySelector('feFuncA');
       this.wave = svg.querySelector('circle');
       this.surface.style.setProperty('--ml-bend', 'url("#' + id + '-bend")');
       this.surface.classList.add('ml-refractive');
@@ -306,6 +310,8 @@
       }
       const gain = parseFloat(opticalStyle.getPropertyValue('--ml-glass-face-gain'));
       const faceGain = Number.isFinite(gain) ? Math.max(0, Math.min(1, gain)) : .135;
+      const densityReading = parseFloat(opticalStyle.getPropertyValue('--ml-glass-density'));
+      const density = Number.isFinite(densityReading) ? Math.max(0, Math.min(2.5, densityReading)) : 1;
       const dpr = win.devicePixelRatio || 1;
       const opticalRadius = Math.min(thickness / 2, optics.maxRadius);
       const shape = [width, height, radiusStyles, dpr].join('/');
@@ -321,14 +327,16 @@
         const rimWidth = Math.max(1.15, Math.min(2.6, thickness * .032));
         this.litRim.setAttribute('d', outlinePath(width, height, this.corners, rimWidth / 2));
         this.litRim.setAttribute('stroke-width', rimWidth);
+        this.darkRim.setAttribute('d', outlinePath(width, height, this.corners, rimWidth * .9));
+        this.darkRim.setAttribute('stroke-width', rimWidth * 1.9);
         const inset = Math.max(1.5, Math.min(17, thickness * (this.lens ? .116 : .109)));
         const causticFace = this.causticFace;
         causticFace.setAttribute('d', outlinePath(width, height, this.corners, inset));
         causticFace.setAttribute('stroke-width', Math.max(.85, height * .017));
-        this.blur.setAttribute('stdDeviation', Math.max(.75, height * .018));
-        this.polish.setAttribute('stdDeviation', Math.max(.65, height * .021));
+        this.blur.setAttribute('stdDeviation', Math.max(.7, height * .016));
+        this.polish.setAttribute('stdDeviation', Math.max(.6, height * .018));
         this.layer.style.setProperty('--ml-rim', Math.max(1, Math.min(2.6, height * .023)) + 'px');
-        this.wave.setAttribute('stroke-width', Math.max(1.1, height * .025));
+        this.wave.setAttribute('stroke-width', Math.max(1.3, height * .03));
       }
       const elevation = Math.max(30, Math.min(116, thickness * .76));
       const x = pointer ? (pointer.x - box.left) * sx : Math.min(width * .24, this.corners.x[0] + elevation * .6);
@@ -348,7 +356,7 @@
         ] };
       }
       const state = [shape, x.toFixed(1), y.toFixed(1), fraction.toFixed(3), renderer.generation,
-        lampRGB, bodyRGB, faceGain, version, sample?.rect.map(n => n.toFixed(5))].join('/');
+        lampRGB, bodyRGB, faceGain, density, version, sample?.rect.map(n => n.toFixed(5))].join('/');
       if (state === this.state && this.lastBackdrop === backdrop) return;
       this.state = state;
       this.lastBackdrop = backdrop;
@@ -364,7 +372,7 @@
       style.setProperty('--ml-penumbra', Math.max(1.5, Math.min(120, thickness) * (.04 + .04 * energy)).toFixed(2) + 'px');
       style.setProperty('--ml-cast-opacity', (.04 + .15 * energy).toFixed(3));
       const depth = fraction < 1 ? Math.sin(fraction * Math.PI * 4) * (1 - fraction) ** 2 : 0;
-      this.displacement.setAttribute('scale', opticalRadius * optics.mapRange * (1 + depth * .18));
+      this.displacement.setAttribute('scale', opticalRadius * optics.mapRange * (1 + depth * .26));
       const cx = pulse ? (pulse.x - box.left) * sx : width / 2;
       const cy = pulse ? (pulse.y - box.top) * sy : height / 2;
       if (renderer.program) {
@@ -373,7 +381,7 @@
           this.layer.append(this.output);
         }
         if (renderer.draw(this.output, {width, height, corners: this.corners, x, y, elevation, energy, tint: this.tint,
-          bodyTint: this.bodyTint, faceGain, cx, cy, fraction, lens: this.lens, dpr, sample})) {
+          bodyTint: this.bodyTint, faceGain, density, cx, cy, fraction, lens: this.lens, dpr, sample})) {
           if (this.layer.dataset.mlRenderer !== 'webgl') this.layer.dataset.mlRenderer = 'webgl';
           return;
         }
@@ -385,27 +393,29 @@
         lamp.setAttribute('y', y);
         lamp.setAttribute('z', elevation + peakHeight);
       }
-      this.reflection.setAttribute('specularConstant', (.04 + energy * faceGain * (this.lens ? 1.2 : .9)).toFixed(3));
-      this.reflection.setAttribute('surfaceScale', peakHeight * (1 + depth * .18));
+      this.reflection.setAttribute('specularConstant', (.04 + energy * faceGain * (this.lens ? 1.45 : 1.05)).toFixed(3));
+      this.reflection.setAttribute('surfaceScale', peakHeight * (1 + depth * .26));
       this.diffuse.setAttribute('surfaceScale', peakHeight);
       this.glint.setAttribute('cx', x);
       this.glint.setAttribute('cy', y);
       this.glint.setAttribute('r', elevation * 1.85);
-      this.litRim.setAttribute('opacity', (.85 * energy).toFixed(3));
-      this.face.setAttribute('opacity', (faceGain * (.45 + .4 * energy)).toFixed(3));
+      this.litRim.setAttribute('opacity', (.92 * energy).toFixed(3));
+      this.darkRim.setAttribute('opacity', (.13 + .12 * (1 - energy)).toFixed(3));
+      this.bodyDensity.setAttribute('tableValues', [0, .085, .16, .235, .31].map(value => (value * density).toFixed(3)).join(' '));
+      this.face.setAttribute('opacity', (faceGain * (.5 + .44 * energy)).toFixed(3));
       const projection = Math.max(1, Math.hypot(dx / (width / 2), dy / (height / 2)));
       this.caustic.setAttribute('cx', width / 2 - .76 * dx / projection);
       this.caustic.setAttribute('cy', height / 2 - .76 * dy / projection);
-      this.caustic.setAttribute('r', elevation * .85);
+      this.caustic.setAttribute('r', elevation * .8);
       const transmitted = energy * Math.hypot(dx, dy) / span;
-      this.causticFace.setAttribute('opacity', (.29 * transmitted).toFixed(3));
-      this.interiorLight.setAttribute('opacity', (.13 * transmitted).toFixed(3));
+      this.causticFace.setAttribute('opacity', (.37 * transmitted).toFixed(3));
+      this.interiorLight.setAttribute('opacity', (.21 * transmitted).toFixed(3));
       if (fraction < 1) {
         this.wave.setAttribute('cx', cx);
         this.wave.setAttribute('cy', cy);
         const extent = Math.hypot(Math.max(cx, width - cx), Math.max(cy, height - cy));
         this.wave.setAttribute('r', 1 + extent * (1 - (1 - fraction) ** 2));
-        this.wave.setAttribute('opacity', (.68 * (1 - fraction) ** 1.5).toFixed(3));
+        this.wave.setAttribute('opacity', (.9 * (1 - fraction) ** 1.4).toFixed(3));
       } else {
         this.wave.setAttribute('opacity', 0);
       }
@@ -495,5 +505,5 @@
     }
   }
 
-  globalThis[key] = Object.freeze({ version: 6, GlassSurface, GlassScene: previousScene || GlassScene, waveDuration });
+  globalThis[key] = Object.freeze({ version: 8, GlassSurface, GlassScene: previousScene || GlassScene, waveDuration });
 })();

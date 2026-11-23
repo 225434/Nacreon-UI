@@ -3,7 +3,7 @@
   'use strict';
 
   const key = Symbol.for('material-lib.glass-shader.v1');
-  if (globalThis[key]?.version >= 4) return;
+  if (globalThis[key]?.version >= 6) return;
 
   // Distances are in units of the optical radius. The native displacement map
   // uses the same profile, refractive index and rear interface as the shader.
@@ -25,7 +25,7 @@
     uniform vec4 lamp, lightColor;
     uniform vec3 bodyTint;
     uniform vec4 radiusX, radiusY;
-    uniform float progress, lens, pixel, hasImage;
+    uniform float progress, lens, pixel, hasImage, density;
     uniform vec4 imageRect;
     uniform sampler2D backdrop;
 
@@ -43,6 +43,16 @@
         distance = arcDistance;
         outward = side * gradient / magnitude;
       }
+    }
+
+    // One wavelength of light followed through the glass body and out the flat back.
+    vec2 refractTravel(vec3 normal, float frontHeight, float opticalRadius, float arc, float ior) {
+      vec3 ray = refract(vec3(0., 0., -1.), normal, 1. / ior);
+      float path = ${optics.chord} * frontHeight / -ray.z;
+      float exitCos2 = 1. - ior * ior * dot(ray.xy, ray.xy);
+      float escape = smoothstep(0., .16, exitCos2);
+      vec2 exitSlope = ray.xy * ior * inversesqrt(max(.16, exitCos2));
+      return ray.xy * path + exitSlope * (escape * ${optics.clearance} * opticalRadius * arc);
     }
 
     void main() {
@@ -64,27 +74,41 @@
       vec2 local = p / halfSize;
       vec2 arch = max(vec2(0.), 1. - local * local);
       float crown = ${optics.base} + ${optics.crown} * arch.x * arch.y;
-      float frontHeight = opticalRadius * arc * crown;
-      vec2 gradient = 2. * ${optics.crown} * opticalRadius * arc * local * arch.yx / halfSize
-        + outward * (crown / ${optics.rim}) * slope / max(.085, arc);
       float wave = 0.;
+      float wobble = 0.;
       if (progress < 1.) {
         float reach = length(max(contact, size - contact));
         float front = reach * (1. - (1. - progress) * (1. - progress));
-        float offset = (length(uv * size - contact) - front) / max(1.4, bevel * .23);
+        float along = length(size * uv - contact);
+        float offset = (along - front) / max(1.4, bevel * .23);
         wave = exp(-offset * offset) * (1. - progress);
+        // A weaker crest chases the first so a press reads as liquid.
+        float trail = (along - front * .52) / max(1.4, bevel * .34);
+        wave += .55 * exp(-trail * trail) * (1. - progress) * (1. - progress);
+        wobble = sin(progress * 12.5663706) * (1. - progress) * (1. - progress);
       }
+      float frontHeight = opticalRadius * arc * crown * (1. + .26 * wobble);
+      vec2 gradient = 2. * ${optics.crown} * opticalRadius * arc * local * arch.yx / halfSize
+        + outward * (crown / ${optics.rim}) * slope / max(.15, arc);
       vec2 ripple = (size * uv - contact) / max(1., length(size * uv - contact));
-      vec3 normal = normalize(vec3(gradient + .12 * wave * ripple, 1.));
-      // Follow the ray through the whole chord, then out through the flat back.
+      vec3 normal = normalize(vec3(gradient + .26 * wave * ripple, 1.));
+      // Follow the mean ray through the whole chord, then out through the flat back.
       // Near the critical angle the escaping ray gives way to an internal reflection.
       const float ior = ${optics.index};
+      const float spread = .055;
       vec3 ray = refract(vec3(0., 0., -1.), normal, 1. / ior);
       float path = ${optics.chord} * frontHeight / -ray.z;
       float exitCos2 = 1. - ior * ior * dot(ray.xy, ray.xy);
       float escape = smoothstep(0., .16, exitCos2);
       vec2 exitSlope = ray.xy * ior * inversesqrt(max(.16, exitCos2));
       vec2 travel = ray.xy * path + exitSlope * (escape * ${optics.clearance} * opticalRadius * arc);
+      // Red and blue bend around the mean ray, so glass edges fringe with the spectrum.
+      vec2 travelR = refractTravel(normal, frontHeight, opticalRadius, arc, ior * (1. - spread));
+      vec2 travelB = refractTravel(normal, frontHeight, opticalRadius, arc, ior * (1. + spread));
+      // Ease the rays near the rim so the lens magnifies evenly instead of smearing.
+      travel /= 1. + length(travel) / (opticalRadius * 1.35);
+      travelR /= 1. + length(travelR) / (opticalRadius * 1.35);
+      travelB /= 1. + length(travelB) / (opticalRadius * 1.35);
       vec2 toLight = lamp.xy - size * uv;
       float z2 = lamp.z * lamp.z;
       float lampHeight = lamp.z + opticalRadius * (${optics.base} + ${optics.crown}) - frontHeight;
@@ -94,8 +118,8 @@
       vec3 halfLight = normalize(light + vec3(0., 0., 1.));
       float nDotH = max(dot(normal, halfLight), 0.);
       float fresnel = .038 + .962 * pow(clamp(1. - normal.z, 0., 1.), 5.);
-      float lipWidth = max(.65 * pixel, clamp(bevel * .079, .64, 2.1));
-      float lip = bell((depth - lipWidth * .80) / lipWidth);
+      float lipWidth = max(.65 * pixel, clamp(bevel * .075, .60, 1.95));
+      float lip = bell((depth - lipWidth * .82) / lipWidth);
       float shoulder = bell((depth - bevel * .23) / max(pixel, bevel * .17));
 
       // Distance to each point on the perimeter localizes the highlight along long straight edges.
@@ -109,38 +133,56 @@
       vec3 reflected = reflect(vec3(0., 0., -1.), normal);
       float skylight = bell((reflected.y + .69 - .20 * reflected.x) / .31)
         * smoothstep(-.42, .34, reflected.z) * (.74 - .24 * reflected.x);
-      float ambient = .12 * fresnel + (.025 + .060 * sky * sky) * lip + .17 * skylight;
-      float face = irradiance * (.54 * pow(nDotH, 42.) + .46 * pow(nDotH, 8.))
+      float ambient = .15 * fresnel + (.018 + .045 * sky * sky) * lip + .17 * skylight;
+      // Three lobes: a broad sheen, the lamp's own arc and a tight wet glint.
+      float sheen = pow(nDotH, 8.);
+      float glintLobe = pow(nDotH, 240.);
+      float face = irradiance * (.44 * sheen + .46 * pow(nDotH, 42.) + .58 * glintLobe)
         * mix(lightColor.a * .86, .30, slope) * mix(.78, 1., lens);
-      face += (.04 + .28 * lightColor.a) * irradiance * pow(nDotH, 6.) * smoothstep(.16, .78, length(local));
-      float reflection = key * (.72 * lip + .31 * shoulder + .11 * slope + .08 * (1. - escape));
+      face += (.04 + .28 * lightColor.a) * irradiance * sheen * smoothstep(.16, .78, length(local));
+      // The lit rim reflects once more just inside the glass where rays nearly turn back.
+      float echo = bell((depth - bevel * .86) / max(pixel, bevel * .13)) * (1. - escape);
+      float reflection = key * (.85 * lip + .38 * shoulder + .11 * slope + .12 * (1. - escape) + .17 * echo);
       // Light leaving the curved body concentrates on the far shoulder.
       vec2 exitPoint = halfSize - .76 * fromCenter / max(1., length(fromCenter / halfSize));
       vec2 toExit = (size * uv - exitPoint) / (vec2(.55, .48) * lamp.z + .20 * halfSize);
-      float focus = exp(-dot(toExit, toExit));
+      float exit2 = dot(toExit, toExit);
+      // The focus carries a hot core so the far-side light reads as a caustic.
+      float focus = exp(-exit2) * (1. + .6 * exp(-exit2 * 3.2));
       float farSide = smoothstep(.02, .60, -dot(local, fromCenter) / length(vec3(fromCenter, lamp.z * .72)));
-      float caustic = lamp.w * focus * (.13 * farSide * arc + .13 * smoothstep(.02, .78, -bearing)
+      float caustic = lamp.w * focus * (.22 * farSide * arc + .17 * smoothstep(.02, .78, -bearing)
         * bell((depth - bevel * .66) / max(pixel, bevel * .35)));
       float shine = 1. - (1. - ambient) * (1. - min(.94, reflection)) * (1. - face)
-        * (1. - caustic) * (1. - .22 * wave);
-      float shade = slope * (.045 + .09 * lamp.w * max(-bearing, 0.)) * (1. - .59 * key);
-      vec3 glint = mix(lightColor.rgb, vec3(1.), .30 * key * lip);
+        * (1. - caustic) * (1. - .30 * wave);
+      // The silhouette darkens just inside its edge, so thickness reads without a glow outline.
+      float edgeDark = bell((depth - bevel * .05) / max(pixel, bevel * .13));
+      float shade = slope * (.045 + .09 * lamp.w * max(-bearing, 0.)) * (1. - .59 * key)
+        + edgeDark * (.13 + .12 * (1. - key));
+      vec3 glint = mix(lightColor.rgb, vec3(1.), clamp(.42 * key * lip + .30 * glintLobe * irradiance, 0., 1.));
       // Beer-Lambert transmission and a softly lit body also work over ordinary HTML.
-      float transmission = exp(-.245 * path / opticalRadius);
+      // The thicker the chord — and the heavier the tint — the more red is absorbed.
+      vec3 transmission = exp(-vec3(.283, .245, .207) * density * path / opticalRadius);
       float bodyLight = .52 + .26 * max(dot(normal, vec3(-.32, -.57, .75)), 0.)
         + .27 * irradiance * max(dot(normal, light), 0.);
       vec3 body = bodyTint * bodyLight * (1. - transmission);
       float throughFace = (1. - shine) * (1. - shade);
-      float alpha = 1. - throughFace * transmission;
+      float alpha = 1. - throughFace * transmission.g;
       vec3 color = glint * shine + vec3(.09,.12,.15) * shade * (1. - shine) + throughFace * body;
       if (hasImage > .5) {
         vec2 offset = travel / size * imageRect.zw;
         vec2 at = imageRect.xy + uv * imageRect.zw;
-        vec4 transmitted = texture2D(backdrop, at + offset);
-        transmitted.r = texture2D(backdrop, at + offset * 1.012).r;
-        transmitted.b = texture2D(backdrop, at + offset * .988).b;
-        color += transmitted.rgb * transmitted.a * (1. - alpha);
-        alpha += transmitted.a * (1. - alpha);
+        // A small aperture average diffuses busy backgrounds so overlaid ink stays readable.
+        vec2 soft = (.9 + 1.2 * density) * pixel / size * imageRect.zw;
+        vec3 through = texture2D(backdrop, at + offset + soft).rgb
+          + texture2D(backdrop, at + offset + vec2(-soft.x, soft.y)).rgb
+          + texture2D(backdrop, at + offset + vec2(soft.x, -soft.y)).rgb
+          + texture2D(backdrop, at + offset - soft).rgb;
+        vec4 mean = texture2D(backdrop, at + offset);
+        vec3 dispersed = vec3(texture2D(backdrop, at + travelR / size * imageRect.zw).r,
+          mean.g, texture2D(backdrop, at + travelB / size * imageRect.zw).b);
+        dispersed = mix(dispersed, (through + mean.rgb) * .2, .34);
+        color += dispersed * mean.a * (1. - alpha);
+        alpha += mean.a * (1. - alpha);
       }
       gl_FragColor = vec4(color, alpha) * coverage;
     }`;
@@ -159,7 +201,7 @@
 
   // One context and program per document. Only the finished frame is copied to each DOM surface.
   class GlassRenderer {
-    static get version() { return 4; }
+    static get version() { return 6; }
     static get optics() { return optics; }
     static forDocument(doc, invalidate) {
       if (!renderers.has(doc)) renderers.set(doc, new GlassRenderer(doc, invalidate));
@@ -207,7 +249,7 @@
         gl.enableVertexAttribArray(position);
         gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
         this.uniform = {};
-        for (const name of ['size','lamp','lightColor','bodyTint','contact','radiusX','radiusY','progress','lens','pixel','imageRect','hasImage','backdrop']) {
+        for (const name of ['size','lamp','lightColor','bodyTint','contact','radiusX','radiusY','progress','lens','pixel','imageRect','hasImage','density','backdrop']) {
           this.uniform[name] = gl.getUniformLocation(program, name);
         }
         gl.uniform1i(this.uniform.backdrop, 0);
@@ -267,7 +309,7 @@
       const {width, height, dpr, corners, x, y, cx, cy, fraction, lens, sample} = frame;
       // Previous standalone components can share this renderer when only one bundle is upgraded.
       const { elevation = Math.max(30, Math.min(116, Math.min(width, height) * .76)), energy = 1,
-        tint = [.95, .975, 1.], bodyTint = [.54, .75, .85], faceGain = .135 } = frame;
+        tint = [.95, .975, 1.], bodyTint = [.54, .75, .85], faceGain = .135, density = 1 } = frame;
       const scale = Math.min(dpr, this.maxSide / Math.max(width, height));
       const w = Math.max(1, Math.round(width * scale)), h = Math.max(1, Math.round(height * scale));
       if (this.canvas.width < w) this.canvas.width = w;
@@ -296,6 +338,7 @@
       gl.uniform1f(u.lens, lens ? 1 : 0);
       gl.uniform1f(u.pixel, 1 / scale);
       gl.uniform1f(u.hasImage, textured ? 1 : 0);
+      gl.uniform1f(u.density, density);
       if (textured) gl.uniform4fv(u.imageRect, sample.rect);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       if (gl.isContextLost()) return false;
@@ -312,7 +355,7 @@
   'use strict';
 
   const key = Symbol.for('material-lib.glass.v1');
-  if (globalThis[key]?.version >= 6) return;
+  if (globalThis[key]?.version >= 8) return;
   const previousScene = globalThis[key]?.GlassScene;
   const { optics } = globalThis[Symbol.for('material-lib.glass-shader.v1')];
 
@@ -404,7 +447,7 @@
     const relative = r => Math.round(r / shortSide * 32) / 32;
     const roundX = corners.x.map(relative), roundY = corners.y.map(relative);
     const relativeRadius = Math.max(.001, Math.round(Math.min(1, 2 * optics.maxRadius / shortSide) * 1000) / 1000);
-    const resolution = Math.max(64, Math.min(256, 2 ** Math.ceil(Math.log2(shortSide * dpr))));
+    const resolution = Math.max(64, Math.min(512, 2 ** Math.ceil(Math.log2(shortSide * dpr))));
     const key = [aspectX, aspectY, roundX, roundY, relativeRadius, resolution].join('/');
     if (normalMaps.has(key)) return normalMaps.get(key);
     const canvas = document.createElement('canvas');
@@ -426,7 +469,7 @@
         const arc = Math.sqrt(1 - edge * edge);
         const crown = optics.base + optics.crown * archX * archY;
         const frontHeight = arc * crown;
-        const rimSlope = crown / optics.rim * edge / Math.max(.085, arc);
+        const rimSlope = crown / optics.rim * edge / Math.max(.15, arc);
         const gx = 2 * optics.crown * arc * u * archY / halfW + sample.nx * rimSlope;
         const gy = 2 * optics.crown * arc * v * archX / halfH + sample.ny * rimSlope;
         // Snell refraction of a perpendicular viewing ray, followed by the flat rear interface.
@@ -436,8 +479,10 @@
         const exitCos2 = 1 - optics.index ** 2 * (rayX * rayX + rayY * rayY);
         const t = Math.max(0, Math.min(1, exitCos2 / .16));
         const escape = t * t * (3 - 2 * t);
-        const travel = optics.chord * frontHeight / (eta - bend)
+        let travel = optics.chord * frontHeight / (eta - bend)
           + optics.index * optics.clearance * arc * escape / Math.sqrt(Math.max(.16, exitCos2));
+        // Ease the rays near the rim so the lens magnifies evenly instead of smearing.
+        travel /= 1 + Math.hypot(rayX, rayY) * travel / 1.35;
         pixels.data[i] = 255 * (.5 + rayX * travel / optics.mapRange);
         pixels.data[i + 1] = 255 * (.5 + rayY * travel / optics.mapRange);
         pixels.data[i + 2] = 255 * frontHeight / (optics.base + optics.crown);
@@ -540,11 +585,11 @@
             <feColorMatrix in="surface" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 1 0 0" result="height"/>
             <feGaussianBlur in="height" result="dome"/>
             <feDiffuseLighting in="dome" lighting-color="white" result="illumination"><fePointLight/></feDiffuseLighting>
-            <feComponentTransfer in="height" result="density"><feFuncA type="table" tableValues="0 .075 .145 .21 .27"/></feComponentTransfer>
+            <feComponentTransfer in="height" result="density"><feFuncA type="table" tableValues="0 .085 .16 .235 .31"/></feComponentTransfer>
             <feFlood flood-color="rgb(var(--ml-glass-body-rgb, 138 192 217))" result="bodyTint"/>
             <feComposite in="bodyTint" in2="density" operator="in" result="body"/>
             <feComposite in="body" in2="illumination" operator="arithmetic" k1=".35" k2=".65" result="litBody"/>
-            <feSpecularLighting in="dome" specularExponent="23" lighting-color="currentColor" result="shine">
+            <feSpecularLighting in="dome" specularExponent="30" lighting-color="currentColor" result="shine">
               <fePointLight/>
             </feSpecularLighting>
             <feGaussianBlur in="shine" result="polished"/>
@@ -552,11 +597,11 @@
             <feComposite in2="SourceAlpha" operator="in"/>
           </filter>
           <radialGradient id="${id}-glint" gradientUnits="userSpaceOnUse">
-            <stop stop-color="currentColor"/><stop offset=".45" stop-color="currentColor" stop-opacity=".54"/>
+            <stop stop-color="currentColor"/><stop offset=".40" stop-color="currentColor" stop-opacity=".62"/>
             <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
           </radialGradient>
           <radialGradient id="${id}-caustic" gradientUnits="userSpaceOnUse">
-            <stop stop-color="currentColor"/><stop offset=".36" stop-color="currentColor" stop-opacity=".68"/>
+            <stop stop-color="currentColor"/><stop offset=".32" stop-color="currentColor" stop-opacity=".74"/>
             <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
           </radialGradient>
         </defs>
@@ -567,6 +612,7 @@
           <circle fill="none" stroke="#fff" opacity="0"/>
         </g>
         <path fill="url(#${id}-caustic)"/>
+        <path fill="none" stroke="#0a1420"/>
         <path fill="none" stroke="url(#${id}-glint)"/>
       </svg>`;
       const svg = this.layer.firstElementChild;
@@ -577,7 +623,8 @@
       this.diffuse = svg.querySelector('feDiffuseLighting');
       this.lamps = svg.querySelectorAll('fePointLight');
       [this.glint, this.caustic] = svg.querySelectorAll('radialGradient');
-      [this.face, this.dome, this.causticFace, this.interiorLight, this.litRim] = svg.querySelectorAll('path');
+      [this.face, this.dome, this.causticFace, this.interiorLight, this.darkRim, this.litRim] = svg.querySelectorAll('path');
+      this.bodyDensity = svg.querySelector('feFuncA');
       this.wave = svg.querySelector('circle');
       this.surface.style.setProperty('--ml-bend', 'url("#' + id + '-bend")');
       this.surface.classList.add('ml-refractive');
@@ -616,6 +663,8 @@
       }
       const gain = parseFloat(opticalStyle.getPropertyValue('--ml-glass-face-gain'));
       const faceGain = Number.isFinite(gain) ? Math.max(0, Math.min(1, gain)) : .135;
+      const densityReading = parseFloat(opticalStyle.getPropertyValue('--ml-glass-density'));
+      const density = Number.isFinite(densityReading) ? Math.max(0, Math.min(2.5, densityReading)) : 1;
       const dpr = win.devicePixelRatio || 1;
       const opticalRadius = Math.min(thickness / 2, optics.maxRadius);
       const shape = [width, height, radiusStyles, dpr].join('/');
@@ -631,14 +680,16 @@
         const rimWidth = Math.max(1.15, Math.min(2.6, thickness * .032));
         this.litRim.setAttribute('d', outlinePath(width, height, this.corners, rimWidth / 2));
         this.litRim.setAttribute('stroke-width', rimWidth);
+        this.darkRim.setAttribute('d', outlinePath(width, height, this.corners, rimWidth * .9));
+        this.darkRim.setAttribute('stroke-width', rimWidth * 1.9);
         const inset = Math.max(1.5, Math.min(17, thickness * (this.lens ? .116 : .109)));
         const causticFace = this.causticFace;
         causticFace.setAttribute('d', outlinePath(width, height, this.corners, inset));
         causticFace.setAttribute('stroke-width', Math.max(.85, height * .017));
-        this.blur.setAttribute('stdDeviation', Math.max(.75, height * .018));
-        this.polish.setAttribute('stdDeviation', Math.max(.65, height * .021));
+        this.blur.setAttribute('stdDeviation', Math.max(.7, height * .016));
+        this.polish.setAttribute('stdDeviation', Math.max(.6, height * .018));
         this.layer.style.setProperty('--ml-rim', Math.max(1, Math.min(2.6, height * .023)) + 'px');
-        this.wave.setAttribute('stroke-width', Math.max(1.1, height * .025));
+        this.wave.setAttribute('stroke-width', Math.max(1.3, height * .03));
       }
       const elevation = Math.max(30, Math.min(116, thickness * .76));
       const x = pointer ? (pointer.x - box.left) * sx : Math.min(width * .24, this.corners.x[0] + elevation * .6);
@@ -658,7 +709,7 @@
         ] };
       }
       const state = [shape, x.toFixed(1), y.toFixed(1), fraction.toFixed(3), renderer.generation,
-        lampRGB, bodyRGB, faceGain, version, sample?.rect.map(n => n.toFixed(5))].join('/');
+        lampRGB, bodyRGB, faceGain, density, version, sample?.rect.map(n => n.toFixed(5))].join('/');
       if (state === this.state && this.lastBackdrop === backdrop) return;
       this.state = state;
       this.lastBackdrop = backdrop;
@@ -674,7 +725,7 @@
       style.setProperty('--ml-penumbra', Math.max(1.5, Math.min(120, thickness) * (.04 + .04 * energy)).toFixed(2) + 'px');
       style.setProperty('--ml-cast-opacity', (.04 + .15 * energy).toFixed(3));
       const depth = fraction < 1 ? Math.sin(fraction * Math.PI * 4) * (1 - fraction) ** 2 : 0;
-      this.displacement.setAttribute('scale', opticalRadius * optics.mapRange * (1 + depth * .18));
+      this.displacement.setAttribute('scale', opticalRadius * optics.mapRange * (1 + depth * .26));
       const cx = pulse ? (pulse.x - box.left) * sx : width / 2;
       const cy = pulse ? (pulse.y - box.top) * sy : height / 2;
       if (renderer.program) {
@@ -683,7 +734,7 @@
           this.layer.append(this.output);
         }
         if (renderer.draw(this.output, {width, height, corners: this.corners, x, y, elevation, energy, tint: this.tint,
-          bodyTint: this.bodyTint, faceGain, cx, cy, fraction, lens: this.lens, dpr, sample})) {
+          bodyTint: this.bodyTint, faceGain, density, cx, cy, fraction, lens: this.lens, dpr, sample})) {
           if (this.layer.dataset.mlRenderer !== 'webgl') this.layer.dataset.mlRenderer = 'webgl';
           return;
         }
@@ -695,27 +746,29 @@
         lamp.setAttribute('y', y);
         lamp.setAttribute('z', elevation + peakHeight);
       }
-      this.reflection.setAttribute('specularConstant', (.04 + energy * faceGain * (this.lens ? 1.2 : .9)).toFixed(3));
-      this.reflection.setAttribute('surfaceScale', peakHeight * (1 + depth * .18));
+      this.reflection.setAttribute('specularConstant', (.04 + energy * faceGain * (this.lens ? 1.45 : 1.05)).toFixed(3));
+      this.reflection.setAttribute('surfaceScale', peakHeight * (1 + depth * .26));
       this.diffuse.setAttribute('surfaceScale', peakHeight);
       this.glint.setAttribute('cx', x);
       this.glint.setAttribute('cy', y);
       this.glint.setAttribute('r', elevation * 1.85);
-      this.litRim.setAttribute('opacity', (.85 * energy).toFixed(3));
-      this.face.setAttribute('opacity', (faceGain * (.45 + .4 * energy)).toFixed(3));
+      this.litRim.setAttribute('opacity', (.92 * energy).toFixed(3));
+      this.darkRim.setAttribute('opacity', (.13 + .12 * (1 - energy)).toFixed(3));
+      this.bodyDensity.setAttribute('tableValues', [0, .085, .16, .235, .31].map(value => (value * density).toFixed(3)).join(' '));
+      this.face.setAttribute('opacity', (faceGain * (.5 + .44 * energy)).toFixed(3));
       const projection = Math.max(1, Math.hypot(dx / (width / 2), dy / (height / 2)));
       this.caustic.setAttribute('cx', width / 2 - .76 * dx / projection);
       this.caustic.setAttribute('cy', height / 2 - .76 * dy / projection);
-      this.caustic.setAttribute('r', elevation * .85);
+      this.caustic.setAttribute('r', elevation * .8);
       const transmitted = energy * Math.hypot(dx, dy) / span;
-      this.causticFace.setAttribute('opacity', (.29 * transmitted).toFixed(3));
-      this.interiorLight.setAttribute('opacity', (.13 * transmitted).toFixed(3));
+      this.causticFace.setAttribute('opacity', (.37 * transmitted).toFixed(3));
+      this.interiorLight.setAttribute('opacity', (.21 * transmitted).toFixed(3));
       if (fraction < 1) {
         this.wave.setAttribute('cx', cx);
         this.wave.setAttribute('cy', cy);
         const extent = Math.hypot(Math.max(cx, width - cx), Math.max(cy, height - cy));
         this.wave.setAttribute('r', 1 + extent * (1 - (1 - fraction) ** 2));
-        this.wave.setAttribute('opacity', (.68 * (1 - fraction) ** 1.5).toFixed(3));
+        this.wave.setAttribute('opacity', (.9 * (1 - fraction) ** 1.4).toFixed(3));
       } else {
         this.wave.setAttribute('opacity', 0);
       }
@@ -805,7 +858,7 @@
     }
   }
 
-  globalThis[key] = Object.freeze({ version: 6, GlassSurface, GlassScene: previousScene || GlassScene, waveDuration });
+  globalThis[key] = Object.freeze({ version: 8, GlassSurface, GlassScene: previousScene || GlassScene, waveDuration });
 })();
 
 (() => {
@@ -852,6 +905,17 @@
       this.#glass?.remove();
       this.#glass = null;
       this.#pulse = null;
+    }
+
+    // A surface with no press target of its own can still rebound like liquid.
+    pulse(x, y) {
+      const content = this.glassContent;
+      const style = getComputedStyle(this);
+      if (!this.#scene || !content || style.getPropertyValue('--ml-optics').trim() !== 'block'
+        || !this.#canMove(content, style)) return false;
+      this.#pulse = { x, y, start: this.#scene.win.performance.now() };
+      this.#scene.wake(waveDuration + 35);
+      return true;
     }
 
     #canMove(content, style) {

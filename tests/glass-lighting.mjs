@@ -105,7 +105,7 @@ async function exercise(page, engine) {
     const [, , darkFace] = await canvas.evaluate(luminance);
     assert(darkFace < lightFace - 4 && darkFace < 124, 'dark mode should keep the centered reflection subdued');
   } else {
-    const lip = layer.locator('svg > [stroke]');
+    const lip = layer.locator('svg > [stroke^="url"]');
     const gradient = layer.locator('radialGradient').first();
     const position = () => gradient.evaluate(el => Number(el.getAttribute('cx')));
     const initial = await position();

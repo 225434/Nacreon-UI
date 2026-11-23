@@ -5257,7 +5257,8 @@ ml-menu[hidden], ml-menu-panel[hidden], ml-menu-panel [hidden] { display: none; 
   --ml-pearl-opacity: 38%;
   --ml-selection-opacity: 68%;
   --ml-glass-core: initial;
-  --ml-filter: saturate(1.15);
+  --ml-glass-density: 1;
+  --ml-filter: blur(1.1px) saturate(1.18);
   --ml-skin: linear-gradient(160deg, #ffffff24, transparent 45%, #092a3210 81%, #d9faff38);
   --ml-rail-relief: inset 0 0 0 .009em #193b3332, inset 0 .018em .028em #ffffff8f,
     inset 0 -.033em .046em #10392f35, 0 .025em .055em #12251f20, 0 .13em .24em -.12em #162b263d;
@@ -5489,7 +5490,7 @@ ml-menu[hidden], ml-menu-panel[hidden], ml-menu-panel [hidden] { display: none; 
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  opacity: .21;
+  opacity: .13;
 }
 
 .ml-optical {
@@ -5626,7 +5627,7 @@ legend { padding: 0; }
   width: 1.15em; height: 1.15em; flex: none; fill: none; stroke: currentColor;
   stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round;
 }
-.sr-only, .use-picker input, .appearance-field input {
+.sr-only, .use-picker input:not([type="range"]), .appearance-field input:not([type="range"]) {
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
   overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }
@@ -5672,10 +5673,10 @@ legend { padding: 0; }
 
 #component-catalog {
   --ml-dialog-width: 48rem; --ml-dialog-radius: var(--ml-radius-xl);
+  --ml-dialog-fill: var(--panel);
   --catalog-top: clamp(.75rem, 8dvh, 5rem);
   margin-block: var(--catalog-top) auto; block-size: min(30.5rem, calc(100dvh - var(--catalog-top) - 1rem));
   max-block-size: calc(100dvh - var(--catalog-top) - 1rem); overflow: hidden;
-  background-color: color-mix(in srgb, var(--panel) 96%, transparent);
 }
 #component-catalog .catalog-panel { flex: 1 1 auto; overflow: hidden; padding: 0; }
 .catalog-head { display: flex; align-items: center; flex: none; gap: var(--ml-space-3); padding: .85rem .95rem .2rem 1.35rem; }

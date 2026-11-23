@@ -36,7 +36,7 @@ legend { padding: 0; }
   width: 1.15em; height: 1.15em; flex: none; fill: none; stroke: currentColor;
   stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round;
 }
-.sr-only, .use-picker input, .appearance-field input {
+.sr-only, .use-picker input:not([type="range"]), .appearance-field input:not([type="range"]) {
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
   overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }
@@ -82,10 +82,10 @@ legend { padding: 0; }
 
 #component-catalog {
   --ml-dialog-width: 48rem; --ml-dialog-radius: var(--ml-radius-xl);
+  --ml-dialog-fill: var(--panel);
   --catalog-top: clamp(.75rem, 8dvh, 5rem);
   margin-block: var(--catalog-top) auto; block-size: min(30.5rem, calc(100dvh - var(--catalog-top) - 1rem));
   max-block-size: calc(100dvh - var(--catalog-top) - 1rem); overflow: hidden;
-  background-color: color-mix(in srgb, var(--panel) 96%, transparent);
 }
 #component-catalog .catalog-panel { flex: 1 1 auto; overflow: hidden; padding: 0; }
 .catalog-head { display: flex; align-items: center; flex: none; gap: var(--ml-space-3); padding: .85rem .95rem .2rem 1.35rem; }

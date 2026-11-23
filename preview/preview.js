@@ -413,6 +413,7 @@
       try { localStorage.setItem(storePrefix + name, input.value); }
       catch { /* Preferences still apply to this preview when storage is unavailable. */ }
     }
+    if (name === 'material') syncDensityField();
     if (name === 'motion' || name === 'material') updateMotionNote();
     refreshFacts(document);
     if (component === 'hover-card' && location.hash === '#hover-card') showHover();
@@ -542,12 +543,33 @@
       : follows ? recordMotion || glassMotion : navMotion || valueMotion || (motion ?? '');
   }
 
+  // The glass tint is a continuous knob for the high tier, between clear and heavy.
+  const densityField = document.querySelector('#glass-density-field');
+  const densityInput = document.querySelector('#glass-density');
+  const densityNote = document.querySelector('#density-note');
+  function applyDensity(value, save = false) {
+    const number = Math.max(.4, Math.min(2, Number(value) || 1));
+    densityInput.value = String(number);
+    root.style.setProperty('--ml-glass-density', String(number));
+    densityNote.textContent = number < .85 ? '清透' : number > 1.25 ? '浓重' : '适中';
+    if (save) {
+      try { localStorage.setItem(storePrefix + 'density', String(number)); }
+      catch { /* Preferences still apply to this preview when storage is unavailable. */ }
+    }
+  }
+  function syncDensityField() {
+    densityField.hidden = appearance.material !== 'high';
+  }
+  applyDensity(stored('density'));
+  densityInput.addEventListener('input', () => applyDensity(densityInput.value, true));
+
   for (const name of Object.keys(defaults)) applyAppearance(name, stored(name));
   settings.addEventListener('change', event => {
     if (event.target.matches('input[type="radio"]')) applyAppearance(event.target.name, event.target.value, true);
   });
   document.querySelector('#reset-appearance').addEventListener('click', () => {
     for (const [name, value] of Object.entries(defaults)) applyAppearance(name, value, true);
+    applyDensity(1, true);
   });
   reduceMotion.addEventListener('change', updateMotionNote);
   forcedColors.addEventListener('change', updateMotionNote);
@@ -555,6 +577,7 @@
     for (const name of Object.keys(defaults)) {
       if (event.key === null || event.key === storePrefix + name) applyAppearance(name, stored(name));
     }
+    if (event.key === null || event.key === storePrefix + 'density') applyDensity(stored('density'));
   });
 
   function setComponent(next) {
