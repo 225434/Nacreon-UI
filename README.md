@@ -2,7 +2,7 @@
 
 **[在线预览](https://ycloud-y.github.io/Nacreon-UI/)** · [English](README.en.md)
 
-Nacreon UI 是一套 Web 自适应组件与设计资源库。在浏览器中打开[本地素材库](index.html)即可离线试用。点顶部的「组件目录」直接浏览当前分类，也可以切换到其他分类。输入中文名、英文名或用途可搜索全部组件与设计资源。用 ↑ 和 ↓ 浏览结果，Enter 打开选中项，Esc 返回顶栏。切换组件时会保留外观设置。「应用示例」和「示例代码」可直接打开当前组件的示例和 HTML。
+Nacreon UI 是一套 Web 自适应组件与设计资源库。打开本地素材库，点顶栏的「导航面板」可逐级浏览分类和条目，也可以输入中文名、英文名或用途搜索全部组件与设计资源。用 ↑ 和 ↓ 浏览结果，Enter 打开选中的链接。Esc 先退出搜索，再逐层返回，在首页按 Esc 关闭弹窗。切换组件时会保留外观设置。「应用示例」和「示例代码」可直接打开当前组件的示例和 HTML。[打开本地素材库](index.html)
 
 ## 文件与构建
 
@@ -25,6 +25,65 @@ npx playwright install chromium
 npm run build
 npm test
 ```
+
+要用已安装的 Chrome 运行 Chromium 回归，可以先将环境变量 `NACREON_CHROMIUM_EXECUTABLE` 设为浏览器可执行文件的绝对路径。Firefox 用例接受 `NACREON_FIREFOX_EXECUTABLE`，需使用兼容 Playwright 的 Firefox。
+
+### 业务页面的离线组合包
+
+同一页面使用多个组件时，可按组件名生成一份 CSS 和一份 JS。下面的命令适用于带筛选、记录表与详情弹窗的页面。
+
+```sh
+npm run build -- --components button,input,select,data-table,dialog --name workspace
+```
+
+```html
+<link rel="stylesheet" href="./dist/bundles/workspace/workspace.css">
+<script defer src="./dist/bundles/workspace/workspace.js"></script>
+```
+
+`--components` 使用逗号分隔，顺序与逐个引入独立组件时相同。构建器会去除重复的共享代码，并带上组件自身使用的依赖，例如数据表格的分页器。将上面的两个文件一起复制到业务项目即可。使用 `--out-dir ./public/ui` 可将文件直接写入指定目录。组件名称可在 [dist/components](dist/components/) 中查看。
+
+## 导航面板
+
+`<ml-navigation-panel>` 每次显示一层单栏列表。打开分类时列表向左滑，返回上一级时向右滑，并恢复上一层的滚动位置和分类焦点。中、高档动效使用滑动，系统开启「减少动态效果」时即时切换。长列表在标题栏下方独立滚动。组件展示区以「偏好设置」为例，末级是可阅读的静态文本。[预览导航面板](index.html#navigation-panel)
+
+默认的正常型在浏览和搜索时保持高度。加上 `density="compact"` 后，面板宽度固定，高度贴合当前列表或搜索结果。进入和返回时，紧凑型的底边随列表滑动平滑收放。两种尺寸都支持内嵌和弹窗。
+
+![正常型与紧凑型导航面板在三个连续层级中的尺寸](docs/navigation-panel.png)
+
+```html
+<link rel="stylesheet" href="./dist/components/navigation-panel/navigation-panel.css">
+<script defer src="./dist/components/navigation-panel/navigation-panel.js"></script>
+
+<ml-navigation-panel label="偏好设置" search-label="搜索展示文本">
+  <nav aria-label="偏好设置">
+    <section data-icon="sun">
+      <h3>显示与文字</h3>
+      <section data-icon="keyboard">
+        <h4>文字预览</h4>
+        <p>标题示例<small>山间来信</small></p>
+        <p>正文示例<small>清晨的光穿过树梢，落在翻开的书页上。</small></p>
+      </section>
+    </section>
+  </nav>
+</ml-navigation-panel>
+```
+
+每个 `section` 直接放一个标题，可嵌套子分类。`p` 显示静态文本，内部的 `small` 提供第二行说明。需要打开业务页面时，使用带 `href` 的原生链接，`aria-current="page"` 标记当前位置。首页搜索框和子页的搜索按钮都能检索所有层级，包括说明文字、`data-en` 英文名和 `data-keywords`。结果会标出所属路径，退出搜索后返回原层级。
+
+弹窗模式将 `<ml-navigation-panel>` 放在 `<ml-dialog dismiss-on-backdrop><dialog id="directory" aria-label="偏好设置">` 内，作为原生 `dialog` 的直接子元素。给打开按钮设置 `class="ml-navigation-panel-trigger"`、`aria-haspopup="dialog"`、`aria-controls="directory"` 和 `aria-expanded="false"`，并绑定点击事件。独立包包含弹窗实现，两种模式的完整 HTML 可从预览页的「示例代码」复制。
+
+```js
+const button = document.querySelector('button[aria-controls="directory"]');
+button.addEventListener('click', event => {
+  const directory = document.querySelector('#directory > ml-navigation-panel');
+  directory.showModal(event.currentTarget, {
+    focusSearch: event.detail === 0 || !matchMedia('(pointer: coarse)').matches,
+  });
+});
+```
+
+增删分类和链接后面板会自动更新。宿主切换页面时可更新链接的 `aria-current`，再对面板元素调用 `reset({ reveal: true })` 显示当前条目。可用 `--ml-navigation-panel-width` 和 `--ml-navigation-panel-height` 指定面板尺寸。旧标签 `<ml-catalog>`、独立包路径 `dist/components/catalog/` 和预览链接 `#catalog` 继续可用。
 
 ## 页签与内容面板
 
@@ -49,7 +108,7 @@ npm test
 - 默认是横排底线样式。用 `variant="pill"` 切到胶囊样式，用 `orientation="vertical"` 请求侧边布局。组件可用宽度小于 480 CSS 像素时自动使用横排，页签超出可见范围时可滚动浏览。用 `--ml-tabs-accent`、`--ml-tabs-radius` 和 `--ml-tabs-panel-padding` 调整强调色、面板圆角和内边距。
 - Tab 进入当前页签，方向键和 Home / End 浏览可用页签。横排用左右键，侧边用上下键。默认焦点移动后自动切换，`activation="manual"` 时按 Enter 或空格确认。使用 `disabled` 禁用页签。组件补齐页签与面板的语义、关联 ID 和焦点顺序。纯文字面板默认可以聚焦，可在面板上设置自己的 `tabindex`。[W3C Tabs 键盘与语义规范](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/)
 - `value` 属性可指定初始页签，脚本可读写 `tabs.value`，用 `tabs.panel` 读取当前面板。用户切换或调用 `tabs.select(key)` 变更时，会发出 `ml-tab-change`，其中 `detail` 包含 `value`、`previousValue`、`tab` 和 `panel`。切换时保留面板节点，返回时可继续编辑之前的输入。
-- 页签和内容面板继承三种主题与四档材质、动效。高档材质使用实心流体玻璃，高档动效开启指针光照与弹性指示条。系统「减少动态效果」开启时，指示条与内容直接就位。
+- 页签和内容面板继承三种主题与四档材质、动效。高档材质使用实心流体玻璃，高档动效使用弹性指示条。系统「减少动态效果」开启时，指示条与内容直接就位。
 
 ## 面包屑导航
 
@@ -272,7 +331,7 @@ npm test
 - `kind="empty|search|error|restricted"` 分别提供无数据、无结果、加载失败和无权限的预设图标与颜色。预设图标来自图标库。可在 `.ml-empty-icon` 中放入 SVG、图片或 `ml-icon`，使用 `ml-icon` 时引入 `icons.js`。省略图标容器即可只显示文字。
 - 独立区域可使用 `variant="panel"`，默认透明样式可嵌入表格、列表或卡片。加上 `density="compact"` 后在宽度足够时图标和文字横向排列，空间收窄时自动换成纵向。用 `--ml-empty-color`、`--ml-empty-radius` 和 `--ml-empty-title-size` 调整图标色、面板圆角和标题字号。
 - 操作用原生链接或 `<ml-button><button type="button">重试</button></ml-button>`，两个文件已包含按钮组件。业务代码监听按钮的 `click`，可用 `hidden` 在空状态和真实内容之间切换。预览页可试用清除查询与收藏操作。
-- 组件继承三种主题及四档材质、动效。高档面板使用实心流体玻璃，高档动效会让面板光照随指针移动。开启系统的「减少动态效果」时，空状态直接出现，玻璃使用固定光源。
+- 组件继承三种主题及四档材质、动效。高档面板使用实心流体玻璃，光源设置控制面板照明。开启系统的「减少动态效果」时，空状态直接出现，玻璃使用固定光源。
 
 ## 分页
 
@@ -291,11 +350,17 @@ npm test
 
 ## 滑块、步进器与日期范围选择器
 
-每种组件可单独引入同名 CSS 和 JS。三者都使用原生输入框，可按字段的 `name` 提交表单，支持表单重置和 `disabled`。在外层设置 `data-ml-theme`、`data-ml-material`、`data-ml-motion` 即可切换外观。高材质提供玻璃表面，高动态下光源跟随指针。系统开启减少动态时，光照固定。
+每种组件可单独引入同名 CSS 和 JS。三者都使用原生输入框，可按字段的 `name` 提交表单，支持表单重置和 `disabled`。在外层设置 `data-ml-theme`、`data-ml-material`、`data-ml-motion` 即可切换外观。高材质提供玻璃表面，指针光源按鼠标或触点的位置照明。系统开启减少动态时，光照固定。
 
 ### 滑块
 
 拖动、轻点轨道或用方向键调节数值。原生 `min`、`max` 和 `step` 控制范围和精度，`unit` 指定显示单位。添加 `ticks` 可在不超过 24 个间隔的小范围内显示刻度。[预览滑块](index.html#slider)
+
+静止时，手柄是一枚短胶囊，随主题呈现瓷白、暖白或明亮的岩灰色。按住后，高档材质显出流体玻璃，中档显出磨砂玻璃，两者共用透明度设置。增强云母与云母保持实色。材质变化和快拖拉伸参考了 Apple 的滑块交互。[Apple 材质指南](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass) · [WWDC 滑块演示](https://developer.apple.com/videos/play/wwdc2025/284/?time=1087)
+
+高档动效在按住时轻轻抬起手柄，拖得越快，轮廓沿轨道拉得越长。停住时手柄收回到按住的形状，松手后轻微回弹。中档保留抬起和平滑复位，低档只渐变明暗，基础档即时切换。手柄中心、填充终点和读数始终对应同一个值。方向键逐档调整时会标出当前刻度，系统开启「减少动态效果」时使用静态反馈。
+
+![连续拖动显示亮度滑块，再用方向键逐档调整回放速度](docs/slider-motion.gif)
 
 ```html
 <link rel="stylesheet" href="./dist/components/slider/slider.css">
@@ -390,7 +455,7 @@ npm test
 - `icon-only` 显示三个圆点，`.ml-menu-label` 中的文字继续作为按钮的可读名称。`align="end"` 按阅读方向对齐按钮末端，默认对齐起始端。菜单靠近边缘时会翻转或内移，长菜单可滚动。
 - 普通命令使用 `menuitem`，勾选项使用 `menuitemcheckbox`。在 `ml-menu` 上添加 `keep-open` 可连续勾选多项。若干 `menuitemradio` 放在同一 `role="group"` 内会互斥，初始选项标为 `aria-checked="true"`。分隔线使用 `hr role="separator"`，危险项目使用 `data-tone="danger"`。
 - Enter、空格或向下键打开菜单，向上键从末项打开。上下键循环移动，Home、End 跳至首末项，输入名称开头可定位。Esc 关闭并返回按钮，Tab 关闭并继续移动焦点。`aria-disabled="true"` 的项目可由方向键朗读，原生 `disabled` 项跳过，两种状态均不会触发命令。[W3C 菜单按钮键盘交互](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/examples/menu-button-actions/)
-- 菜单继承三种主题及四档材质、动效。高材质与高动态组合时，按钮和面板的玻璃高光随指针移动。可覆盖 `--ml-menu-accent`、`--ml-menu-radius`、`--ml-menu-width` 或 `--ml-menu-max-height`。通过 `show()`、`show(true)`、`close(true)` 可从首项或末项打开、关闭并返回按钮，`open` 表示当前开合状态。
+- 菜单继承三种主题及四档材质、动效。按钮和面板共用所选光源。可覆盖 `--ml-menu-accent`、`--ml-menu-radius`、`--ml-menu-width` 或 `--ml-menu-max-height`。通过 `show()`、`show(true)`、`close(true)` 可从首项或末项打开、关闭并返回按钮，`open` 表示当前开合状态。
 
 ## 列表项与分组列表
 
@@ -424,7 +489,7 @@ npm test
 
 - 整行跳转使用 `a.ml-list-row[href]`，整行操作使用 `button.ml-list-row[type="button"]`。行内需要放置复选框或开关时，使用普通 `div.ml-list-row` 承载这些控件。展开行使用原生 `details` 和 `summary`，支持 Enter 和空格。
 - 行首图标、标题下的说明和尾部值均可省略。窄容器中，尾部值会移到标题下方；长文本可换行。将 `density="compact"` 设在单项或整组可缩小行距，行高至少为 44px。
-- 三种主题和四档材质、动效沿用全库外观设置。高材质与高动态组合时，光源跟随指针，整组共用一个玻璃表面。可覆盖 `--ml-list-accent`、`--ml-list-icon-color`、`--ml-list-radius` 或 `--ml-list-height`。预览的「示例代码」会带上当前外观、密度与展开状态，图标以内联 SVG 一并复制。
+- 三种主题和四档材质、动效沿用全库外观设置。整组共用一个表面，并继承所选光源。可覆盖 `--ml-list-accent`、`--ml-list-icon-color`、`--ml-list-radius` 或 `--ml-list-height`。预览的「示例代码」会带上当前外观、密度与展开状态，图标以内联 SVG 一并复制。
 
 ## 折叠面板 Accordion
 
@@ -485,7 +550,7 @@ npm test
 - 一项独立的复选框只需示例中的一行 `<label>`。需要全选时，在组内一个复选框上添加 `data-ml-all`，省略它的 `name` 即可只提交子项。全选只改动可用的子项，实际改变的子项会发出 `input` 和 `change` 事件。直接用代码设置子项的 `checked` 或 `indeterminate` 后，调用组的 `refresh()` 可同步全选标记。
 - 同一单选组的选项共用一个非空 `name`。同一表单中的不同单选组应分别命名。用 Tab 聚焦、空格勾选复选框、方向键切换单选项。可对单项设置 `disabled`，或对 `fieldset` 设置 `disabled` 禁用整组。
 - 选项沿用原生表单提交、必选校验和重置。表单中可用 `new FormData(form).getAll('include')` 读取复选值，用 `get('format')` 读取单选值。
-- 两种控件都继承三种主题和独立的四档材质、四档动效。材质和动效均为高档时，玻璃边缘随指针移动而受光。可用 `--ml-choice-accent`、`--ml-choice-ink` 和 `--ml-choice-size` 自定义选中色、标记颜色和标记尺寸。
+- 两种控件都继承三种主题和独立的四档材质、四档动效。选择指针光源时，玻璃边缘随指针移动而受光。可用 `--ml-choice-accent`、`--ml-choice-ink` 和 `--ml-choice-size` 自定义选中色、标记颜色和标记尺寸。
 
 ## 输入框
 
@@ -508,7 +573,7 @@ npm test
 - 编辑后离开字段、表单校验失败或调用 `validate()` 时显示错误。可以用 `error-message` 提供中文修正提示，业务校验可调用原生 `setCustomValidity()` 后再调用 `validate()`。重置表单可还原初值和计数，清除已展示的错误。[W3C 表单反馈指南](https://www.w3.org/WAI/tutorials/forms/notifications/)
 - 通过组件的 `value` 设置内容会同步按钮和计数。直接更新内部原生控件的 `value` 后可调用组件的 `refresh()`。`control` 返回原生控件，`clear()` 清空可编辑字段并触发冒泡的 `input` 事件。普通输入及表单提交、重置沿用原生事件。
 
-输入框继承浅色、暖色和深色主题，材质与动效各有四档。两项都选高档时，指针会照亮输入框的玻璃边缘。可通过 `--ml-input-accent`、`--ml-input-height` 和 `--ml-input-radius` 调整聚焦色、高度和圆角。
+输入框继承浅色、暖色和深色主题，材质与动效各有四档。选择指针光源时，指针会照亮输入框的玻璃边缘。可通过 `--ml-input-accent`、`--ml-input-height` 和 `--ml-input-radius` 调整聚焦色、高度和圆角。
 
 ## 动态状态岛
 
@@ -531,14 +596,14 @@ npm test
 ```
 
 - **方向与尺寸**　`direction` 接受 `left`、`right`、`up` 和 `down`，默认向下。收起的按钮占据布局位置，岛身围绕实际内容展开。文字、图片、数据或容器宽度变化时会重新计量。给工具栏或卡片加 `data-ml-island-bounds` 可约束展开范围。靠近边缘时文字会换行，横向空间过窄时内容转为上下排列，超高详情可滚动。
-- **颜色与外观**　`tone` 内置 `mint`、`blue`、`orange` 和 `indigo`。也可设置 `style="--ml-island-color: #9864ef"`，同时调整岛身、图标和进度的色调。需要指定底色和文字色时，分别设置 `--ml-island-fill` 与 `--ml-island-ink`。预览中的「自选色」使用所选底色，并自动搭配黑字或白字。`--ml-island-max-width` 可调整详情的阅读宽度上限。三种主题均支持四档材质、四档动效，两项都为高档时，岛身的玻璃高光随指针移动。
+- **颜色与外观**　`tone` 内置 `mint`、`blue`、`orange` 和 `indigo`。也可设置 `style="--ml-island-color: #9864ef"`，同时调整岛身、图标和进度的色调。需要指定底色和文字色时，分别设置 `--ml-island-fill` 与 `--ml-island-ink`。预览中的「自选色」使用所选底色，并自动搭配黑字或白字。`--ml-island-max-width` 可调整详情的阅读宽度上限。三种主题均支持四档材质、四档动效，选择指针光源时，岛身的玻璃高光随指针移动。
 - **操作**　点击、Enter 或空格切换展开，Esc 收起并将详情内的焦点送回紧凑按钮。通过 `open` 属性、`show()` 和 `hide()` 也可控制状态。`ml-toggle` 事件提供 `detail.open` 和 `detail.direction`。系统启用「减少动态效果」时，尺寸即时切换、光源保持静止。[W3C 展开控件模式](https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/)
 
 ## 轻提示与消息横幅
 
 轻提示用于确认复制、保存等短操作。消息横幅放在受影响的内容旁，适合展示同步中断、待处理事项和重试入口。预览中可切换信息、成功、警告和错误四种状态，或试用复制编号、消息排队与本地重试示例。[消息反馈预览](index.html#feedback) · [应用示例](index.html#feedback-examples)
 
-独立页面引入 [feedback.css](dist/components/feedback/feedback.css) 和 [feedback.js](dist/components/feedback/feedback.js) 即可使用两种组件。颜色、图标和玻璃效果都包含在这两个文件中。和其他组件一样，可在外层设置 `data-ml-theme`、`data-ml-material` 和 `data-ml-motion`。材质和动效均设为 `high` 时，反光随指针移动。
+独立页面引入 [feedback.css](dist/components/feedback/feedback.css) 和 [feedback.js](dist/components/feedback/feedback.js) 即可使用两种组件。颜色、图标和玻璃效果都包含在这两个文件中。和其他组件一样，可在外层设置 `data-ml-theme`、`data-ml-material` 和 `data-ml-motion`。将 `data-ml-light-source` 设为 `pointer` 时，反光随指针移动。
 
 ```html
 <link rel="stylesheet" href="./dist/components/feedback/feedback.css">
@@ -591,7 +656,7 @@ task.setAttribute('state', 'paused');
 task.removeAttribute('state'); // 继续
 ```
 
-`state="paused"` 或 `state="error"` 显示相应状态文字，保留当前读数并停止等待动画。由业务逻辑控制实际任务的暂停、重试和后续更新。清除状态后，达到上限会自动显示「已完成」。三种主题均可搭配四档材质与四档动效，高动效下轨道按当前材质随指针受光。基础动效和系统减少动态效果使用静止的等待纹理。可通过 `--ml-progress-height` 和 `--ml-progress-accent` 调整轨道高度和进行中的颜色。
+`state="paused"` 或 `state="error"` 显示相应状态文字，保留当前读数并停止等待动画。由业务逻辑控制实际任务的暂停、重试和后续更新。清除状态后，达到上限会自动显示「已完成」。三种主题均可搭配四档材质与四档动效，轨道按当前材质和光源设置受光。基础动效和系统减少动态效果使用静止的等待纹理。可通过 `--ml-progress-height` 和 `--ml-progress-accent` 调整轨道高度和进行中的颜色。
 
 确定总量后沿用同一条轨道显示真实进度，保留用户对任务的视觉定位。
 
@@ -616,7 +681,7 @@ task.removeAttribute('state'); // 继续
 - `ml-skeleton` 的 `preset="list|card|table"` 分别对应列表、卡片和表格。列表和表格支持 `rows`（1–20），表格还支持 `columns`（1–12）。行高和卡片媒体区高度可通过 `--ml-skeleton-row-height` 和 `--ml-skeleton-media-height` 对齐真实内容。
 - 自定义骨架时省略 `preset`，向 `ml-skeleton` 放入布局和 `class="ml-skeleton-shape"` 的占位形状。默认是线条，`data-shape="circle"` 为圆形，`data-shape="block"` 为矩形。使用 `--ml-skeleton-width`、`--ml-skeleton-height`、`--ml-skeleton-size`、`--ml-skeleton-radius` 和 `--ml-skeleton-color` 调整形状。
 - 骨架屏仅提供视觉占位。业务开始请求时将内容区设为 `aria-busy="true"`，完成后填入内容、隐藏骨架并将忙碌状态设为 `false`。在内容区外更新状态文案，读屏软件即可在内容加载期间获取提示。预览中的刷新操作会保留按钮焦点。
-- 组件继承三种主题和四档材质、动效。需要面板时可用包内的 `ml-material`，高档面板支持实心流体玻璃，高档动效开启共享指针光源。基础档与系统「减少动态效果」使用静止图形，低档使用明暗淡变，中、高档使用循环动画和骨架扫光。
+- 组件继承三种主题和四档材质、动效。需要面板时可用包内的 `ml-material`，高档面板支持实心流体玻璃，可为面板单独选择照明方式。基础档与系统「减少动态效果」使用静止图形，低档使用明暗淡变，中、高档使用循环动画和骨架扫光。
 
 ## 信息组件
 
@@ -644,7 +709,7 @@ task.removeAttribute('state'); // 继续
 </ml-info-pill>
 ```
 
-三种组件均继承所在容器的 `data-ml-theme`、`data-ml-material` 和 `data-ml-motion`。双高档使用跟随指针的玻璃高光，系统开启减少动态效果时使用固定光源。可用 `tone="info|neutral|success|warning|danger"` 选取随主题变化的强调色。内联图标随文字着色。卡片支持 `--ml-card-padding`、`--ml-card-radius`，胶囊支持 `--ml-pill-font`。
+三种组件均继承所在容器的 `data-ml-theme`、`data-ml-material` 和 `data-ml-motion`。指针光源可与任一动效档位搭配，系统开启减少动态效果时转为固定照明。可用 `tone="info|neutral|success|warning|danger"` 选取随主题变化的强调色。内联图标随文字着色。卡片支持 `--ml-card-padding`、`--ml-card-radius`，胶囊支持 `--ml-pill-font`。
 
 ## 图标库
 
@@ -652,7 +717,7 @@ task.removeAttribute('state'); // 继续
 
 设置入口使用齿轮 `settings`，调节参数使用滑杆 `sliders`。记录操作可用 `pin` 置顶、`bookmark` 收藏、`save` 保存。刷新内容使用 `refresh`，恢复默认值使用 `reset`，撤销和重做分别使用 `undo` 和 `redo`。
 
-网页按名称使用图标时只需引入 [icons.js](dist/design/icons.js)。`size` 接受正数像素值，省略时跟随所在位置的字号。`weight` 接受 `light`、`regular`、`bold`，默认 `regular`。图形使用 `currentColor`，在按钮、链接和状态文字中继承其颜色。独立传意的图标通过 `label` 提供可读名称。纯图标按钮在按钮上命名，内部图形省略 `label`。
+网页按名称使用图标时只需引入 [icons.js](dist/design/icons.js)。`size` 接受正数像素值，省略时跟随所在位置的字号。`weight` 接受 `light`、`regular`、`bold`，默认 `regular`。24 px 及以上的常规描边为 1.75，16 px 及以下为 2，中间连续过渡。省略尺寸时采用行内小图标的笔重。控件内置的小图标和独立导出的 SVG 采用同一笔重规则。图形使用 `currentColor`，在按钮、链接和状态文字中继承其颜色。独立传意的图标通过 `label` 提供可读名称。纯图标按钮在按钮上命名，内部图形省略 `label`。
 
 ```html
 <script defer src="./dist/design/icons.js"></script>
@@ -662,7 +727,7 @@ task.removeAttribute('state'); // 继续
 
 在页面、局部容器或图标上设置 `data-ml-motion="high"` 即可启用图标动效，靠近图标的设置优先。使用素材库组件样式时，图标也会继承其默认的高动效。鼠标移入、键盘聚焦所在控件或触屏轻点时播放一次。三种主题和四档材质都适用。切到基础、低、中档，或开启系统的「减少动态效果」，图标立即静止。图标目录选中一枚后，可用「重播动效」同时查看放大与原寸效果。
 
-将 `data-ml-material` 设为 `high`，图标的笔画会出现玻璃亮边，文件和图层带半透明面，相机镜片和水滴带聚光，设置齿轮带抛光棱面。材质继承图标的文字颜色和最近的外观设置。基础、低、中材质沿用原始线稿，高动效让迎光处的笔画依次呈现窄亮边、局部柔光和较宽的散射光。高材质在高动效下随光转动高光，在其他动效档位及系统「减少动态效果」下使用固定光源。系统使用强制颜色时显示清晰线稿。
+将 `data-ml-material` 设为 `high`，图标的笔画会出现玻璃亮边，文件和图层带半透明面，相机镜片和水滴带聚光，设置齿轮带抛光棱面。材质继承图标的文字颜色和最近的外观设置。基础、低、中材质沿用原始线稿，照明依材质呈现窄亮边、局部柔光或磨砂散射。`data-ml-light-source` 控制照明，高档动效控制图标本身的交互动画。系统使用强制颜色时显示清晰线稿。
 
 ```html
 <section data-ml-theme="warm" data-ml-material="high" data-ml-motion="base">
@@ -672,7 +737,7 @@ task.removeAttribute('state'); // 继续
 
 `<ml-icon>` 可以单独移动笔画，例如下载箭头落向托盘、设置齿轮转动、扫描线在框内往返。业务代码可调用图标元素的 `playMotion()` 从头播放一次，高档且允许播放时返回 `true`。复制、下载和 `createSVG()` 得到的都是独立静态 SVG。
 
-「复制 SVG」和「下载 SVG」会带上所选材质。高档导出包含笔画、渐变与固定光照，可独立打开。`customElements.get('ml-icon').createSVG('camera', { material: 'high', theme: 'dark', size: 32 })` 可生成同样的矢量图，省略 `material` 默认输出线稿。「示例代码」同时带上主题、材质和动态档位。
+「复制 SVG」和「下载 SVG」会带上所选材质。高档导出记录笔画、渐变和所选光照强度，可独立打开。`customElements.get('ml-icon').createSVG('camera', { material: 'high', theme: 'dark', size: 32 })` 可生成同样的矢量图，省略 `material` 默认输出线稿。「示例代码」同时带上主题、材质、动态档位、透明度和光源设置。
 
 通过 HTTP 提供页面时，也可直接引用 [icons.svg](dist/design/icons.svg) 中的符号。这里的 `i-camera` 对应目录中的英文名 `camera`。
 
@@ -684,7 +749,7 @@ task.removeAttribute('state'); // 继续
 
 页面同时引入 `icons.js` 时，这种 `<use>` 引用在高材质档也会显示透色表面和反光边缘，高动态档以整个图形作为运动单位。
 
-图标以 24 × 24 网格和圆角描边绘制，同组图标采用一致的轮廓与线重。预览中的图标按钮支持三种主题、四档材质和四档动效。材质和动效均为高档时，可移动指针观察玻璃按钮边缘的反光。
+图标以 24 × 24 网格和圆角描边绘制，同组图标采用一致的轮廓与线重。预览中的图标按钮支持三种主题、四档材质和四档动效。使用流体玻璃和指针光源时，可移动指针观察玻璃按钮边缘的反光。
 
 将图标放进现有按钮即可使用相同的玻璃表面。例如，已引入 `icons.js`、`button.css` 与 `button.js` 的页面可以这样设置拍照按钮。
 
@@ -696,13 +761,13 @@ task.removeAttribute('state'); // 继续
 
 ## 色彩库
 
-单独引入 [colors.css](dist/design/colors.css) 即可使用 25 个 sRGB 颜色变量。默认主题为浅色，在页面或局部容器上设置 `data-ml-theme="light"`、`"warm"` 或 `"dark"` 可切换配色。固定色值适合交付给设计工具，业务样式使用变量即可随主题更新。
+单独引入 [colors.css](dist/design/colors.css) 即可使用 31 个 sRGB 颜色变量。默认主题为浅色，在页面或局部容器上设置 `data-ml-theme="light"`、`"warm"` 或 `"dark"` 可切换配色。固定色值适合交付给设计工具，业务样式使用变量即可随主题更新。
 
 | 色板 | 变量名，均以 `--ml-color-` 开头 |
 | --- | --- |
 | 基础色 | `blue`、`indigo`、`purple`、`pink`、`red`、`orange`、`yellow`、`green`、`mint`、`teal`、`cyan`、`brown` |
-| 语义色 | `action` 主操作、`info` 提示、`success` 成功、`warning` 警告、`danger` 危险、`neutral` 中性状态 |
-| 界面中性色 | `background` 页面、`surface` 面板、`fill` 控件填充、`separator` 分隔线、`text` 正文、`text-secondary` 次要文字、`text-tertiary` 辅助文字 |
+| 语义色 | `action` 主操作、`on-action` 主操作文字、`focus` 键盘焦点、`info` 提示、`success` 成功、`warning` 警告、`danger` 危险、`neutral` 中性状态 |
+| 界面中性色 | `background` 页面、`surface` 面板、`surface-inset` 内嵌表面、`surface-raised` 浮层、`fill` 控件填充、`separator` 分隔线、`control-border` 字段边界、`selection` 选中底色、`text` 正文、`text-secondary` 次要文字、`text-tertiary` 辅助文字 |
 
 ```html
 <link rel="stylesheet" href="./dist/design/colors.css">
@@ -754,7 +819,7 @@ task.removeAttribute('state'); // 继续
 
 可直接更新属性，或在组件加载后设置 `badge.value`、`badge.max`、`badge.dot`、`badge.state`、`badge.label` 和 `badge.tone`。计数使用非负整数，小数向下取整。计数的 `label` 提供朗读上下文。把通知徽标放在 `.ml-badge-anchor` 的直接子级，它会贴在图标的行末上角，并随文字方向换边。图标入口使用原生按钮承接点击和键盘操作。
 
-五类都继承主题、材质和动效。高材质与高动效同时启用时，玻璃高光跟随指针。基础动效即时更新，系统「减少动态效果」会关闭入场动效和同步灯的转动。
+五类都继承主题、材质和动效。选择指针光源时，玻璃高光跟随指针。基础动效即时更新，系统「减少动态效果」会关闭入场动效和同步灯的转动。
 
 ## 工具提示 Tooltip
 
@@ -803,7 +868,7 @@ task.removeAttribute('state'); // 继续
 
 默认优先向下展开，在 `<ml-hover-card>` 上添加 `placement="above"` 可优先向上。实际方向随可用空间调整。可用 `--ml-hover-width` 和 `--ml-hover-max-height` 调整尺寸，过长的内容可以在卡片内滚动。支持 Popover 的浏览器会将面板放在顶层，较旧浏览器会在按钮下方展开。关闭 JavaScript 时，信息随正文显示。
 
-通过组件的 `show()`、`hide()` 和 `open` 可控制和读取展开状态。`ml-toggle` 事件的 `detail.open` 返回最新状态。组件继承主题、材质和动效。高材质与高动效组合时，卡面高光随整页指针移动。
+通过组件的 `show()`、`hide()` 和 `open` 可控制和读取展开状态。`ml-toggle` 事件的 `detail.open` 返回最新状态。组件继承主题、材质和动效。卡面继承最近作用域内的光源和强度。
 
 ## 下拉选择框
 
@@ -837,7 +902,7 @@ task.removeAttribute('state'); // 继续
 
 聚焦后按 ↓、Enter 或空格展开。↑ 和 ↓ 浏览可用选项，Enter 确认，Esc 取消，Tab 离开。普通和分组列表支持 Home、End 以及按名称前缀跳转。菜单会按视口空间向上或向下展开，长列表可滚动。在缺少 Popover 支持的浏览器上，或使用 `multiple`、多行 `size` 时，由浏览器显示原生选项。
 
-主题、材质和动效沿用下方的外观属性。高动效下，选择框与展开菜单按各自的材质响应同一个指针光源。可用 `--ml-select-width`、`--ml-select-height` 和 `--ml-select-max-height` 分别设置字段宽度、字段高度和菜单最大高度。
+主题、材质和动效沿用下方的外观属性。选择指针光源后，选择框与展开菜单按各自的材质响应同一个指针光源。可用 `--ml-select-width`、`--ml-select-height` 和 `--ml-select-max-height` 分别设置字段宽度、字段高度和菜单最大高度。
 
 ## 可搜索多选框
 
@@ -874,6 +939,8 @@ task.removeAttribute('state'); // 继续
 
 引入 [file-upload.css](dist/components/file-upload/file-upload.css) 和 [file-upload.js](dist/components/file-upload/file-upload.js) 后即可离线使用。在 `ml-file-upload` 中放入一个原生文件输入框，使用 `compact` 可切换为紧凑布局。[预览文件选择与拖放上传](index.html#file-upload)
 
+原生文件输入框支持在宿主挂载后插入或替换。替换时，旧任务的 `AbortSignal` 会触发，组件从新输入框读取文件。可用 `uploader.files`、`uploader.entries` 和原生 `FormData` 读取当前选择。
+
 ```html
 <link rel="stylesheet" href="./dist/components/file-upload/file-upload.css">
 <script defer src="./dist/components/file-upload/file-upload.js"></script>
@@ -895,6 +962,8 @@ task.removeAttribute('state'); // 继续
 ## 通用表单
 
 引入 [form.css](dist/components/form/form.css) 和 [form.js](dist/components/form/form.js) 后即可离线使用。每个 `ml-form` 包含一个直接子级原生 `form`，可以组合原生控件和素材库的输入控件。使用素材库控件时，需一并引入对应组件的文件。[预览通用表单](index.html#form)
+
+位于弹窗、抽屉或页面其他位置的字段，可用 `form="表单ID"` 关联原生表单。`reportValidity()` 会检查这些字段，汇总可跳到相应控件。需要就地显示错误时，在外置字段周围使用与内置字段相同的 `.ml-form-field` 容器。运行时可修改 `form` 属性以切换归属。
 
 ```html
 <link rel="stylesheet" href="./dist/components/form/form.css">
@@ -957,7 +1026,7 @@ task.removeAttribute('state'); // 继续
 
 `label` 是显示文字，`value` 是业务标识，省略时取 `label`。用 `tag.selected` 可同步筛选状态，只有用户操作才触发 `ml-change`。添加 `disabled` 可停用交互，用 `remove-label` 可自定义叉号的朗读名称。焦点所在的标签移除后，组内焦点移到下一项或上一项。给组设置 `tabindex="-1"` 可在删去最后一项时接住焦点。预览会把焦点交给「撤销移除」，撤销会恢复标签的原始位置。
 
-`--ml-tag-height`、`--ml-tag-font`、`--ml-tag-pad` 和 `--ml-tag-radius` 分别控制高度、字号、横向内边距和圆角。触屏上的筛选、移除按钮保留至少 44 像素的操作区域。高动效下，标签随当前材质响应整页指针光源。系统启用「减少动态效果」时，光源固定，标签即时显示。
+`--ml-tag-height`、`--ml-tag-font`、`--ml-tag-pad` 和 `--ml-tag-radius` 分别控制高度、字号、横向内边距和圆角。触屏上的筛选、移除按钮保留至少 44 像素的操作区域。选择指针光源后，标签随当前材质响应整页指针光源。系统启用「减少动态效果」时，光源固定，标签即时显示。
 
 ## 弹窗
 
@@ -1004,7 +1073,7 @@ task.removeAttribute('state'); // 继续
 
 `method="dialog"` 的表单通过浏览器校验后关闭，提交按钮的 `value` 成为原生 `close` 事件中可读取的 `returnValue`。`data-ml-dialog-close` 按钮允许随时取消编辑。业务逻辑也可调用 `editor.close(value)`。长内容放进 `.ml-dialog-body`，窄屏或矮屏上可以滚动正文，并保留标题和操作按钮。用 `--ml-dialog-width` 和 `--ml-dialog-radius` 可分别调整宽度和圆角。
 
-弹窗的四档入场效果依次为即时出现、淡入、轻微上移和弹性浮入。开启高动效后，鼠标会按所选材质照亮窗沿与操作按钮。支持原生顶层退出过渡的浏览器在关闭时淡出，其他浏览器即时收起。「减少动态效果」会关闭弹窗过渡并固定光源。
+弹窗的四档入场效果依次为即时出现、淡入、轻微上移和弹性浮入。选择指针光源后，鼠标会按所选材质照亮窗沿与操作按钮。支持原生顶层退出过渡的浏览器在关闭时淡出，其他浏览器即时收起。「减少动态效果」会关闭弹窗过渡并固定光源。
 
 ## 按钮
 
@@ -1078,7 +1147,7 @@ hints.addEventListener('ml-change', event => {
 
 ### 设计资源
 
-组件目录现有七项设计资源，分别是[色彩](index.html#colors)、[图标](index.html#icons)、[材质](index.html#materials)、[动效](index.html#motion)、[字体与排版](index.html#typography)、[设计令牌](index.html#tokens)和[主题](index.html#themes)。排版、令牌与主题可直接引入 `dist/design/` 下对应的 CSS。
+导航面板收录七项设计资源，分别是[色彩](index.html#colors)、[图标](index.html#icons)、[材质](index.html#materials)、[动效](index.html#motion)、[字体与排版](index.html#typography)、[设计令牌](index.html#tokens)和[主题](index.html#themes)。排版、令牌与主题可直接引入 `dist/design/` 下对应的 CSS。
 
 预览页已引入 [global.css](dist/design/global.css)。业务页面也可在 `<head>` 中引入一次，使页面背景、正文、标题、表单和键盘焦点直接使用同一套令牌。在 `<html>` 上设置 `data-ml-theme`、`data-ml-material`、`data-ml-motion` 即可配置整页。交互组件继续按需引入同名 CSS 和 JS，使用 `<ml-icon>` 时引入 `icons.js`。
 
@@ -1108,45 +1177,58 @@ hints.addEventListener('ml-change', event => {
 
 最近一层主题决定该区域的语义色、阴影及原生控件配色。材质和动效仍各自继承 `data-ml-material`、`data-ml-motion`。主题预览的「整页主题」同步外观设置，「局部容器」只切换示例卡。令牌目录从当前 CSS 读取取值，例如切换主题会更新 `--ml-color-surface`，开启系统「减少动态效果」会把 `--ml-travel` 降为零。
 
+带 `lang="zh-CN"`、`ja` 或 `ko` 的标题采用 1.32 倍行高和自然字距，英文标题保持紧凑设置。数据读数采用等宽数字。按钮、输入框和下拉框共享 `--ml-control-height`，默认高度为 44 CSS 像素。表格与列表通过 `--ml-row-padding-block` 和 `--ml-row-padding-block-compact` 控制行密度。
+
 通用字号与字族在 `src/type-tokens.css` 定义，间距和形状在 `src/layout-tokens.css` 定义，主题复用 `colors.css` 的色板。基础资源与独立组件由同一构建脚本读取这些定义，业务项目可在自己的样式中按作用域覆盖所用变量。
 
 ### 材质库
 
-「组件目录 → 设计资源 → 材质库」可以在三种主题里放大当前表面。下方四个样本使用相同的色带和尺寸，并继承当前动效。把动效设为「高」后，在四个样本间移动鼠标即可比较它们对同一光源的响应。点选样本可放大查看，按压样本表面会看到液面回弹。材质为「高」时，「外观设置」会出现「玻璃浓度」滑块，在清透与浓重染色之间连续调节。展开「实心玻璃的前后对照」可播放或暂停两版样本在同一条鼠标轨迹下的实录。[打开材质库](index.html#materials)
+四档材质都从当前主题取色。浅色主题使用瓷白与冷灰，暖色主题使用象牙白与米灰，深色主题使用炭灰与板岩色。局部容器可以覆盖页面主题，内部的材质和文字会一起切换。
 
-| 档位 | 表面 | 静态外观 | 高动效下的鼠标光源 |
+![浅色、暖色和深色主题下的云母、增强云母、磨砂玻璃和流体玻璃](docs/material-themes.png)
+
+「导航面板 → 设计资源 → 材质库」可以在三种主题里放大当前表面。下方四个样本使用相同的色带和尺寸，并继承当前动效。选择「指针光源」后，在四个样本间移动鼠标即可比较它们对同一光源的响应。点选样本可放大查看，按压样本表面会看到液面回弹。材质为「高」时，「外观设置」会出现「玻璃染色浓度」滑块，在清透与浓重染色之间连续调节。展开「实心玻璃的前后对照」可播放或暂停两版样本在同一条鼠标轨迹下的实录。[打开材质库](index.html#materials)
+
+| 档位 | 表面 | 静态外观 | 指针光源的表现 |
 | --- | --- | --- | --- |
-| 基础 `base` | 实色 | 纯色覆盖底纹 | 迎光侧的一小段轮廓提亮，中央保持纯色 |
-| 低 `low` | 柔光 | 不透明表面，顶缘提亮并带浅阴影 | 表面出现局部柔光，边缘向四周淡出 |
+| 关闭 `base` | 云母 | 不透明底面带轻微主题染色 | 迎光侧的一小段轮廓提亮，中央保持纯色 |
+| 低 `low` | 增强云母 | 不透明底面带更浓的主题染色和柔和明暗层次 | 表面出现局部柔光，边缘向四周淡出 |
 | 中 `medium` | 磨砂 | 半透明表面模糊背后的色带 | 较宽的光晕漫射，迎光边微亮，软阴影偏向背光侧 |
-| 高 `high` | 实心流体玻璃 | 凸面均匀放大底纹并呈现内部着色，厚处色深，轮廓内侧有深色厚度层次 | 迎光弧面晶莹反光，对侧聚焦出光斑，边缘泛出光谱色散，投影随光源移动 |
+| 高 `high` | 实心流体玻璃 | 凸面放大底纹，厚处透出更多主题底色 | 迎光弧面晶莹反光，对侧聚焦出光斑，边缘泛出光谱色散，投影随光源移动 |
+
+磨砂玻璃与流体玻璃共用 0–100% 的透明度设置，默认 60%。滑块改变底面的透过量。显示长文本或表格时可选 `surface="content"`，阅读底面在最大透明度下仍保留 85% 填充。两档云母使用主题色生成不透明底面。页面可覆盖 `--ml-mica-tint-rgb`，例如 `115 144 169`，使染色呼应自己的背景图。
+
+流体玻璃的清透与染色调节参考 iOS 27 的 Liquid Glass，两档云母的染色差异参考 Mica 与 Mica Alt。[Apple WWDC26](https://developer.apple.com/videos/play/wwdc2026/102/) · [Microsoft Mica](https://learn.microsoft.com/en-us/windows/apps/design/style/mica)
 
 引入 `materials.css` 和 `materials.js` 即可使用独立表面，支持离线打开。主题、材质和动效可以分别写在表面或祖先上。`--ml-material-radius` 和 `--ml-material-padding` 可调整圆角和内边距，`--ml-glass-density` 可连续调整高档玻璃的染色浓度。
 
 ```html
 <link rel="stylesheet" href="./dist/design/materials.css">
 <script defer src="./dist/design/materials.js"></script>
-<ml-material data-ml-theme="warm" data-ml-material="high" data-ml-motion="base">
+<ml-material surface="content" data-ml-theme="warm" data-ml-material="high" data-ml-motion="base"
+  data-ml-light-source="fixed" style="--ml-material-transparency: 60%; --ml-light-intensity: .65">
   相册概览
 </ml-material>
 ```
 
-高档按需共用一个 WebGL 程序。着色器按红、绿、蓝三种波长分别计算光线穿过凸形前表面和后表面时的折射，色带白线的边缘因此泛出光谱色散；位移在轮廓附近平滑收束，透镜放大均匀而不突兀。再按每种颜色在玻璃内的光程计算透射率，玻璃厚处呈深色，轮廓内侧带深色厚度层次，镜面高光集中而晶莹。透过玻璃的底纹做小孔径柔化，复杂背景上的文字与图标更易辨认。浅色、暖色和深色主题各有玻璃体色，`--ml-glass-density` 在 0.4–2 之间连续调节染色浓度（默认 1，越小越清透）。按压高档表面会触发液面回弹，波纹从触点扩散，表面高度随之起伏。对于页面中已有的 HTML 背景，玻璃叠加 Shader 光照，并使用浏览器支持的背景滤镜。需要逐像素折射自己的底图时，将实际显示在表面后方、与视口坐标轴对齐的同源 Canvas 赋给 `surface.backdrop`。更新画布内容后调用 `surface.refreshBackdrop()`，传入 `null` 可移除底图。材质库中的色带使用此接口。WebGL 不可用或上下文丢失时，表面自动采用同一凸面计算的 SVG 位移图及兼容光照，恢复后重新启用 Shader。
+高档按需共用一个 WebGL 程序。着色器按红、绿、蓝三种波长分别计算光线穿过凸形前表面和后表面时的折射，色带白线的边缘因此泛出光谱色散；位移在轮廓附近平滑收束，透镜放大均匀而不突兀。玻璃的透射率随光程和染色浓度变化，厚处显出更多主题底色，轮廓仍保留高光。透过玻璃的底纹做小孔径柔化，复杂背景上的文字与图标更易辨认。浅色、暖色和深色主题各有玻璃体色，`--ml-glass-density` 在 0.4–2 之间连续调节染色浓度（默认 1，越小越清透）。按压高档表面会触发液面回弹，波纹从触点扩散，表面高度随之起伏。对于页面中已有的 HTML 背景，玻璃叠加 Shader 光照，并使用浏览器支持的背景滤镜。需要逐像素折射自己的底图时，将实际显示在表面后方、与视口坐标轴对齐的同源 Canvas 赋给 `surface.backdrop`。更新画布内容后调用 `surface.refreshBackdrop()`，传入 `null` 可移除底图。材质库中的色带使用此接口。WebGL 不可用或上下文丢失时，表面自动采用同一凸面计算的 SVG 位移图及兼容光照，恢复后重新启用 Shader。
 
-高动效让同页表面共用一个指针光源。光源随距离衰减，触屏按下时跟随触点，松手后恢复静态外观。浅色与深色使用冷调光，暖色使用暖光。基础、低、中材质用 CSS 绘制受光效果。切到其余动效档位或开启系统「减少动态效果」时，各档恢复静态外观，高档玻璃使用固定光位。系统高对比度使用系统表面色和边框。四档共享样式位于 `src/material-tiers.css`，档位名称与说明可从 `customElements.get('ml-material').levels` 读取。
+选择指针光源后，同页表面共享鼠标或触点的位置。光源随距离衰减。指针移出页面、窗口失焦或触点抬起时，流体玻璃从最后显示的光位平滑回到默认光位，两档云母与磨砂玻璃的光晕原位淡出，过渡约 240 毫秒。浅色与深色使用冷调光，暖色使用暖光。基础、低、中材质用 CSS 绘制受光效果。固定光源从表面左上方照明，鼠标移动时光位保持稳定。系统开启「减少动态效果」时，指针光转为固定光。系统高对比度使用系统表面色和边框。四档共享样式位于 `src/material-tiers.css`，档位名称与说明可从 `customElements.get('ml-material').levels` 读取。
 
 ### 动效库
 
-在「组件目录 → 设计资源 → 动效库」选择位置切换、按压反馈或出入场，点「同步演示」可同时观看四档。下方样本固定使用基础材质，点选档位即可在上方用当前主题和材质试用。时长标记对应下一次操作。[打开动效库](index.html#motion)
+在「导航面板 → 设计资源 → 动效库」选择位置切换、按压反馈或出入场，点「同步演示」可同时观看四档。下方样本固定使用基础材质，点选档位即可在上方用当前主题和材质试用。时长标记对应下一次操作。[打开动效库](index.html#motion)
 
 | 动效 | 位置切换与按压 | 入场 / 退场 | 交互表现 |
 | --- | --- | --- | --- |
 | 基础 `base` | 0 ms | 0 / 0 ms | 立即切换到目标状态 |
 | 低 `low` | 115 ms | 115 / 95 ms | 位置和尺寸直接到位，仅改变明暗或透明度 |
-| 中 `medium` | 220 ms | 185 / 135 ms | 位移和缩放沿一个方向减速，到位即停 |
-| 高 `high` | 530 ms | 370 / 150 ms | 移动和入场带回弹，按压后弹性恢复，退场快速收束 |
+| 中 `medium` | 200 ms | 180 / 125 ms | 位移和缩放沿一个方向减速，到位即停 |
+| 高 `high` | 420 ms | 280 / 135 ms | 移动和入场带回弹，按压后弹性恢复，退场快速收束 |
 
-以上时长适用于动效库的三个动作。现有组件共用四档规则，菜单、横幅、弹窗等保留各自的交互节奏。通用时间、曲线及组件分档参数在 `src/motion-tiers.css` 维护，图标的专属关键帧在 `src/icon-motion.js`。高动效同时开启弹性反馈和共享指针光源，受光表现由材质档位决定。系统开启「减少动态效果」会立即结束正在播放的动作，同时保留已选择的业务状态。
+高档动效随浏览器的刷新节奏绘制，库内不设帧率上限。中档将每个动画的画面更新限制在 90 FPS 以内，60 Hz 设备仍按可用的 60 Hz 绘制。独立组件的 CSS、JS 配对使用即可生效。玻璃、图标、CSS 动画、过渡和 `MaterialMotion` 都跟随各自作用域的动效档位。浏览器滚动、输入和视频沿用各自的刷新节奏。
+
+以上时长适用于动效库的三个动作。现有组件共用四档规则，菜单、横幅、弹窗等保留各自的交互节奏。通用时间、曲线及组件分档参数在 `src/motion-tiers.css` 维护，图标的专属关键帧在 `src/icon-motion.js`。高档动效提供弹性反馈，照明由光源模式和强度控制。系统开启「减少动态效果」会立即结束正在播放的动作，同时保留已选择的业务状态。
 
 引入 `motion.css`、`motion.js` 即可离线使用。两份文件包含 `ml-material` 表面，也可以直接把普通 HTML 元素传给 `MaterialMotion`。预览页的「示例代码」会复制当前动作、状态和外观的完整示例。
 
@@ -1177,27 +1259,30 @@ hints.addEventListener('ml-change', event => {
 
 ### 共享外观设置
 
-三个属性可以写在组件或任意祖先元素上，方便设置全站默认值及局部覆盖。首次预览默认使用浅色、高材质和高动效。预览页记住最近的选择，「重置外观」可以恢复默认。
+四个属性可以写在组件或任意祖先元素上，方便设置全站默认值及局部覆盖。首次预览默认使用浅色、高材质、高动效和指针光源。预览页记住最近的选择，「重置外观」可以恢复默认。
 
 | 属性 | 可选值 |
 | --- | --- |
 | `data-ml-theme` | `light` 浅色、`warm` 暖色、`dark` 深色 |
-| `data-ml-material` | `base` 基础实色、`low` 柔光、`medium` 磨砂半透、`high` 流体玻璃 |
+| `data-ml-material` | `base` 关闭玻璃（云母）、`low` 增强云母、`medium` 磨砂玻璃、`high` 流体玻璃 |
 | `data-ml-motion` | `base` 即时反馈、`low` 短暂淡变、`medium` 平滑滑动或按压、`high` 弹性回弹 |
+| `data-ml-light-source` | `pointer` 指针光源、`fixed` 固定光源、`none` 无光源 |
 
-画布随主题使用雾灰、暖象牙、石墨三种纯色。主按钮、主题选项和键盘焦点使用当前主题的主题蓝。开关开启时使用主题绿，同时用滑块位置与通断符号表示状态。
+在材质作用域设置 `--ml-material-transparency`（0–100%）和 `--ml-light-intensity`（0–1）。选择无光源或把强度调到 0 后，玻璃保留厚度、染色与折射。
+
+画布随主题使用雾灰、暖象牙、石墨三种纯色。主按钮、主题选项使用当前主题的主题蓝，键盘焦点使用独立的 `--ml-color-focus`。开关开启时使用主题绿，同时用滑块位置与通断符号表示状态。
 
 开关的轨道与滑块各自拥有弧形玻璃表面，共用页面上的光源。纯色画布上可通过亮边和投影观察光照方向。高动效让滑块前缘先行，后缘追上后回弹。
 
-开启高动效后，鼠标位置就是整页控件共用的光源。依次选择四档材质，在控件两侧移动鼠标，可以看到轮廓微光、局部柔光、磨砂散射或玻璃聚光换边。高材质还支持按压涟漪，从触点或键盘选项中心扩散。触屏按住时由触点照明，松手后恢复静态外观。
+选择指针光源后，鼠标位置就是整页控件共用的光源。依次选择四档材质，在控件两侧移动鼠标，可以看到轮廓微光、局部柔光、磨砂散射或玻璃聚光换边。高材质还支持按压涟漪，从触点或键盘选项中心扩散。触屏松手后，光照平滑恢复到静态外观。
 
-基础材质使用实色表面。基础动效即时切换。系统开启「减少动态效果」时，滑块即时就位，高光固定。
+关闭玻璃时使用不透明云母。基础动效即时切换。系统开启「减少动态效果」时，滑块即时就位，高光固定。
 
 可用 `--ml-switch-height` 调整开关轨道高度，用 `--ml-option-height`、`--ml-option-font`、`--ml-option-pad` 调整分段控件。默认开关和分段选项的点击高度至少为 44 CSS 像素。
 
 ## 维护
 
-新增预览入口时，在 `index.html` 的组件目录中将链接放入对应分类。`href` 指向组件的预览片段，链接文字、`data-en`、`data-keywords` 和 `data-lead` 分别提供中文名、英文名、搜索别名和简介。
+新增预览入口时，在 `index.html` 的导航面板中将链接放入对应分类。`href` 指向组件的预览片段，链接文字、`data-en`、`data-keywords` 和 `data-lead` 分别提供中文名、英文名、搜索别名和简介。
 
 每对组件文件独立包含主题和玻璃效果，同页加载多个组件时共用一个指针光源。修改 `src/` 下的源码后，在根目录运行 `npm run build` 更新 `dist/` 中的可分发文件。
 

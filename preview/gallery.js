@@ -1,6 +1,58 @@
 /* Generated for the gallery by build.mjs. */
 (() => {
   'use strict';
+
+  window.createPreviewPages = function (factories) {
+    const controllers = new Map();
+    const slots = [...document.querySelectorAll('[data-preview-page]')].map(host => {
+      const content = document.createDocumentFragment();
+      const source = host.querySelector(':scope > template[data-preview-content]');
+      if (source) {
+        content.append(source.content);
+        source.remove();
+      }
+      return { host, content, pages: host.dataset.previewPage.split(' '), mounted: !source };
+    });
+    let current, controller;
+
+    function park(slot) {
+      // An upload in the demo keeps its native input and AbortSignal until it settles.
+      if (!slot.mounted || slot.pages.includes(current)) return;
+      const uploads = slot.host.querySelectorAll('ml-file-upload');
+      if ([...uploads].some(upload => upload.entries.some(item => item.state === 'uploading'))) return;
+      slot.mounted = false;
+      slot.content.append(...slot.host.childNodes);
+    }
+    function afterUpload(event) {
+      const slot = slots.find(item => item.host.contains(event.target));
+      if (slot && !slot.pages.includes(current)) queueMicrotask(() => park(slot));
+    }
+    document.addEventListener('ml-upload-state', afterUpload);
+    document.addEventListener('ml-files-change', afterUpload);
+
+    return {
+      select(next) {
+        if (next === current) return controller;
+        controller?.select(false);
+        current = next;
+        for (const slot of slots) {
+          if (!slot.pages.includes(next)) park(slot);
+          else if (!slot.mounted) {
+            slot.mounted = true;
+            slot.host.append(slot.content);
+          }
+        }
+        if (!controllers.has(next) && Object.hasOwn(factories, next)) controllers.set(next, factories[next]());
+        controller = controllers.get(next);
+        controller?.select(true);
+        return controller;
+      },
+    };
+  };
+})();
+
+(() => {
+  'use strict';
   const motion = window.MaterialMotion;
 
   window.createMotionPreview = function (chooseLevel) {
@@ -149,7 +201,7 @@
 
 'use strict';
 
-window.createFoundationPreview = function ({ appearance, paletteGroups, applyTheme, copyContents, stylesheet, scriptTag }) {
+window.createFoundationPreview = function ({ appearance, paletteGroups, applyTheme, copyContents, stylesheet, scriptTag, lightAttributes }) {
   const byId = id => document.getElementById(id);
   const root = document.documentElement;
   const titles = { typography: '排版样式', tokens: '令牌目录', themes: '主题预设' };
@@ -160,7 +212,7 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     ['metric', '数据读数', '128.64 MB', 'span'], ['code', '代码与编号', 'album-demo.json', 'code'],
   ];
   const themes = { light: '浅色', warm: '暖色', dark: '深色' };
-  const themeColors = [['background', '画布'], ['surface', '表面'], ['text', '正文'], ['action', '强调']];
+  const themeColors = [['background', '画布'], ['surface', '面板'], ['surface-raised', '浮层'], ['text', '正文'], ['selection', '选中'], ['focus', '焦点']];
   const groups = { space: '间距', shape: '圆角与描边', shadow: '阴影', type: '字体与排版', color: '颜色', material: '材质', motion: '动效' };
   const tokens = [];
   function token(group, key, label, property, kind, format) {
@@ -168,6 +220,10 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     tokens.push({ group, name, label, property, kind, ref, expression: format ? format(ref) : ref });
   }
   for (let step = 1; step <= 8; step++) token('space', 'space-' + step, '间距 ' + step, 'gap', 'space');
+  token('space', 'control-height', '控件高度', 'min-block-size', 'dimension');
+  token('space', 'control-padding-inline', '控件水平内边距', 'padding-inline', 'dimension');
+  token('space', 'row-padding-block', '标准行上下内边距', 'padding-block', 'dimension');
+  token('space', 'row-padding-block-compact', '紧凑行上下内边距', 'padding-block', 'dimension');
   for (const [key, label] of [['sm', '小圆角'], ['md', '中圆角'], ['lg', '大圆角'], ['xl', '特大圆角'], ['pill', '胶囊圆角']]) {
     token('shape', 'radius-' + key, label, 'border-radius', 'shape');
   }
@@ -179,17 +235,25 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
   for (const [key, label] of [['sans', '无衬线字族'], ['serif', '衬线字族'], ['mono', '等宽字族']]) token('type', 'font-' + key, label, 'font-family', 'type');
   for (const [key, label] of roles.filter(([key]) => key !== 'code')) token('type', 'size-' + key, label + '字号', 'font-size', 'type');
   for (const [key, label] of [['regular', '常规'], ['medium', '中等'], ['semibold', '半粗'], ['bold', '粗体']]) token('type', 'weight-' + key, label + '字重', 'font-weight', 'type');
-  for (const [key, label] of [['tight', '标题'], ['compact', '紧凑'], ['body', '正文']]) token('type', 'leading-' + key, label + '行高', 'line-height', 'type');
+  for (const [key, label] of [['tight', '紧凑标题'], ['title', '随语言调整的标题'], ['compact', '紧凑'], ['body', '正文']]) token('type', 'leading-' + key, label + '行高', 'line-height', 'type');
+  token('type', 'tracking-title', '随语言调整的标题字距', 'letter-spacing', 'type');
   token('type', 'tracking-tight', '紧凑字距', 'letter-spacing', 'type');
   token('type', 'tracking-normal', '标准字距', 'letter-spacing', 'type');
   token('type', 'measure', '正文行宽', 'max-inline-size', 'type');
   for (const [collection, entries] of Object.entries(paletteGroups)) {
     for (const [key, label] of entries) {
+      if (key === 'focus' || key === 'control-border') {
+        token('color', 'color-' + key, label, key === 'focus' ? 'outline-color' : 'border-color', 'shape');
+        continue;
+      }
       const ink = key.startsWith('text') || (collection === 'semantic' && key !== 'action');
       token('color', 'color-' + key, label, ink ? 'color' : 'background-color', ink ? 'ink' : 'swatch');
     }
   }
   token('material', 'material-fill-opacity', '表面填充比例', 'background-color', 'surface', ref => 'color-mix(in srgb, var(--ml-color-surface) ' + ref + ', transparent)');
+  token('material', 'material-transparency', '玻璃透明度', 'background-color', 'surface', ref => 'color-mix(in srgb, transparent ' + ref + ', var(--ml-color-surface))');
+  token('material', 'light-intensity', '光源强度', 'box-shadow', 'surface', ref => '0 0 1rem rgb(var(--ml-glass-lamp-rgb) / ' + ref + ')');
+  token('material', 'material-content-opacity', '阅读面的填充比例', 'background-color', 'surface', ref => 'color-mix(in srgb, var(--ml-color-surface) ' + ref + ', transparent)');
   token('material', 'material-border-opacity', '边框着色比例', 'border-color', 'surface', ref => 'color-mix(in srgb, var(--ml-color-text) ' + ref + ', transparent)');
   token('material', 'filter', '背景滤镜', 'backdrop-filter', 'surface');
   token('material', 'skin', '表面纹理', 'background-image', 'surface');
@@ -292,11 +356,13 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     art.removeAttribute('style'); art.classList.remove('at-end'); art.replaceChildren();
     let target = art;
     if (t.kind === 'space') art.append(node('i'), node('i'));
+    if (t.kind === 'dimension') art.textContent = '素材名称';
     if (t.kind === 'ink' || t.kind === 'type') {
       art.textContent = t.property === 'line-height' || t.property === 'max-inline-size' ? '风景手记 Landscapes\n照片已归档' : '山野相册 Aa 018';
     }
     if (t.kind === 'motion') { target = node('i'); art.append(target); }
-    if (t.property.startsWith('outline')) art.style.outline = '2px solid var(--ml-color-info)';
+    if (t.name === '--ml-color-on-action') art.style.backgroundColor = 'var(--ml-color-action)';
+    if (t.property.startsWith('outline')) art.style.outline = 'var(--ml-focus-width) solid var(--ml-color-focus)';
     if (t.property === 'backdrop-filter') art.style.backgroundColor = 'color-mix(in srgb, var(--ml-color-surface) 45%, transparent)';
     target.style.setProperty(t.property, t.expression);
   }
@@ -375,17 +441,26 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
       return [stylesheet('typography'), stylesheet('themes'), '', '<section data-ml-theme="' + appearance.theme + '" data-ml-theme-surface data-ml-prose>',
         '  ' + example.outerHTML, ...(role[3] === 'label' ? ['  <input id="record-name">'] : []), '</section>'].join('\n');
     }
-    const axes = 'data-ml-theme="' + appearance.theme + '" data-ml-material="' + appearance.material + '" data-ml-motion="' + appearance.motion + '"';
+    const axes = 'data-ml-theme="' + appearance.theme + '" data-ml-material="' + appearance.material + '" data-ml-motion="' + appearance.motion + '" ' + lightAttributes();
     if (active === 'themes') {
       const theme = scope === 'local' ? ' data-ml-theme="' + localTheme + '"' : '';
       return ['<!doctype html>', '<html lang="zh-CN" ' + axes + '>', '<head>', '  <meta charset="utf-8">',
         '  <meta name="viewport" content="width=device-width, initial-scale=1">', '  <title>相册摘要</title>',
-        ...['themes', 'typography', 'switch'].map(name => '  ' + stylesheet(name)), '  ' + scriptTag('switch'), '</head>',
-        '<body data-ml-theme-surface>', '  <section' + theme + ' data-ml-theme-surface data-ml-prose style="padding:1.5rem">',
-        '    <p data-ml-type="caption">素材记录 · DEMO-101</p>', '    <h1 data-ml-type="heading">山间湖泊选集</h1>',
-        '    <p><span data-ml-type="metric">128.64</span> MB</p>',
-        '    <p>自动归档 <ml-switch label="自动归档"' + (themeSample.querySelector('ml-switch').checked ? ' checked' : '') + '></ml-switch></p>',
-        '  </section>', '</body>', '</html>'].join('\n');
+        ...['themes', 'typography', 'switch'].map(name => '  ' + stylesheet(name)), '  ' + scriptTag('switch'),
+        '  <style>', '    .record {', '      max-inline-size: 24rem; padding: var(--ml-space-4);',
+        '      border: var(--ml-border-width) solid var(--ml-color-separator); border-radius: var(--ml-radius-md);',
+        '      background: var(--ml-color-surface-raised); box-shadow: var(--ml-shadow-raised);', '    }',
+        '    .measure {', '      padding: var(--ml-row-padding-block) var(--ml-control-padding-inline);',
+        '      background: var(--ml-color-surface-inset); border-radius: var(--ml-radius-sm);', '    }',
+        '    .setting { display: flex; align-items: center; justify-content: space-between; }', '  </style>', '</head>',
+        '<body data-ml-theme-surface>', '  <section' + theme + ' data-ml-theme-surface style="padding:var(--ml-space-5)">',
+        '    <article class="record" data-ml-prose>',
+        '      <p data-ml-type="caption" style="color:var(--ml-color-text-secondary)">素材记录 · DEMO-101</p>',
+        '      <h1 data-ml-type="heading">山间湖泊选集</h1>',
+        '      <p class="measure"><span data-ml-type="metric">128.64</span> MB</p>',
+        '      <p class="setting"><span data-ml-type="label">自动归档</span>',
+        '        <ml-switch label="自动归档"' + (themeSample.querySelector('ml-switch').checked ? ' checked' : '') + '></ml-switch></p>',
+        '    </article>', '  </section>', '</body>', '</html>'].join('\n');
     }
     const t = selected, rule = '    ' + t.property + ': ' + t.expression + ';';
     if (t.kind === 'motion') return [stylesheet('tokens'), '', '<style>', '  .token-demo {',
@@ -395,7 +470,8 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
       '<div ' + axes + '><button class="token-demo">按住试用</button></div>'].join('\n');
     const examples = ['  .token-demo {', '    display: flex; align-items: center; padding: 1rem; border: 1px solid var(--ml-color-separator);',
       '    background-color: var(--ml-color-surface); color: var(--ml-color-text); font-family: var(--ml-font-sans);'];
-    if (t.property.startsWith('outline')) examples.push('    outline: 2px solid var(--ml-color-info);');
+    if (t.name === '--ml-color-on-action') examples.push('    background-color: var(--ml-color-action);');
+    if (t.property.startsWith('outline')) examples.push('    outline: var(--ml-focus-width) solid var(--ml-color-focus);');
     if (t.property === 'backdrop-filter') examples.push('    background-color: color-mix(in srgb, var(--ml-color-surface) 45%, transparent);');
     return [stylesheet('tokens'), '', '<style>', ...examples, rule, '  }', '</style>', '<div ' + axes + ' data-ml-theme-surface>',
       '  <div class="token-demo"><span>山野相册</span><span>018</span></div>', '</div>'].join('\n');
@@ -656,6 +732,96 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
 (() => {
   'use strict';
 
+  const sample = `<ml-navigation-panel label="偏好设置" search-label="搜索展示文本">
+  <nav aria-label="偏好设置">
+    <section data-icon="sun">
+      <h3>显示与文字</h3>
+      <section data-icon="keyboard">
+        <h4>文字预览</h4>
+        <p>标题示例<small>山间来信</small></p>
+        <p>正文示例<small>清晨的光穿过树梢，落在翻开的书页上。</small></p>
+        <p>注释示例<small>摘自周末的阅读笔记。</small></p>
+      </section>
+      <p>外观名称<small>晨雾白</small></p>
+    </section>
+    <section data-icon="bell">
+      <h3>通知样式</h3>
+      <p>通知标题<small>阅读提醒</small></p>
+      <p>通知正文<small>你收藏的随笔已更新。</small></p>
+    </section>
+    <section data-icon="layers">
+      <h3>声音与触感</h3>
+      <p>提示音名称<small>溪流</small></p>
+      <p>触感说明<small>两次轻触，间隔短暂。</small></p>
+    </section>
+  </nav>
+</ml-navigation-panel>`;
+
+  window.createCatalogPreview = function () {
+    const options = document.querySelector('#catalog-options');
+    const specimen = document.querySelector('#catalog-specimen');
+    specimen.innerHTML = sample;
+    const directory = specimen.querySelector('ml-navigation-panel');
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'ml-navigation-panel-trigger';
+    trigger.textContent = '打开偏好设置';
+    trigger.setAttribute('aria-haspopup', 'dialog');
+    trigger.setAttribute('aria-controls', 'sample-catalog-dialog');
+    trigger.setAttribute('aria-expanded', 'false');
+    const modal = document.createElement('ml-dialog');
+    modal.setAttribute('dismiss-on-backdrop', '');
+    const dialog = document.createElement('dialog');
+    dialog.id = 'sample-catalog-dialog';
+    dialog.setAttribute('aria-label', '偏好设置');
+    modal.append(dialog);
+    specimen.append(trigger, modal);
+    trigger.addEventListener('click', event => directory.showModal(trigger, {
+      focusSearch: event.detail === 0 || !matchMedia('(pointer: coarse)').matches,
+    }));
+    const isModal = () => options.querySelector('[name="catalog-kind"]:checked').value === 'dialog';
+    const isCompact = () => options.querySelector('[name="catalog-density"]:checked').value === 'compact';
+    function show() {
+      const popup = isModal();
+      directory.setAttribute('density', isCompact() ? 'compact' : 'normal');
+      trigger.hidden = !popup;
+      if (popup && directory.parentElement !== dialog) dialog.append(directory);
+      if (!popup && directory.parentElement !== specimen) {
+        if (modal.open) modal.close();
+        specimen.prepend(directory);
+        directory.reset();
+      }
+      document.querySelector('#stage-state').textContent = popup ? '弹窗' : '页面内嵌';
+      document.querySelector('#state-dot').className = 'state-dot on';
+      document.querySelector('#shortcut').hidden = true;
+    }
+    options.addEventListener('change', show);
+    function select(enabled) {
+      options.hidden = specimen.hidden = !enabled;
+      if (!enabled && modal.open) modal.close();
+    }
+    function code(head, lines) {
+      const markup = isCompact() ? sample.replace('<ml-navigation-panel ', '<ml-navigation-panel density="compact" ') : sample;
+      const rows = markup.split('\n');
+      if (!isModal()) return [...head, ...lines, ...rows.map(row => '  ' + row), '</div>'].join('\n');
+      return [...head, ...lines,
+        '  <button type="button" id="show-preferences" class="ml-navigation-panel-trigger" aria-haspopup="dialog"',
+        '          aria-controls="preferences-dialog" aria-expanded="false">打开偏好设置</button>',
+        '  <ml-dialog dismiss-on-backdrop>', '    <dialog id="preferences-dialog" aria-label="偏好设置">',
+        ...rows.map(row => '      ' + row), '    </dialog>', '  </ml-dialog>', '</div>', '',
+        '<script type="module">',
+        '  const panel = document.querySelector("#preferences-dialog > ml-navigation-panel");',
+        '  document.getElementById("show-preferences").addEventListener("click", event => {',
+        '    panel.showModal(event.currentTarget, { focusSearch: event.detail === 0 || !matchMedia("(pointer: coarse)").matches });',
+        '  });', '</script>'].join('\n');
+    }
+    return { select, show, code };
+  };
+})();
+
+(() => {
+  'use strict';
+
   const messages = {
     empty: { title: '暂无素材记录', description: '新建一条记录后，就可以在这里查看整理结果。',
       action: '新建示例记录', recovered: '已新建 1 条示例记录', status: '等待创建记录' },
@@ -782,7 +948,7 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
       }
       return snippet.join('\n');
     }
-    return { select, readout, code };
+    return { select, show: readout, code };
   };
 })();
 
@@ -883,7 +1049,7 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
         '      <ml-skeleton preset="' + selected(presets) + '"></ml-skeleton>',
         '    </div>', '  </ml-material>', '</div>').join('\n');
     }
-    return { select, render, code };
+    return { select, show: render, code };
   };
 })();
 
@@ -1723,10 +1889,10 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const forcedColors = matchMedia('(forced-colors: active)');
   const iconReplay = document.querySelector('#replay-icon-motion');
-  const defaults = { theme: 'light', material: 'high', motion: 'high' };
-  const motionPreview = window.createMotionPreview(value => applyAppearance('motion', value, true));
+  const defaults = { theme: 'light', material: 'high', motion: 'high', 'light-source': 'pointer' };
   const materialLevels = customElements.get('ml-material').levels;
   const materialHero = document.querySelector('#material-specimen');
+  const materialSurfaces = document.querySelector('#material-surfaces');
   const materialComparison = document.querySelector('#materials-examples');
   const materialHistory = document.querySelector('#material-history');
   const materialSamples = [];
@@ -1877,12 +2043,15 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
       ['cyan', '青蓝', '适合与深色背景搭配的图形。'], ['brown', '棕色', '用于区域、材质等类别标记。'],
     ],
     semantic: [
-      ['action', '交互', '主要按钮、选中项和焦点轮廓。'], ['info', '信息', '提示文字、进行中状态和说明图标。'],
+      ['action', '交互', '主要按钮和交互图形的底色。'], ['on-action', '强调面文字', '主要按钮上的文字和图标。'],
+      ['focus', '键盘焦点', '标记当前可操作控件的焦点环。'], ['info', '信息', '提示文字、进行中状态和说明图标。'],
       ['success', '成功', '已完成、已保存和正常结果。'], ['warning', '警告', '待复核或需要注意的状态。'],
       ['danger', '危险', '异常、错误和高风险操作说明。'], ['neutral', '中性状态', '草稿、未开始和常规状态。'],
     ],
     interface: [
-      ['background', '页面背景', '整页的底色。'], ['surface', '面板', '设置区、卡片和浮层的底色。'],
+      ['background', '页面背景', '整页的底色。'], ['surface', '面板', '设置区、卡片和表单的底色。'],
+      ['surface-inset', '内嵌表面', '只读字段和内容分组。'], ['surface-raised', '浮层表面', '菜单、对话框和抽屉。'],
+      ['control-border', '控件边界', '输入框和可选择字段的轮廓。'], ['selection', '选中底色', '表格行、列表选项和导航的当前项。'],
       ['fill', '填充', '控件底槽和分组容器。'], ['separator', '分隔线', '区分相邻内容的细线。'],
       ['text', '主要文字', '标题和正文。'], ['text-secondary', '次要文字', '说明、摘要和字段名称。'],
       ['text-tertiary', '辅助文字', '时间、单位和其他补充信息。'],
@@ -1890,7 +2059,7 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
   };
   const palettePicker = document.querySelector('#palette-groups');
   const foundations = window.createFoundationPreview({
-    appearance, paletteGroups, applyTheme: value => applyAppearance('theme', value, true), copyContents, stylesheet, scriptTag,
+    appearance, paletteGroups, applyTheme: value => applyAppearance('theme', value, true), copyContents, stylesheet, scriptTag, lightAttributes,
   });
   const paletteSpecimen = document.querySelector('#palette-specimen');
   const paletteStrip = document.querySelector('#palette-strip');
@@ -1910,18 +2079,17 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
   const valueDemos = new Map();
   const recordTypes = ['data-table', 'pagination'];
   const navigation = window.MaterialNavigationPreview;
-  const emptyState = window.createEmptyStatePreview();
-  const loadingPreview = window.createLoadingPreview();
-  const tabsPreview = window.createTabsPreview(inlineSampleIcons);
-  const breadcrumbPreview = window.createBreadcrumbPreview();
-  const stepsPreview = window.createStepsPreview(bundleTags);
-  const treePreview = window.createTreePreview();
-  const mediaViewerPreview = window.createMediaViewerPreview();
-  const tooltipPreview = window.createTooltipPreview();
-  const accordionPreview = window.createAccordionPreview(inlineSampleIcons);
-  const multiSelectPreview = window.createMultiSelectPreview();
-  const fileUploadPreview = window.createFileUploadPreview();
-  const formPreview = window.createFormPreview(bundleTags);
+  const previews = window.createPreviewPages({
+    motion: () => window.createMotionPreview(value => applyAppearance('motion', value, true)),
+    'empty-state': window.createEmptyStatePreview, loading: window.createLoadingPreview,
+    'navigation-panel': window.createCatalogPreview,
+    tabs: () => window.createTabsPreview(inlineSampleIcons), breadcrumb: window.createBreadcrumbPreview,
+    steps: () => window.createStepsPreview(bundleTags), tree: window.createTreePreview,
+    'media-viewer': window.createMediaViewerPreview, tooltip: window.createTooltipPreview,
+    accordion: () => window.createAccordionPreview(inlineSampleIcons), 'multi-select': window.createMultiSelectPreview,
+    'file-upload': window.createFileUploadPreview, form: () => window.createFormPreview(bundleTags),
+  });
+  let currentPreview;
   const recordSource = document.querySelector('#record-table-source').content.firstElementChild;
   const recordTable = recordSource.cloneNode(true);
   document.querySelector('#data-table-specimen').append(recordTable);
@@ -1929,174 +2097,30 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
   const recordStates = document.querySelector('#records-state');
   const emptyRecords = { 'data-table': false, pagination: false };
   const catalog = document.querySelector('#gallery-catalog');
-  const catalogTrigger = document.querySelector('#open-catalog');
-  const catalogNav = catalog.querySelector('.component-nav');
-  const catalogQuery = catalog.querySelector('#catalog-query');
-  const catalogClear = catalog.querySelector('#catalog-clear');
-  const catalogScroll = catalog.querySelector('.catalog-scroll');
-
-  function searchKey(text) {
-    return text.normalize('NFKC').toLowerCase().replace(/[\s/_-]+/g, '');
-  }
-  const categoryBar = catalog.querySelector('.catalog-categories');
-  const catalogEntries = new Map();
-  const categories = new Map();
-  let activeCategory;
+  const directory = catalog.querySelector('ml-navigation-panel');
+  const catalogEntries = new Map(directory.entries.map(({ link, title }) => [
+    link.hash.slice(1), { link, title, en: link.dataset.en, lead: link.dataset.lead },
+  ]));
   let chosenRoute;
-
-  for (const group of catalogNav.querySelectorAll('section')) {
-    const heading = group.querySelector('h3');
-    const category = heading.textContent.trim();
-    const links = [...group.querySelectorAll('a[href]')];
-    if (!links.length) {
-      group.hidden = true;
-      continue;
-    }
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.setAttribute('aria-controls', catalogNav.id);
-    const count = document.createElement('small');
-    count.textContent = links.length;
-    count.setAttribute('aria-hidden', 'true');
-    button.append(heading.querySelector('svg').cloneNode(true), category, count);
-    categoryBar.append(button);
-    const entries = [];
-    categories.set(group, { button, entries });
-    button.addEventListener('click', () => {
-      activeCategory = group;
-      catalogQuery.value = '';
-      filterCatalog();
-    });
-
-    for (const link of links) {
-      const id = link.hash.slice(1);
-      const title = link.textContent.trim();
-      const { en, lead, keywords = '' } = link.dataset;
-      const terms = [title, en, id, category, keywords, lead].map(searchKey);
-      const entry = { link, group, title, en, lead, terms };
-      catalogEntries.set(id, entry);
-      entries.push(entry);
-      const english = document.createElement('span');
-      english.className = 'catalog-en';
-      english.lang = 'en';
-      english.setAttribute('aria-hidden', 'true');
-      english.textContent = en;
-      link.append(english);
-    }
-  }
-
-  function searchRank(fields, words) {
-    const names = fields.slice(0, 3);
-    const matches = values => words.every(word => values.some(value => value.includes(word)));
-    if (names.includes(words.join(''))) return 0;
-    if (matches(names)) return 1;
-    if (matches(fields.slice(0, 5))) return 2;
-    return matches(fields) ? 3 : Infinity;
-  }
-  function orderChildren(parent, children) {
-    children.forEach((child, index) => {
-      if (parent.children[index] !== child) parent.insertBefore(child, parent.children[index] ?? null);
-    });
-  }
-  function filterCatalog() {
-    const terms = catalogQuery.value.trim().split(/\s+/).map(searchKey).filter(Boolean);
-    let count = 0;
-    const groups = [];
-    for (const [group, { button, entries }] of categories) {
-      const ranked = entries.map(({ link, terms: fields }) => {
-        const rank = terms.length ? searchRank(fields, terms) : group === activeCategory ? 0 : Infinity;
-        link.hidden = !Number.isFinite(rank);
-        if (!link.hidden) count++;
-        return { link, rank };
-      }).sort((a, b) => a.rank - b.rank);
-      orderChildren(group.querySelector('.catalog-links'), ranked.map(item => item.link));
-      group.hidden = ranked[0].link.hidden;
-      groups.push({ group, rank: ranked[0].rank });
-      button.setAttribute('aria-pressed', String(!terms.length && activeCategory === group));
-    }
-    if (terms.length) groups.sort((a, b) => a.rank - b.rank);
-    orderChildren(catalogNav, groups.map(item => item.group));
-    catalogClear.hidden = !catalogQuery.value;
-    catalog.querySelector('.catalog-empty').hidden = count !== 0;
-    catalog.querySelector('#catalog-count').textContent = terms.length ? '找到 ' + count + ' 项' : '共 ' + catalogEntries.size + ' 项';
-    catalogScroll.scrollTop = 0;
-  }
-
-  catalogTrigger.addEventListener('click', event => {
-    const current = catalogEntries.get(component);
-    activeCategory = current.group;
-    catalogQuery.value = '';
-    filterCatalog();
-    catalog.showModal(catalogTrigger);
-    catalogTrigger.setAttribute('aria-expanded', 'true');
-    const nearest = { block: 'nearest', inline: 'nearest' };
-    categories.get(activeCategory).button.scrollIntoView(nearest);
-    current.link.scrollIntoView(nearest);
-    if (event.detail === 0 || !matchMedia('(pointer: coarse)').matches) catalogQuery.focus({ preventScroll: true });
+  document.querySelector('#open-catalog').addEventListener('click', event => {
+    directory.showModal(event.currentTarget, { focusSearch: event.detail === 0 || !matchMedia('(pointer: coarse)').matches });
   });
-  catalog.dialog.addEventListener('close', () => catalogTrigger.setAttribute('aria-expanded', String(catalog.open)));
-  catalogQuery.addEventListener('input', filterCatalog);
-  function clearCatalogSearch() {
-    catalogQuery.value = '';
-    filterCatalog();
-    catalogQuery.focus();
-  }
-  catalogClear.addEventListener('click', clearCatalogSearch);
-  catalog.querySelector('#catalog-reset').addEventListener('click', clearCatalogSearch);
 
   function focusCatalogPage() {
     const title = document.querySelector('#component-title');
     title.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }
-  catalogNav.addEventListener('click', event => {
+  catalog.addEventListener('click', event => {
     const link = event.target.closest('a[href]');
     if (!link || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-    catalog.close();
     if (link.hash === location.hash) {
       event.preventDefault();
       focusCatalogPage();
     } else chosenRoute = link.hash;
   });
-  categoryBar.addEventListener('keydown', event => {
-    if (!['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    const buttons = [...categoryBar.children];
-    const at = buttons.indexOf(event.target);
-    if (at < 0) return;
-    event.preventDefault();
-    const columns = getComputedStyle(categoryBar).gridTemplateColumns;
-    const step = event.key === 'ArrowDown' || event.key === 'ArrowUp' ? columns.split(' ').length : 1;
-    const index = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
-      : (at + (['ArrowRight', 'ArrowDown'].includes(event.key) ? step : -step) + buttons.length) % buttons.length;
-    buttons[index].focus();
-    buttons[index].click();
-  });
-  catalog.addEventListener('keydown', event => {
-    if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
-    const fromSearch = event.target === catalogQuery;
-    if (!fromSearch && !catalogNav.contains(event.target)) return;
-    if (fromSearch && event.key === 'Escape') {
-      event.preventDefault();
-      catalog.close('cancel');
-      return;
-    }
-    const directions = fromSearch ? ['ArrowDown', 'ArrowUp'] : ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
-    if (event.key !== 'Enter' && !directions.includes(event.key)) return;
-    const visible = [...catalogNav.querySelectorAll('a:not([hidden])')];
-    if (fromSearch && event.key === 'Enter' && catalogQuery.value.trim() && visible.length) {
-      event.preventDefault();
-      visible[0].click();
-    } else if (directions.includes(event.key) && visible.length) {
-      event.preventDefault();
-      const index = visible.indexOf(event.target);
-      const columns = fromSearch ? 1 : getComputedStyle(event.target.parentElement).gridTemplateColumns.split(' ').length;
-      const offsets = { ArrowDown: columns, ArrowUp: -columns, ArrowRight: 1, ArrowLeft: -1 };
-      let next = event.key === 'Home' ? 0 : event.key === 'End' ? visible.length - 1 : index + offsets[event.key];
-      if (fromSearch && event.key === 'ArrowUp') next = visible.length - 1;
-      (visible[Math.min(next, visible.length - 1)] ?? catalogQuery).focus();
-    }
-  });
   let component = 'switch';
+  let touchShortcut = matchMedia('(pointer: coarse)').matches;
 
   function stored(name) {
     try { return localStorage.getItem(storePrefix + name); }
@@ -2114,16 +2138,16 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
       catch { /* Preferences still apply to this preview when storage is unavailable. */ }
     }
     if (name === 'material') syncDensityField();
-    if (name === 'motion' || name === 'material') updateMotionNote();
+    if (name !== 'theme') updateMotionNote();
     refreshFacts(document);
     if (component === 'hover-card' && location.hash === '#hover-card') showHover();
-    if (component === 'tooltip' && location.hash === '#tooltip' && save) tooltipPreview.reveal();
-    if (component === 'icons' && (name === 'material' || name === 'theme')) showIcons();
+    if (component === 'tooltip' && location.hash === '#tooltip' && save) currentPreview.reveal();
+    if (component === 'icons' && name !== 'motion') showIcons();
     if (component === 'materials') showMaterials();
-    if (component === 'motion' && name === 'theme') motionPreview.show();
+    if (component === 'motion' && name === 'theme') currentPreview.show();
     if (name === 'theme' && Object.hasOwn(foundations.titles, component)) foundations.show();
     if (name === 'theme') {
-      sampleColor.textContent = paletteHex(getComputedStyle(sampleColor), 'blue');
+      sampleColor.textContent = paletteHex(getComputedStyle(sampleColor.isConnected ? sampleColor : root), 'blue');
       sampleColorStatus.textContent = sampleColorPrompt;
       if (component === 'colors') showColors();
     }
@@ -2138,109 +2162,34 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     else note.textContent = notes.material[appearance.material] ?? '';
   }
   function pointerLightEnabled() {
-    return appearance.motion === 'high' && !reduceMotion.matches && !forcedColors.matches;
+    return appearance['light-source'] === 'pointer' && appearance['light-intensity'] > 0 && !reduceMotion.matches && !forcedColors.matches;
   }
+
   function updateMotionNote() {
-    const follows = pointerLightEnabled();
     updateMaterialNote();
-    if (Object.hasOwn(foundations.titles, component)) {
-      document.querySelector('#motion-note').textContent = reduceMotion.matches ? '系统已减少动态' : notes.motion[appearance.motion];
-      foundations.show();
-      return;
-    }
-    if (component === 'motion') {
-      document.querySelector('#motion-note').textContent = reduceMotion.matches ? '系统已减少动态'
-        : follows ? '弹性反馈 · 指针光源' : notes.motion[appearance.motion];
-      motionPreview.show();
-      return;
-    }
+    const mode = appearance['light-source'] || defaults['light-source'];
+    document.querySelector('#light-intensity-field').hidden = mode === 'none';
+    document.querySelector('#light-note').textContent = forcedColors.matches ? '系统对比色'
+      : mode === 'none' || appearance['light-intensity'] === 0 ? '已关闭'
+      : mode === 'pointer' && reduceMotion.matches ? '减少动态 · 固定照明' : '';
+    const high = { switch: '液面回弹', button: '弹性按压', dialog: '弹性浮入', select: '弹性展开', input: '聚焦回弹',
+      choice: '选中回弹', list: '展开回弹', slider: '按住抬起，快拖拉伸', stepper: '按压回弹', 'data-table': '排序回弹',
+      tabs: '指示条回弹', drawer: '抽屉滑入', loading: '连续动画', form: '提示弹性浮入', icons: '图标交互动效' };
+    const medium = { switch: '平滑滑动', button: '平滑按压', input: '平滑聚焦', select: '平滑展开', slider: '轻轻抬起，平滑复位',
+      loading: '平滑循环', form: '提示平滑浮入', tabs: '指示条平滑滑动' };
+    const grade = appearance.motion;
+    const note = forcedColors.matches ? '系统对比色' : reduceMotion.matches ? '系统已减少动态'
+      : grade === 'high' ? high[component] || notes.motion.high : grade === 'medium' ? medium[component] || notes.motion.medium : notes.motion[grade];
+    document.querySelector('#motion-note').textContent = note || '';
+    if (Object.hasOwn(foundations.titles, component)) foundations.show();
+    if (component === 'motion') currentPreview.show();
+    if (component === 'icons') updateIconReplay();
     if (component === 'materials') {
-      const selected = materialLevels.find(level => level.value === appearance.material);
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : follows ? '指针光源 · ' + selected.light
-        : appearance.material === 'high' ? '固定光源' : '静态表面';
       for (const level of materialLevels) {
         const caption = materialComparison.querySelector('[data-ml-material="' + level.value + '"] > span:last-child');
-        const description = follows ? level.litDescription : level.description;
-        if (caption && caption.textContent !== description) caption.textContent = description;
+        if (caption) caption.textContent = pointerLightEnabled() ? level.litDescription : level.description;
       }
-
-      return;
     }
-    if (component === 'icons') {
-      updateIconReplay();
-      const note = document.querySelector('#motion-note');
-      if (reduceMotion.matches) note.textContent = '系统已减少动态';
-      else if (appearance.motion !== 'high') note.textContent = '图标保持静止';
-      else note.textContent = follows ? '指针照明 · 图标动效' : '图标交互动效';
-      return;
-    }
-    if (component === 'loading') {
-      const levels = { base: '静止显示', low: '明暗淡变', medium: '平滑循环', high: '连续动画 · 指针光源' };
-      document.querySelector('#motion-note').textContent = reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'file-upload') {
-      const levels = { base: '即时更新', low: '明暗过渡', medium: '进度平滑推进', high: '指针照明 · 进度推进' };
-      document.querySelector('#motion-note').textContent = reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'form') {
-      const levels = { base: '即时提示', low: '提示淡入', medium: '提示平滑浮入', high: '指针照明 · 提示弹性浮入' };
-      document.querySelector('#motion-note').textContent = reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'tooltip') {
-      const levels = { base: '即时显示', low: '轻量淡入', medium: '贴近控件浮入', high: '弹性浮入 · 指针光源' };
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'accordion') {
-      const levels = { base: '即时展开', low: '轻量淡变', medium: '平滑折叠', high: '弹性展开 · 指针光源' };
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (singlePickers.includes(component)) {
-      const levels = { base: '即时打开', low: '轻量淡入', medium: '平滑浮入', high: '弹性浮入 · 指针光源' };
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'breadcrumb') {
-      const levels = { base: '即时展开', low: '淡入展开', medium: '平滑展开', high: '指针照明 · 弹性展开' };
-      document.querySelector('#motion-note').textContent = reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'steps') {
-      const levels = { base: '即时切换', low: '状态淡入', medium: '平滑过渡', high: '指针照明 · 状态回弹' };
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'tree') {
-      const levels = { base: '即时展开', low: '节点淡入', medium: '平滑展开', high: '指针照明 · 节点浮入' };
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'media-viewer') {
-      const levels = { base: '即时缩放', low: '轻量淡入', medium: '平滑缩放', high: '指针照明 · 弹性缩放' };
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    const glassMotion = { input: '指针照明 · 聚焦回弹', choice: '指针照明 · 选中回弹', list: '指针照明 · 展开回弹', 'empty-state': '指针照明 · 弹性浮入', 'multi-select': '指针照明 · 选项浮入', menu: '指针照明 · 菜单浮入', slider: '指针照明 · 滑钮回弹', stepper: '指针照明 · 按压回弹', 'date-range': '指针照明 · 日历浮入' }[component]
-      ?? (appearance.material === 'high' ? '指针照明 · 液面回弹' : '指针照明 · 弹性反馈');
-    const note = document.querySelector('#motion-note');
-    const motion = appearance.motion === 'medium'
-      ? { switch: '平滑滑动', button: '平滑按压', dialog: '平滑浮入', tag: '平滑按压', select: '平滑展开', input: '平滑聚焦', choice: '平滑勾选', list: '平滑展开', menu: '平滑浮入', 'hover-card': '平滑浮入', badge: '平滑更新', info: '平滑展开', progress: '平滑推进', feedback: '平滑浮入', island: '平滑伸展', colors: '平滑按压', icons: '平滑按压' }[component] : notes.motion[appearance.motion];
-    const valueMotion = appearance.motion === 'medium' && { slider: '滑钮过渡', stepper: '按键过渡', 'date-range': '日历浮入', 'data-table': '排序指示过渡', pagination: '页码过渡' }[component];
-    const recordMotion = follows && { 'data-table': '指针照明 · 排序回弹', pagination: '指针照明 · 页码回弹', toolbar: '指针照明 · 按压回弹', sidebar: '指针照明 · 导航反馈', tabs: '指针照明 · 指示条回弹', drawer: '指针照明 · 抽屉滑入' }[component];
-    const navMotion = appearance.motion === 'medium' && { toolbar: '按键过渡', sidebar: '导航项过渡', tabs: '指示条平滑滑动', drawer: '抽屉滑入', 'empty-state': '平滑浮入', 'multi-select': '平滑展开' }[component];
-    note.textContent = reduceMotion.matches && appearance.motion !== 'base' ? '系统已减少动态'
-      : follows ? recordMotion || glassMotion : navMotion || valueMotion || (motion ?? '');
   }
 
   // The glass tint is a continuous knob for the high tier, between clear and heavy.
@@ -2250,6 +2199,7 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
   function applyDensity(value, save = false) {
     const number = Math.max(.4, Math.min(2, Number(value) || 1));
     densityInput.value = String(number);
+    densityInput.closest('ml-slider').refresh();
     root.style.setProperty('--ml-glass-density', String(number));
     densityNote.textContent = number < .85 ? '清透' : number > 1.25 ? '浓重' : '适中';
     if (save) {
@@ -2259,6 +2209,29 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
   }
   function syncDensityField() {
     densityField.hidden = appearance.material !== 'high';
+    document.getElementById('transparency-field').hidden = !['medium', 'high'].includes(appearance.material);
+  }
+  const opticalRanges = {
+    'material-transparency': { initial: 60, css: n => n + '%' },
+    'light-intensity': { initial: 100, css: n => String(n / 100) },
+  };
+  function applyOpticalRange(name, value, save = false) {
+    const range = opticalRanges[name], input = document.getElementById(name);
+    const raw = value == null || value === '' ? range.initial : Number(value);
+    const number = Number.isFinite(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : range.initial;
+    input.value = String(number);
+    input.closest('ml-slider').refresh();
+    appearance[name] = number;
+    root.style.setProperty('--ml-' + name, range.css(number));
+    if (name === 'light-intensity') updateMotionNote();
+    if (save) {
+      try { localStorage.setItem(storePrefix + name, String(number)); }
+      catch { /* The setting remains active for this page. */ }
+    }
+  }
+  for (const name of Object.keys(opticalRanges)) {
+    applyOpticalRange(name, stored(name));
+    document.getElementById(name).addEventListener('input', event => applyOpticalRange(name, event.target.value, true));
   }
   applyDensity(stored('density'));
   densityInput.addEventListener('input', () => applyDensity(densityInput.value, true));
@@ -2267,10 +2240,12 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
   settings.addEventListener('change', event => {
     if (event.target.matches('input[type="radio"]')) applyAppearance(event.target.name, event.target.value, true);
   });
-  document.querySelector('#reset-appearance').addEventListener('click', () => {
+  function resetAppearance() {
     for (const [name, value] of Object.entries(defaults)) applyAppearance(name, value, true);
+    for (const name of Object.keys(opticalRanges)) applyOpticalRange(name, null, true);
     applyDensity(1, true);
-  });
+  }
+  document.querySelector('#reset-appearance').addEventListener('click', resetAppearance);
   reduceMotion.addEventListener('change', updateMotionNote);
   forcedColors.addEventListener('change', updateMotionNote);
   window.addEventListener('storage', event => {
@@ -2278,6 +2253,9 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
       if (event.key === null || event.key === storePrefix + name) applyAppearance(name, stored(name));
     }
     if (event.key === null || event.key === storePrefix + 'density') applyDensity(stored('density'));
+    for (const name of Object.keys(opticalRanges)) {
+      if (event.key === null || event.key === storePrefix + name) applyOpticalRange(name, stored(name));
+    }
   });
 
   function setComponent(next) {
@@ -2297,16 +2275,18 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
       for (const panel of document.querySelectorAll('ml-menu-panel[data-ml-menu-shown]')) panel.parentElement.close();
     }
     component = next;
+    currentPreview = previews.select(next);
     const buttons = next === 'button';
     const dialogs = next === 'dialog';
     root.dataset.component = next;
     document.querySelector('#shortcut').removeAttribute('title');
+    document.querySelector('#shortcut kbd').hidden = false;
     const { link, title, en, lead } = catalogEntries.get(next);
     document.title = title + ' · Nacreon UI';
     document.querySelector('#component-title').textContent = title;
     document.querySelector('#component-en').textContent = en;
     document.querySelector('#component-lead').textContent = lead;
-    catalogNav.querySelector('[aria-current="page"]')?.removeAttribute('aria-current');
+    directory.querySelector('[aria-current="page"]')?.removeAttribute('aria-current');
     link.setAttribute('aria-current', 'page');
     document.querySelector('#catalog-current').textContent = title;
     picker.hidden = next !== 'switch';
@@ -2324,18 +2304,6 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     const valuePage = Object.hasOwn(valueTypes, next);
     const recordPage = recordTypes.includes(next);
     navigation.select(next);
-    emptyState.select(next === 'empty-state');
-    loadingPreview.select(next === 'loading');
-    tabsPreview.select(next === 'tabs');
-    breadcrumbPreview.select(next === 'breadcrumb');
-    stepsPreview.select(next === 'steps');
-    treePreview.select(next === 'tree');
-    mediaViewerPreview.select(next === 'media-viewer');
-    tooltipPreview.select(next === 'tooltip');
-    accordionPreview.select(next === 'accordion');
-    multiSelectPreview.select(next === 'multi-select');
-    fileUploadPreview.select(next === 'file-upload');
-    formPreview.select(next === 'form');
     recordStates.hidden = !recordPage;
     for (const type of recordTypes) {
       for (const suffix of ['-kinds', '-specimen', '-examples']) document.getElementById(type + suffix).hidden = type !== next;
@@ -2355,23 +2323,22 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     const colors = next === 'colors';
     palettePicker.hidden = paletteSpecimen.hidden = paletteTools.hidden = paletteExamples.hidden = !colors;
     const materials = next === 'materials';
-    materialHero.hidden = materialComparison.hidden = materialHistory.hidden = !materials;
+    materialSurfaces.hidden = materialHero.hidden = materialComparison.hidden = materialHistory.hidden = !materials;
     if (!materials) materialHistory.open = false;
     const motion = next === 'motion';
-    motionPreview.select(motion);
     const foundationPage = foundations.select(next);
     const icons = next === 'icons';
     for (const id of ['icon-options', 'icon-specimen', 'icon-tools', 'icons-examples']) document.getElementById(id).hidden = !icons;
     document.querySelector('#open-code').disabled = false;
     stage.querySelector('[data-tag-undo]').hidden = true;
-    document.querySelector('#stage-caption').hidden = foundationPage || navigation.types.includes(next) || recordPage || valuePage || dialogs || next === 'select' || next === 'multi-select' || next === 'file-upload' || next === 'form' || next === 'input' || next === 'choice' || next === 'list' || next === 'accordion' || next === 'tabs' || next === 'breadcrumb' || next === 'steps' || next === 'tree' || next === 'media-viewer' || next === 'tooltip' || next === 'empty-state' || next === 'menu' || next === 'hover-card' || next === 'badge' || next === 'info' || next === 'progress' || next === 'loading' || next === 'feedback' || next === 'island' || colors || icons || materials || motion;
+    document.querySelector('#stage-caption').hidden = next === 'navigation-panel' || foundationPage || navigation.types.includes(next) || recordPage || valuePage || dialogs || next === 'select' || next === 'multi-select' || next === 'file-upload' || next === 'form' || next === 'input' || next === 'choice' || next === 'list' || next === 'accordion' || next === 'tabs' || next === 'breadcrumb' || next === 'steps' || next === 'tree' || next === 'media-viewer' || next === 'tooltip' || next === 'empty-state' || next === 'menu' || next === 'hover-card' || next === 'badge' || next === 'info' || next === 'progress' || next === 'loading' || next === 'feedback' || next === 'island' || colors || icons || materials || motion;
     document.querySelector('#switch-examples').hidden = next !== 'switch';
     document.querySelector('#button-examples').hidden = !buttons;
     document.querySelector('#dialog-examples').hidden = !dialogs;
     document.querySelector('#tag-examples').hidden = next !== 'tag';
     document.querySelector('#select-examples').hidden = next !== 'select';
     const examplesLink = document.querySelector('.examples-link');
-    examplesLink.hidden = document.querySelector('#examples').hidden = next === 'breadcrumb' || next === 'tree';
+    examplesLink.hidden = document.querySelector('#examples').hidden = next === 'navigation-panel' || next === 'breadcrumb' || next === 'tree';
     examplesLink.href = next === 'switch' ? '#examples' : '#' + next + '-examples';
     const examplesLabel = foundationPage ? foundations.titles[next] : colors ? '主题对照' : icons ? '图标目录' : materials ? '四档材质对照' : motion ? '四档动效对照' : next === 'media-viewer' ? '示例素材' : '应用示例';
     examplesLink.querySelector('.top-action-label').textContent = examplesLabel;
@@ -2455,7 +2422,7 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     dialog.addEventListener('close', () => {
       const value = dialog.returnValue;
       if (value === 'restore') {
-        for (const [name, setting] of Object.entries(defaults)) applyAppearance(name, setting, true);
+        resetAppearance();
         dialogDemo.status = '已恢复默认外观';
       } else if (value === 'save') {
         dialogDemo.name = dialog.querySelector('input').value.trim();
@@ -3306,9 +3273,9 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     ctx.transform(1, 0, -.63, 1, 0, 0);
     for (const [x, width, hue, opacity] of [
       [-212, 2, 'separator', .95], [-197, 2, 'separator', .95], [-182, 2, 'separator', .95],
-      [-131, 8, 'blue', .38], [-111, 62, 'blue', .60], [-49, 37, 'cyan', .42],
-      [-12, 8, 'surface', 1], [-4, 83, 'indigo', .48], [79, 26, 'purple', .33],
-      [105, 7, 'surface', 1], [112, 4, 'indigo', .75], [130, 2, 'indigo', .50],
+      [-131, 8, 'control-border', .62], [-111, 62, 'separator', 1], [-49, 37, 'fill', 1],
+      [-12, 8, 'surface-raised', 1], [-4, 83, 'control-border', .45], [79, 26, 'selection', 1],
+      [105, 7, 'surface-raised', 1], [112, 4, 'text-secondary', .65], [130, 2, 'control-border', .75],
       [174, 2, 'separator', .95], [189, 2, 'separator', .95], [204, 2, 'separator', .95],
     ]) {
       ctx.fillStyle = color(hue);
@@ -3318,6 +3285,7 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     ctx.restore();
   }
 
+  materialSurfaces.addEventListener('change', showMaterials);
   materialComparison.addEventListener('change', event => {
     if (event.target.name === 'material-comparison') applyAppearance('material', event.target.value, true);
   });
@@ -3349,6 +3317,11 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
         card.append(title, caption);
         materialComparison.append(card);
       }
+    }
+    const content = materialSurfaces.querySelector('input:checked').value === 'content';
+    for (const { lens } of materialSamples) {
+      if (content) lens.setAttribute('surface', 'content');
+      else lens.removeAttribute('surface');
     }
     if (chartTheme !== appearance.theme) {
       chartTheme = appearance.theme;
@@ -3743,34 +3716,22 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     if (component === 'dialog') { showDialog(); return; }
     if (component === 'tag') { showTags(); return; }
     if (component === 'select') { showSelect(); return; }
-    if (component === 'multi-select') { multiSelectPreview.show(); return; }
-    if (component === 'file-upload') { fileUploadPreview.show(); return; }
-    if (component === 'form') { formPreview.show(); return; }
+    if (currentPreview) { currentPreview.show(); return; }
     if (component === 'input') { showInput(); return; }
     if (Object.hasOwn(valueTypes, component)) { showValue(); return; }
     if (navigation.types.includes(component)) { navigation.readout(); return; }
     if (recordTypes.includes(component)) { showRecords(); return; }
     if (component === 'choice') { showChoices(); return; }
     if (component === 'list') { showList(); return; }
-    if (component === 'tabs') { tabsPreview.show(); return; }
-    if (component === 'breadcrumb') { breadcrumbPreview.show(); return; }
-    if (component === 'steps') { stepsPreview.show(); return; }
-    if (component === 'tree') { treePreview.show(); return; }
-    if (component === 'media-viewer') { mediaViewerPreview.show(); return; }
-    if (component === 'tooltip') { tooltipPreview.show(); return; }
-    if (component === 'accordion') { accordionPreview.show(); return; }
-    if (component === 'empty-state') { emptyState.readout(); return; }
     if (component === 'menu') { showMenu(); return; }
     if (component === 'hover-card') { showHover(); return; }
     if (component === 'info') { showInfo(); return; }
     if (component === 'progress') { showProgress(); return; }
-    if (component === 'loading') { loadingPreview.render(); return; }
     if (component === 'feedback') { showFeedback(); return; }
     if (component === 'island') { showIsland(); return; }
     if (component === 'badge') { showBadges(); return; }
     if (component === 'colors') { showColors(); return; }
     if (component === 'materials') { showMaterials(); return; }
-    if (component === 'motion') { motionPreview.show(); return; }
     if (Object.hasOwn(foundations.titles, component)) { foundations.show(); return; }
     if (component === 'icons') { showIcons(); return; }
     for (const control of document.querySelectorAll('[data-example="hints"]')) control.checked = demo.hints;
@@ -3790,10 +3751,20 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     dot.classList.toggle('off', kind === 'toggle' && !demo.hints);
     dot.classList.toggle('on', kind === 'toggle' && demo.hints);
     document.querySelector('#shortcut').hidden = !demo.hints;
-    document.querySelector('#shortcut kbd').textContent = display.key;
-    document.querySelector('#shortcut span').textContent = display.action;
-    document.querySelector('#shortcut').title = '将键盘焦点移到组件后操作';
+    const key = document.querySelector('#shortcut kbd');
+    key.hidden = touchShortcut;
+    key.textContent = display.key;
+    document.querySelector('#shortcut span').textContent = touchShortcut ? '轻点' + display.action : display.action;
+    document.querySelector('#shortcut').title = touchShortcut ? '' : '将键盘焦点移到组件后操作';
   }
+
+  function setShortcutInput(touch) {
+    if (touchShortcut === touch) return;
+    touchShortcut = touch;
+    if (component === 'switch') showDemo();
+  }
+  document.addEventListener('pointerdown', event => setShortcutInput(event.pointerType !== 'mouse'), { passive: true });
+  document.addEventListener('keydown', () => setShortcutInput(false), { capture: true });
 
   picker.addEventListener('change', event => {
     demo.usage = event.target.value;
@@ -3813,7 +3784,8 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     if (catalog.open) catalog.close();
     if (codeDialog.open) codeDialog.close();
     const match = /^#page-(overview|specs|keys)$/.exec(location.hash);
-    const route = location.hash.slice(1).replace(/-examples$/, '');
+    const slug = location.hash.slice(1).replace(/-examples$/, '');
+    const route = slug === 'catalog' ? 'navigation-panel' : slug;
     setComponent(location.hash === '#list-record' ? 'list' : catalogEntries.has(route) ? route : 'switch');
     if (match) {
       demo.page = match[1];
@@ -3865,8 +3837,14 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
       '    tag.querySelector("button").focus();', '    undo.hidden = removed.length === 0;', '  });', '</script>');
   }
 
+  function lightAttributes(extraStyle = '') {
+    const style = '--ml-material-transparency: ' + appearance['material-transparency'] + '%; --ml-light-intensity: '
+      + (appearance['light-intensity'] / 100) + '; --ml-glass-density: ' + densityInput.value + ';' + extraStyle;
+    return 'data-ml-light-source="' + appearance['light-source'] + '" style="' + style + '"';
+  }
   function iconForAppearance(name, options = {}) {
-    return Icon.createSVG(name, { ...options, material: appearance.material, theme: appearance.theme });
+    return Icon.createSVG(name, { ...options, material: appearance.material, theme: appearance.theme,
+      lightSource: appearance['light-source'], lightIntensity: appearance['light-intensity'] / 100 });
   }
   function inlineSampleIcons(sample) {
     for (const icon of sample.querySelectorAll('ml-icon')) {
@@ -3884,7 +3862,7 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
       for (const [key, value] of Object.entries(iconState)) icon.setAttribute(key, value);
       icon.setAttribute('label', document.querySelector('#icon-title').textContent);
       return [scriptTag('icons'), '', '<div data-ml-theme="' + appearance.theme +
-        '" data-ml-material="' + appearance.material + '" data-ml-motion="' + appearance.motion + '">',
+        '" data-ml-material="' + appearance.material + '" data-ml-motion="' + appearance.motion + '" ' + lightAttributes() + '>',
         '  ' + icon.outerHTML, '</div>'].join('\n');
     }
     if (component === 'colors') {
@@ -3898,21 +3876,12 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     }
     const head = [...bundleTags(component), ''];
     const lines = ['<div data-ml-theme="' + appearance.theme + '"', '     data-ml-material="' + appearance.material + '"',
-      '     data-ml-motion="' + appearance.motion + '">'];
-    if (component === 'materials') return head.concat(lines, '  <ml-material>表面样本</ml-material>', '</div>').join('\n');
-    if (component === 'motion') return motionPreview.code(head, lines);
-    if (component === 'empty-state') return emptyState.code(head, lines);
-    if (component === 'loading') return loadingPreview.code(head, lines);
-    if (component === 'tabs') return tabsPreview.code(head, lines);
-    if (component === 'breadcrumb') return breadcrumbPreview.code(head, lines);
-    if (component === 'steps') return stepsPreview.code(head, lines);
-    if (component === 'tree') return treePreview.code(head, lines);
-    if (component === 'media-viewer') return mediaViewerPreview.code(head, lines);
-    if (component === 'tooltip') return tooltipPreview.code(head, lines);
-    if (component === 'accordion') return accordionPreview.code(head, lines);
-    if (component === 'multi-select') return multiSelectPreview.code(head, lines);
-    if (component === 'file-upload') return fileUploadPreview.code(head, lines);
-    if (component === 'form') return formPreview.code(head, lines);
+      '     data-ml-motion="' + appearance.motion + '" ' + lightAttributes() + '>'];
+    if (component === 'materials') {
+      const surface = materialSurfaces.querySelector('input:checked').value === 'content' ? ' surface="content"' : '';
+      return head.concat(lines, '  <ml-material' + surface + '>表面样本</ml-material>', '</div>').join('\n');
+    }
+    if (currentPreview) return currentPreview.code(head, lines);
     if (navigation.types.includes(component)) return navigation.code(component, head, lines, iconForAppearance);
     if (recordTypes.includes(component)) {
       const tableMode = component === 'data-table';
@@ -4014,7 +3983,7 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
       const custom = heroIsland.style.getPropertyValue('--ml-island-fill');
       const colorStyle = custom ? ' style="--ml-island-fill: ' + custom + '; --ml-island-ink: ' + paletteForeground(custom).color + '"' : '';
       lines[2] = '     data-ml-motion="' + appearance.motion + '" data-ml-island-bounds';
-      lines.push('     style="display: grid; place-items: ' + place + '; min-height: 15rem; padding: .75rem;">',
+      lines.push('     ' + lightAttributes(' display: grid; place-items: ' + place + '; min-height: 15rem; padding: .75rem;') + '>',
         '  <ml-island direction="' + dir + '" tone="' + heroIsland.getAttribute('tone') + '"' +
           (heroIsland.open ? ' open' : '') + colorStyle + '>',
         '    <button type="button">', '      <span class="ml-island-mark" aria-hidden="true">' + iconForAppearance('archive').outerHTML + '</span>',
@@ -4131,8 +4100,10 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
       } else if (kind === 'confirm') {
         lines.push('  sample.querySelector("dialog").addEventListener("close", event => {',
           '    if (event.target.returnValue !== "restore") return;',
-          '    const appearance = sample.parentElement.dataset;',
-          '    appearance.mlTheme = "light";', '    appearance.mlMaterial = "high";', '    appearance.mlMotion = "high";', '  });');
+          '    const scope = sample.parentElement;',
+          '    Object.assign(scope.dataset, { mlTheme: "light", mlMaterial: "high", mlMotion: "high", mlLightSource: "pointer" });',
+          '    scope.style.setProperty("--ml-material-transparency", "60%");',
+          '    scope.style.setProperty("--ml-light-intensity", "1");', '    scope.style.setProperty("--ml-glass-density", "1");', '  });');
       }
       return head.concat(lines, '</script>').join('\n');
     } else if (component === 'button') {

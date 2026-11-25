@@ -1,0 +1,234 @@
+{
+  "browser": "157.0.8103.79",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "dpr": 1.25,
+  "theme": "dark",
+  "light": "fixed",
+  "rounds": 12,
+  "warmupRounds": 1,
+  "inputs": {
+    "current": "340a4f0a11420f06a632734e98407aba331feef403c55adbd4f623bf9a427dc0",
+    "baseline": "68e2c1da1359525ac2c4d02b58049c50aa65d634fb3412c1383636eae8217257"
+  },
+  "samples": [
+    {
+      "round": 1,
+      "variant": "baseline",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 28.799999999813735,
+      "totalMs": 33.200000000186265,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 1,
+      "variant": "current",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 8.099999999627471,
+      "totalMs": 12.700000000186265,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 2,
+      "variant": "current",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 8.099999999627471,
+      "totalMs": 12.700000000186265,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 2,
+      "variant": "baseline",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 28.90000000037253,
+      "totalMs": 33.60000000055879,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 3,
+      "variant": "baseline",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 28.90000000037253,
+      "totalMs": 33.60000000055879,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 3,
+      "variant": "current",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 8,
+      "totalMs": 12.900000000372529,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 4,
+      "variant": "current",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 8,
+      "totalMs": 12.900000000372529,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 4,
+      "variant": "baseline",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 28.799999999813735,
+      "totalMs": 33.09999999962747,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 5,
+      "variant": "baseline",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 28.799999999813735,
+      "totalMs": 33.09999999962747,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 5,
+      "variant": "current",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 8.700000000186265,
+      "totalMs": 13.5,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 6,
+      "variant": "current",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 8.700000000186265,
+      "totalMs": 13.5,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 6,
+      "variant": "baseline",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 30.899999999441206,
+      "totalMs": 35.200000000186265,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 7,
+      "variant": "baseline",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 30.899999999441206,
+      "totalMs": 35.200000000186265,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 7,
+      "variant": "current",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 8.099999999627471,
+      "totalMs": 12.5,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 8,
+      "variant": "current",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 8.099999999627471,
+      "totalMs": 12.5,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 8,
+      "variant": "baseline",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 29.299999999813735,
+      "totalMs": 33.90000000037253,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 9,
+      "variant": "baseline",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 29.299999999813735,
+      "totalMs": 33.90000000037253,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 9,
+      "variant": "current",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 8.099999999627471,
+      "totalMs": 12.099999999627471,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 10,
+      "variant": "current",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 8.099999999627471,
+      "totalMs": 12.099999999627471,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 10,
+      "variant": "baseline",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 29.09999999962747,
+      "totalMs": 33.5,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 11,
+      "variant": "baseline",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 29.09999999962747,
+      "totalMs": 33.5,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 11,
+      "variant": "current",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 10.400000000372529,
+      "totalMs": 14.800000000745058,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 12,
+      "variant": "current",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 10.400000000372529,
+      "totalMs": 14.800000000745058,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    },
+    {
+      "round": 12,
+      "variant": "baseline",
+      "width": 704,
+      "height": 512,
+      "calculationMs": 29.299999999813735,
+      "totalMs": 33.799999999813735,
+      "pngSha256": "f347eda4a243ccc99e473cfe47feb146b14c12d282b3458185d2e89be2f89dee"
+    }
+  ]
+}

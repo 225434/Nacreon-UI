@@ -1,0 +1,67 @@
+diff --git a/src/data-table.js b/src/data-table.js
+--- a/src/data-table.js
++++ b/src/data-table.js
+@@ -50,7 +50,6 @@
+       this.shape = glass.shape;
+       this.tiles = new Map();
+       this.events = new AbortController();
+-      this.scrolling = new Set();
+       this.resize = new ResizeObserver(() => glass.scene.wake());
+       this.source = new Image();
+       this.source.onload = () => glass.scene.wake();
+@@ -61,23 +60,8 @@
+       this.bend = this.filter.querySelector('feDisplacementMap');
+       glass.displacement.parentNode.after(this.filter);
+       this.url = 'url("#' + this.filter.id + '")';
+-      const track = event => {
+-        for (let node = host; node; node = node.assignedSlot || node.parentNode || node.host) {
+-          if (node !== event.target) continue;
+-          if (event.type === 'scrollend') this.scrolling.delete(node);
+-          else this.scrolling.add(node);
+-          glass.scene.wake();
+-          break;
+-        }
+-      };
+-      const options = { capture: true, passive: true, signal: this.events.signal };
+-      for (let root = host.getRootNode(); root; root = root.host?.getRootNode()) {
+-        if ('onscrollend' in host.ownerDocument) {
+-          root.addEventListener('scroll', track, options);
+-          root.addEventListener('scrollend', track, options);
+-        } else if (root.host) {
+-          root.addEventListener('scroll', () => glass.scene.wake(), options);
+-        }
++      for (let root = host.getRootNode(); root.host; root = root.host.getRootNode()) {
++        root.addEventListener('scroll', () => glass.scene.wake(), { capture: true, passive: true, signal: this.events.signal });
+       }
+     }
+ 
+@@ -139,24 +123,15 @@
+         this.clip = clip;
+       }
+       const start = Math.max(0, top - box.top), end = Math.min(box.height, bottom - box.top);
+-      if (end <= start) { this.useFull(); return; }
++      // With device scaling Chrome can round a scrolled subimage and the full image
++      // differently. Keep the full native sampling grid wherever the top is clipped.
++      if (end <= start || (win.devicePixelRatio !== 1 && start > 0)) { this.useFull(); return; }
+       const unit = box.height / 16, guard = Math.max(128, end - start);
+-      // With display scaling, moving the bitmap origin can change interpolation at
+-      // the same texel. A power-of-two prefix keeps the native origin and scale.
++      const lo = Math.max(0, Math.floor((start - guard) / unit));
+       const hi = Math.min(16, Math.ceil((end + guard) / unit));
+-      let anchored = win.devicePixelRatio !== 1;
+-      if (anchored && hi > 4) {
+-        // Use original texels around a moving scrollport. At rest, restore the
+-        // full native grid: a fractional raster origin can round differently.
+-        const motion = this.scrolling.size && !this.glass.scene.media.matches
+-          && win.getComputedStyle(host).getPropertyValue('--ml-motion-level').trim();
+-        if (motion !== 'high' && motion !== 'medium') { this.useFull(); return; }
+-        anchored = false;
+-      }
+-      const lo = anchored ? 0 : Math.max(0, Math.floor((start - guard) / unit));
+       // Use original texels and power-of-two scales so sampling keeps its pixel phase.
+       const span = 2 ** Math.ceil(Math.log2(Math.max(2, hi - lo)));
+-      const first = anchored ? 0 : Math.max(0, Math.min(16 - span, Math.floor((lo + hi - span) / 2)));
++      const first = Math.max(0, Math.min(16 - span, Math.floor((lo + hi - span) / 2)));
+       if (span >= 16 || !box.width) { this.useFull(); return; }
+       const tile = this.tile(first, first + span);
+       const scale = this.glass.displacement.getAttribute('scale');

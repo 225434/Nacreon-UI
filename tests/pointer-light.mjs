@@ -1,9 +1,10 @@
+import { launchBrowser } from './helpers/browser.mjs';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const root = new URL('../', import.meta.url);
-const browser = await chromium.launch({ executablePath: chromium.executablePath() });
+const browser = await launchBrowser(chromium);
 const grades = ['base', 'low', 'medium', 'high'];
 const settle = page => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 async function point(page, locator, x = .5, y = .5) {
@@ -57,15 +58,20 @@ async function gallery(page) {
       await set('material', material);
       for (const motion of grades) {
         await set('motion', motion);
+        for (const source of ['none', 'fixed', 'pointer']) {
+          await set('light-source', source);
+          await settle(page);
+          assert.equal(await layer.count(), Number(material === 'high' || source !== 'none'), [theme, material, motion, source].join('/'));
+          if (material !== 'high' && source === 'fixed') assert.notEqual(await layer.getAttribute('data-ml-lit'), null);
+        }
         await settle(page);
         if (material === 'high') {
           assert(await sample.evaluate(el => el.matches('.ml-refractive')));
           assert.equal(await layer.getAttribute('data-ml-light'), null);
-        } else if (motion !== 'high') {
-          assert.equal(await layer.count(), 0);
         } else {
           assert.equal(await layer.getAttribute('data-ml-light'), material);
           assert.equal(await layer.locator('canvas, svg').count(), 0);
+          if (motion !== 'high') continue;
           await page.mouse.move(8, 8);
           await settle(page);
           assert.equal(await layer.getAttribute('data-ml-lit'), null);
@@ -93,10 +99,34 @@ async function gallery(page) {
   assert.equal(await layer.getAttribute('data-ml-light'), 'low');
   await point(page, card.locator('ml-material'));
   assert.equal(await card.locator('[data-ml-lit]').count(), 1);
-  assert.match(await page.locator('#motion-note').innerText(), /局部柔光/);
+  await set('motion', 'base');
+  await point(page, sample, .22, .4);
+  const lightX = () => layer.evaluate(el => el.style.getPropertyValue('--ml-light-x'));
+  const left = await lightX();
+  await point(page, sample, .78, .4);
+  assert.notEqual(await lightX(), left);
+  await set('light-source', 'fixed');
+  await settle(page);
+  const fixed = await lightX();
+  await point(page, sample, .85, .4);
+  assert.equal(await lightX(), fixed);
+  const range = value => page.locator('#light-intensity').evaluate((input, n) => {
+    input.value = n; input.dispatchEvent(new Event('input', { bubbles: true }));
+  }, value);
+  await range('25');
+  await settle(page);
+  assert.equal(await layer.evaluate(el => el.style.filter), 'opacity(0.25)');
+  await range('0');
+  await settle(page);
+  assert.equal(await layer.count(), 0);
+  await range('100');
+  await set('light-source', 'pointer');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await settle(page);
-  assert.equal(await page.locator('[data-ml-light]').count(), 0);
+  assert.equal(await layer.getAttribute('data-ml-lit'), '');
+  const reduced = await lightX();
+  await point(page, sample, .1, .4);
+  assert.equal(await lightX(), reduced);
   assert.match(await page.locator('#motion-note').innerText(), /减少动态/);
   await page.emulateMedia({ reducedMotion: 'no-preference', forcedColors: 'active' });
   await settle(page);
@@ -117,7 +147,7 @@ async function standalone(page) {
       <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
     </defs></svg>
     <svg id="reference" width="40" height="40" viewBox="0 0 24 24"><use href="#i-settings" filter="url(#user-ink)"/></svg>
-    <ml-material id="still" data-ml-motion="low">Static</ml-material></body>`);
+    <ml-material id="still" data-ml-motion="low" data-ml-light-source="none">Static</ml-material></body>`);
   await page.evaluate(() => {
     const original = HTMLCanvasElement.prototype.getContext;
     window.glRequests = 0;
@@ -181,12 +211,14 @@ async function standalone(page) {
   assert.match(await reference.locator('use').getAttribute('filter'), /^url\(#user-ink\) url\(/);
   await reference.evaluate(el => el.dataset.mlMotion = 'low');
   await settle(page);
+  assert.equal(await reference.locator('defs[data-ml-icon-light="medium"]').count(), 1);
+  await reference.evaluate(el => el.dataset.mlLightSource = 'none');
+  await settle(page);
   assert.equal(await reference.locator('use').getAttribute('filter'), 'url(#user-ink)');
 
   await point(page, button);
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-  await settle(page);
-  assert.equal(await page.locator('[data-ml-lit]').count(), 0);
+  await page.waitForFunction(() => !document.querySelector('[data-ml-lit]'));
   for (const type of ['pointerdown', 'pointerup']) {
     await button.evaluate((el, type) => {
       const box = el.getBoundingClientRect();
@@ -194,13 +226,102 @@ async function standalone(page) {
         buttons: type === 'pointerdown' ? 1 : 0, clientX: box.left + 8, clientY: box.top + 8 }));
     }, type);
     await settle(page);
-    assert.equal(await button.locator('[data-ml-lit]').count(), type === 'pointerdown' ? 1 : 0);
+    if (type === 'pointerdown') assert.equal(await button.locator('[data-ml-lit]').count(), 1);
+    else await button.locator('[data-ml-lit]').waitFor({ state: 'detached' });
   }
   await button.evaluate(el => document.body.prepend(el));
   await point(page, button);
   assert.equal(await button.locator('> .ml-optical').count(), 1);
   assert.equal(await page.evaluate(() => window.glRequests), 0);
   await page.waitForFunction(() => !window[Symbol.for('material-lib.glass.v1')].GlassScene.forDocument(document).frame);
+}
+
+async function lightReturn(page, engine) {
+  const startTime = Date.UTC(2026, 0, 1);
+  await page.clock.install({ time: startTime });
+  await page.clock.pauseAt(startTime + 1000);
+  await page.setContent(`<main style="display:flex;gap:12px" data-ml-motion="base" data-ml-light-source="pointer">
+    <ml-material id="lens" data-ml-material="high" style="width:210px;height:76px;display:flex;align-items:center;justify-content:end">
+      <ml-icon name="settings" size="40"></ml-icon>
+    </ml-material>
+    <ml-material id="frost" data-ml-material="medium" style="width:140px;height:76px;display:flex;align-items:center">
+      <ml-icon name="settings" size="40"></ml-icon>
+    </ml-material>
+  </main>`);
+  if (engine === 'svg') await page.evaluate(() => {
+    const original = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
+      return kind === 'webgl' ? null : original.call(this, kind, ...args);
+    };
+  });
+  const design = new URL('dist/design/', root);
+  await page.addStyleTag({ path: fileURLToPath(new URL('materials.css', design)) });
+  for (const file of ['materials.js', 'icons.js']) await page.addScriptTag({ path: fileURLToPath(new URL(file, design)) });
+  await page.clock.runFor(64);
+  assert.equal(await page.locator('#lens > .ml-optical').getAttribute('data-ml-renderer'), engine);
+
+  const signal = (type, options = {}) => page.evaluate(({ type, inPage, away, pointerType }) => {
+    if (type === 'blur') {
+      window.dispatchEvent(new Event('blur'));
+      return;
+    }
+    const target = document.querySelector('#frost');
+    const icon = target.querySelector('ml-icon').getBoundingClientRect();
+    target.dispatchEvent(new PointerEvent(type, { bubbles: true, isPrimary: true,
+      pointerType: pointerType || 'mouse', buttons: type === 'pointerdown' ? 1 : 0,
+      clientX: away ? window.innerWidth - 1 : icon.x + .6 * icon.width, clientY: icon.y + .65 * icon.height,
+      relatedTarget: inPage ? document.querySelector('#lens') : null }));
+  }, { type, ...options });
+  const read = () => page.evaluate(() => {
+    const lens = document.querySelector('#lens > .ml-optical');
+    const glow = document.querySelector('#frost > .ml-optical[data-ml-lit]');
+    const inkLight = document.querySelector('#frost ml-icon feFlood[flood-opacity]');
+    const iconLamp = document.querySelector('#lens ml-icon fePointLight');
+    return {
+      cast: parseFloat(lens.style.getPropertyValue('--ml-cast-x')),
+      glow: glow ? (parseFloat(glow.style.filter.slice('opacity('.length)) || 1) : 0,
+      ink: Number(inkLight?.getAttribute('flood-opacity') || 0),
+      icon: Number(iconLamp.getAttribute('x')),
+    };
+  });
+  const rest = await read();
+  await signal('pointermove');
+  await page.clock.runFor(32);
+  const active = await read();
+  assert(active.cast < 0 && rest.cast > 0 && active.glow === 1 && active.ink > 0 && active.icon > rest.icon);
+  await signal('pointerout', { inPage: true });
+  await page.clock.runFor(300);
+  assert.deepEqual(await read(), active, 'moving to another component keeps the shared light');
+
+  for (const type of ['blur', 'pointerout', 'pointerup', 'pointercancel']) {
+    const touch = type === 'pointerup' || type === 'pointercancel';
+    const options = { pointerType: touch ? 'touch' : 'mouse' };
+    await signal(touch ? 'pointerdown' : 'pointermove', options);
+    await page.clock.runFor(32);
+    if (type === 'blur') await signal('pointermove', { away: true });
+    await signal(type, options);
+    await page.clock.runFor(32);
+    const first = await read();
+    assert(Math.abs(first.cast - active.cast) < .15 * (rest.cast - active.cast));
+    assert(first.glow > .9 && first.ink > .9 * active.ink);
+    await page.clock.runFor(96);
+    const middle = await read();
+    assert(middle.cast > first.cast && middle.cast < rest.cast);
+    assert(middle.glow > .2 && middle.glow < .8 && middle.ink > 0 && middle.ink < first.ink);
+    assert(middle.icon > rest.icon && middle.icon < active.icon);
+    await signal(type, options);
+    await page.clock.runFor(160);
+    assert.deepEqual(await read(), rest, type + ' must settle without restarting on repeated loss events');
+  }
+  await signal('pointermove');
+  await page.clock.runFor(32);
+  await signal('blur');
+  await page.clock.runFor(96);
+  await signal('pointermove');
+  await page.clock.runFor(300);
+  assert.deepEqual(await read(), active, 'pointer re-entry cancels the pending return');
+  const idleFrame = await page.evaluate(() => window[Symbol.for('material-lib.glass.v1')].GlassScene.forDocument(document).frame);
+  assert.equal(idleFrame, 0, 'lighting stops scheduling frames once settled');
 }
 
 try {
@@ -211,8 +332,14 @@ try {
     await test(page);
     await page.close();
   }
+  for (const engine of ['webgl', 'svg']) {
+    const page = await browser.newPage({ reducedMotion: 'no-preference' });
+    page.on('pageerror', e => errors.push(e.message));
+    await lightReturn(page, engine);
+    await page.close();
+  }
   assert.deepEqual(errors, []);
-  console.log('Pointer lighting passed across three themes, the 4 × 4 appearance matrix and standalone controls.');
+  console.log('Pointer lighting passed across three themes and all appearance combinations, including smooth return in CSS, WebGL and SVG.');
 } finally {
   await browser.close();
 }

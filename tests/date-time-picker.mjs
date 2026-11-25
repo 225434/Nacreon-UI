@@ -1,3 +1,4 @@
+import { launchBrowser } from './helpers/browser.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, unlink, rmdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { chromium, firefox } from 'playwright';
 
 const engine = process.argv[2] === 'firefox' ? firefox : chromium;
-const browser = await engine.launch({ executablePath: engine.executablePath() });
+const browser = await launchBrowser(engine);
 const temp = await mkdtemp(join(tmpdir(), 'ml-date-time-picker-'));
 const file = join(temp, 'example.html');
 const root = new URL('../', import.meta.url);
@@ -188,7 +189,7 @@ try {
     for (const { material, motion, radius, renderer, grade, duration } of appearances) {
       assert(radius);
       if (material === 'high') assert(['webgl', 'svg'].includes(renderer));
-      else assert.equal(grade, motion === 'high' ? material : undefined);
+      else assert.equal(grade, material);
       assert.equal(parseFloat(duration) === 0, motion === 'base');
     }
     await page.emulateMedia({ reducedMotion: 'reduce', forcedColors: 'active' });

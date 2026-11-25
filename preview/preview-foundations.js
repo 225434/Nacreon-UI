@@ -1,6 +1,6 @@
 'use strict';
 
-window.createFoundationPreview = function ({ appearance, paletteGroups, applyTheme, copyContents, stylesheet, scriptTag }) {
+window.createFoundationPreview = function ({ appearance, paletteGroups, applyTheme, copyContents, stylesheet, scriptTag, lightAttributes }) {
   const byId = id => document.getElementById(id);
   const root = document.documentElement;
   const titles = { typography: '排版样式', tokens: '令牌目录', themes: '主题预设' };
@@ -11,7 +11,7 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     ['metric', '数据读数', '128.64 MB', 'span'], ['code', '代码与编号', 'album-demo.json', 'code'],
   ];
   const themes = { light: '浅色', warm: '暖色', dark: '深色' };
-  const themeColors = [['background', '画布'], ['surface', '表面'], ['text', '正文'], ['action', '强调']];
+  const themeColors = [['background', '画布'], ['surface', '面板'], ['surface-raised', '浮层'], ['text', '正文'], ['selection', '选中'], ['focus', '焦点']];
   const groups = { space: '间距', shape: '圆角与描边', shadow: '阴影', type: '字体与排版', color: '颜色', material: '材质', motion: '动效' };
   const tokens = [];
   function token(group, key, label, property, kind, format) {
@@ -19,6 +19,10 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     tokens.push({ group, name, label, property, kind, ref, expression: format ? format(ref) : ref });
   }
   for (let step = 1; step <= 8; step++) token('space', 'space-' + step, '间距 ' + step, 'gap', 'space');
+  token('space', 'control-height', '控件高度', 'min-block-size', 'dimension');
+  token('space', 'control-padding-inline', '控件水平内边距', 'padding-inline', 'dimension');
+  token('space', 'row-padding-block', '标准行上下内边距', 'padding-block', 'dimension');
+  token('space', 'row-padding-block-compact', '紧凑行上下内边距', 'padding-block', 'dimension');
   for (const [key, label] of [['sm', '小圆角'], ['md', '中圆角'], ['lg', '大圆角'], ['xl', '特大圆角'], ['pill', '胶囊圆角']]) {
     token('shape', 'radius-' + key, label, 'border-radius', 'shape');
   }
@@ -30,17 +34,25 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
   for (const [key, label] of [['sans', '无衬线字族'], ['serif', '衬线字族'], ['mono', '等宽字族']]) token('type', 'font-' + key, label, 'font-family', 'type');
   for (const [key, label] of roles.filter(([key]) => key !== 'code')) token('type', 'size-' + key, label + '字号', 'font-size', 'type');
   for (const [key, label] of [['regular', '常规'], ['medium', '中等'], ['semibold', '半粗'], ['bold', '粗体']]) token('type', 'weight-' + key, label + '字重', 'font-weight', 'type');
-  for (const [key, label] of [['tight', '标题'], ['compact', '紧凑'], ['body', '正文']]) token('type', 'leading-' + key, label + '行高', 'line-height', 'type');
+  for (const [key, label] of [['tight', '紧凑标题'], ['title', '随语言调整的标题'], ['compact', '紧凑'], ['body', '正文']]) token('type', 'leading-' + key, label + '行高', 'line-height', 'type');
+  token('type', 'tracking-title', '随语言调整的标题字距', 'letter-spacing', 'type');
   token('type', 'tracking-tight', '紧凑字距', 'letter-spacing', 'type');
   token('type', 'tracking-normal', '标准字距', 'letter-spacing', 'type');
   token('type', 'measure', '正文行宽', 'max-inline-size', 'type');
   for (const [collection, entries] of Object.entries(paletteGroups)) {
     for (const [key, label] of entries) {
+      if (key === 'focus' || key === 'control-border') {
+        token('color', 'color-' + key, label, key === 'focus' ? 'outline-color' : 'border-color', 'shape');
+        continue;
+      }
       const ink = key.startsWith('text') || (collection === 'semantic' && key !== 'action');
       token('color', 'color-' + key, label, ink ? 'color' : 'background-color', ink ? 'ink' : 'swatch');
     }
   }
   token('material', 'material-fill-opacity', '表面填充比例', 'background-color', 'surface', ref => 'color-mix(in srgb, var(--ml-color-surface) ' + ref + ', transparent)');
+  token('material', 'material-transparency', '玻璃透明度', 'background-color', 'surface', ref => 'color-mix(in srgb, transparent ' + ref + ', var(--ml-color-surface))');
+  token('material', 'light-intensity', '光源强度', 'box-shadow', 'surface', ref => '0 0 1rem rgb(var(--ml-glass-lamp-rgb) / ' + ref + ')');
+  token('material', 'material-content-opacity', '阅读面的填充比例', 'background-color', 'surface', ref => 'color-mix(in srgb, var(--ml-color-surface) ' + ref + ', transparent)');
   token('material', 'material-border-opacity', '边框着色比例', 'border-color', 'surface', ref => 'color-mix(in srgb, var(--ml-color-text) ' + ref + ', transparent)');
   token('material', 'filter', '背景滤镜', 'backdrop-filter', 'surface');
   token('material', 'skin', '表面纹理', 'background-image', 'surface');
@@ -143,11 +155,13 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
     art.removeAttribute('style'); art.classList.remove('at-end'); art.replaceChildren();
     let target = art;
     if (t.kind === 'space') art.append(node('i'), node('i'));
+    if (t.kind === 'dimension') art.textContent = '素材名称';
     if (t.kind === 'ink' || t.kind === 'type') {
       art.textContent = t.property === 'line-height' || t.property === 'max-inline-size' ? '风景手记 Landscapes\n照片已归档' : '山野相册 Aa 018';
     }
     if (t.kind === 'motion') { target = node('i'); art.append(target); }
-    if (t.property.startsWith('outline')) art.style.outline = '2px solid var(--ml-color-info)';
+    if (t.name === '--ml-color-on-action') art.style.backgroundColor = 'var(--ml-color-action)';
+    if (t.property.startsWith('outline')) art.style.outline = 'var(--ml-focus-width) solid var(--ml-color-focus)';
     if (t.property === 'backdrop-filter') art.style.backgroundColor = 'color-mix(in srgb, var(--ml-color-surface) 45%, transparent)';
     target.style.setProperty(t.property, t.expression);
   }
@@ -226,17 +240,26 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
       return [stylesheet('typography'), stylesheet('themes'), '', '<section data-ml-theme="' + appearance.theme + '" data-ml-theme-surface data-ml-prose>',
         '  ' + example.outerHTML, ...(role[3] === 'label' ? ['  <input id="record-name">'] : []), '</section>'].join('\n');
     }
-    const axes = 'data-ml-theme="' + appearance.theme + '" data-ml-material="' + appearance.material + '" data-ml-motion="' + appearance.motion + '"';
+    const axes = 'data-ml-theme="' + appearance.theme + '" data-ml-material="' + appearance.material + '" data-ml-motion="' + appearance.motion + '" ' + lightAttributes();
     if (active === 'themes') {
       const theme = scope === 'local' ? ' data-ml-theme="' + localTheme + '"' : '';
       return ['<!doctype html>', '<html lang="zh-CN" ' + axes + '>', '<head>', '  <meta charset="utf-8">',
         '  <meta name="viewport" content="width=device-width, initial-scale=1">', '  <title>相册摘要</title>',
-        ...['themes', 'typography', 'switch'].map(name => '  ' + stylesheet(name)), '  ' + scriptTag('switch'), '</head>',
-        '<body data-ml-theme-surface>', '  <section' + theme + ' data-ml-theme-surface data-ml-prose style="padding:1.5rem">',
-        '    <p data-ml-type="caption">素材记录 · DEMO-101</p>', '    <h1 data-ml-type="heading">山间湖泊选集</h1>',
-        '    <p><span data-ml-type="metric">128.64</span> MB</p>',
-        '    <p>自动归档 <ml-switch label="自动归档"' + (themeSample.querySelector('ml-switch').checked ? ' checked' : '') + '></ml-switch></p>',
-        '  </section>', '</body>', '</html>'].join('\n');
+        ...['themes', 'typography', 'switch'].map(name => '  ' + stylesheet(name)), '  ' + scriptTag('switch'),
+        '  <style>', '    .record {', '      max-inline-size: 24rem; padding: var(--ml-space-4);',
+        '      border: var(--ml-border-width) solid var(--ml-color-separator); border-radius: var(--ml-radius-md);',
+        '      background: var(--ml-color-surface-raised); box-shadow: var(--ml-shadow-raised);', '    }',
+        '    .measure {', '      padding: var(--ml-row-padding-block) var(--ml-control-padding-inline);',
+        '      background: var(--ml-color-surface-inset); border-radius: var(--ml-radius-sm);', '    }',
+        '    .setting { display: flex; align-items: center; justify-content: space-between; }', '  </style>', '</head>',
+        '<body data-ml-theme-surface>', '  <section' + theme + ' data-ml-theme-surface style="padding:var(--ml-space-5)">',
+        '    <article class="record" data-ml-prose>',
+        '      <p data-ml-type="caption" style="color:var(--ml-color-text-secondary)">素材记录 · DEMO-101</p>',
+        '      <h1 data-ml-type="heading">山间湖泊选集</h1>',
+        '      <p class="measure"><span data-ml-type="metric">128.64</span> MB</p>',
+        '      <p class="setting"><span data-ml-type="label">自动归档</span>',
+        '        <ml-switch label="自动归档"' + (themeSample.querySelector('ml-switch').checked ? ' checked' : '') + '></ml-switch></p>',
+        '    </article>', '  </section>', '</body>', '</html>'].join('\n');
     }
     const t = selected, rule = '    ' + t.property + ': ' + t.expression + ';';
     if (t.kind === 'motion') return [stylesheet('tokens'), '', '<style>', '  .token-demo {',
@@ -246,7 +269,8 @@ window.createFoundationPreview = function ({ appearance, paletteGroups, applyThe
       '<div ' + axes + '><button class="token-demo">按住试用</button></div>'].join('\n');
     const examples = ['  .token-demo {', '    display: flex; align-items: center; padding: 1rem; border: 1px solid var(--ml-color-separator);',
       '    background-color: var(--ml-color-surface); color: var(--ml-color-text); font-family: var(--ml-font-sans);'];
-    if (t.property.startsWith('outline')) examples.push('    outline: 2px solid var(--ml-color-info);');
+    if (t.name === '--ml-color-on-action') examples.push('    background-color: var(--ml-color-action);');
+    if (t.property.startsWith('outline')) examples.push('    outline: var(--ml-focus-width) solid var(--ml-color-focus);');
     if (t.property === 'backdrop-filter') examples.push('    background-color: color-mix(in srgb, var(--ml-color-surface) 45%, transparent);');
     return [stylesheet('tokens'), '', '<style>', ...examples, rule, '  }', '</style>', '<div ' + axes + ' data-ml-theme-surface>',
       '  <div class="token-demo"><span>山野相册</span><span>018</span></div>', '</div>'].join('\n');

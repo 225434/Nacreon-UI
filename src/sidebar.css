@@ -10,7 +10,7 @@ ml-sidebar > nav { display: grid; gap: var(--ml-space-3); margin-top: .32rem; }
 ml-sidebar nav section { display: grid; gap: .1rem; min-inline-size: 0; }
 ml-sidebar nav :is(h2, h3, h4) { margin: .36rem .65rem .18rem; color: var(--ml-muted); font: var(--ml-weight-semibold) var(--ml-size-caption)/var(--ml-leading-compact) var(--ml-type-family, var(--ml-font-sans)); }
 ml-sidebar [data-value] { inline-size: 100%; justify-content: start; }
-ml-sidebar [data-value][aria-current="page"] { background-color: color-mix(in srgb, var(--ml-accent-ink) 13%, transparent); color: var(--ml-accent-ink); }
+ml-sidebar [data-value][aria-current="page"] { background-color: var(--ml-color-selection); color: var(--ml-accent-ink); }
 ml-sidebar .ml-side-count { margin-inline-start: auto; color: var(--ml-muted); font-variant-numeric: tabular-nums; font-weight: var(--ml-weight-medium); font-size: var(--ml-size-caption); }
 ml-sidebar[collapsed]:not([data-ml-narrow]) { inline-size: 3.45rem; }
 ml-sidebar[collapsed]:not([data-ml-narrow]) :is(.ml-side-toggle, [data-value]) { justify-content: center; padding-inline: .1rem; }

@@ -95,6 +95,6 @@
         '      <ml-skeleton preset="' + selected(presets) + '"></ml-skeleton>',
         '    </div>', '  </ml-material>', '</div>').join('\n');
     }
-    return { select, render, code };
+    return { select, show: render, code };
   };
 })();

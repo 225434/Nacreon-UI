@@ -7,22 +7,26 @@
   font-size: var(--ml-size-body); font-weight: var(--ml-weight-regular); line-height: var(--ml-leading-body);
   letter-spacing: var(--ml-tracking-normal); font-variant-numeric: normal; overflow-wrap: anywhere;
 }
-[data-ml-type="display"], [data-ml-type="title"], [data-ml-type="metric"] {
-  line-height: var(--ml-leading-tight); letter-spacing: var(--ml-tracking-tight);
+[data-ml-type="display"], [data-ml-type="title"] {
+  line-height: var(--ml-leading-title); letter-spacing: var(--ml-tracking-title); text-wrap: balance;
 }
 [data-ml-type="display"] { font-size: var(--ml-size-display); font-weight: var(--ml-weight-bold); }
 [data-ml-type="title"] { font-size: var(--ml-size-title); font-weight: var(--ml-weight-semibold); }
 [data-ml-type="heading"] {
-  font-size: var(--ml-size-heading); font-weight: var(--ml-weight-semibold); line-height: var(--ml-leading-compact);
+  font-size: var(--ml-size-heading); font-weight: var(--ml-weight-semibold); line-height: var(--ml-leading-compact); text-wrap: balance;
 }
 [data-ml-type="label"] {
   font-size: var(--ml-size-label); font-weight: var(--ml-weight-medium); line-height: var(--ml-leading-compact);
 }
 [data-ml-type="caption"] { font-size: var(--ml-size-caption); line-height: var(--ml-leading-compact); }
-[data-ml-type="metric"] { font-size: var(--ml-size-metric); font-weight: var(--ml-weight-semibold); font-variant-numeric: tabular-nums; }
+[data-ml-type="metric"] {
+  font-size: var(--ml-size-metric); font-weight: var(--ml-weight-semibold); font-variant-numeric: lining-nums tabular-nums;
+  line-height: var(--ml-leading-tight); letter-spacing: var(--ml-tracking-tight);
+}
 [data-ml-type="code"] {
   font-family: var(--ml-type-family, var(--ml-font-mono)); font-size: var(--ml-size-label); font-variant-numeric: tabular-nums;
 }
 [data-ml-prose] { max-inline-size: var(--ml-measure); overflow-wrap: anywhere; }
 [data-ml-prose] > :where(h1, h2, h3, p, pre) { margin-block: 0; }
 [data-ml-prose] > :where(h1, h2, h3, p, pre) + :where(h1, h2, h3, p, pre) { margin-block-start: 1em; }
+[data-ml-prose] > :where(h1, h2, h3) + p { margin-block-start: .5em; }

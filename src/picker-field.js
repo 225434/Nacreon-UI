@@ -87,7 +87,7 @@
       this.#trigger.setAttribute('aria-expanded', 'true');
       this.focusPicker(this.#panel);
       const entrance = this.#panel.getAnimations().find(animation => animation.animationName === 'ml-picker-in');
-      if (entrance && getComputedStyle(this).getPropertyValue('--ml-follow').trim() === '1') {
+      if (entrance && getComputedStyle(this).getPropertyValue('--ml-light-source').trim() === 'pointer') {
         GlassScene.forDocument(this.ownerDocument).wake(entrance.effect.getComputedTiming().endTime);
       }
     }

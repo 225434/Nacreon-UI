@@ -7,6 +7,10 @@
   --ml-space-6: 2rem;
   --ml-space-7: 3rem;
   --ml-space-8: 4rem;
+  --ml-control-height: 2.75rem;
+  --ml-control-padding-inline: .875rem;
+  --ml-row-padding-block: .625rem;
+  --ml-row-padding-block-compact: .375rem;
   --ml-radius-sm: .5rem;
   --ml-radius-md: .75rem;
   --ml-radius-lg: 1rem;

@@ -21,3 +21,12 @@
   --ml-tracking-normal: 0em;
   --ml-measure: 65ch;
 }
+/* Mixed-language pages can set lang on a section to select its heading metrics. */
+:where(:root, [lang]) {
+  --ml-leading-title: var(--ml-leading-tight);
+  --ml-tracking-title: var(--ml-tracking-tight);
+}
+:where(:root, [lang]):where(:lang(zh), :lang(ja), :lang(ko)) {
+  --ml-leading-title: 1.32;
+  --ml-tracking-title: 0em;
+}

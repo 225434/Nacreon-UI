@@ -1,3 +1,4 @@
+import { launchBrowser } from './helpers/browser.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, rmdir, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { chromium, firefox } from 'playwright';
 
 const engine = process.argv[2] === 'firefox' ? firefox : chromium;
-const browser = await engine.launch({ executablePath: engine.executablePath() });
+const browser = await launchBrowser(engine);
 const root = new URL('../', import.meta.url);
 const temp = await mkdtemp(join(tmpdir(), 'ml-form-test-'));
 const path = join(temp, 'example.html');
@@ -184,6 +185,46 @@ try {
   await email.focus();
   assert.equal(await standalone.evaluate(el => el.checkValidity()), false);
   assert.equal(await email.evaluate(el => el === document.activeElement), true);
+  await copy.evaluate(() => {
+    const section = document.createElement('section');
+    section.id = 'external-fields';
+    section.innerHTML = '<ml-form><form id="first-owner"></form></ml-form><ml-form><form id="next-owner"></form></ml-form>' +
+      '<fieldset class="ml-form-field"><legend>交接备注</legend><input name="note" form="first-owner" required></fieldset>' +
+      '<button type="submit" form="first-owner">保存外部字段</button>';
+    document.body.append(section);
+    section.addEventListener('submit', event => event.preventDefault());
+  });
+  const external = copy.locator('#external-fields');
+  const field = external.locator('input');
+  const firstForm = external.locator('ml-form').first(), nextForm = external.locator('ml-form').last();
+  assert.equal(await firstForm.evaluate(el => el.reportValidity()), false);
+  assert(await field.evaluate(el => el === document.activeElement));
+  await external.getByRole('button', { name: '保存外部字段' }).click();
+  assert(await firstForm.locator('.ml-form-summary').evaluate(el => el === document.activeElement));
+  await field.fill('复核完成');
+  await firstForm.locator('.ml-form-summary').waitFor({ state: 'hidden' });
+  await field.evaluate(el => { el.setAttribute('form', 'next-owner'); el.value = ''; });
+  assert.equal(await firstForm.evaluate(el => el.reportValidity()), true);
+  assert.equal(await nextForm.evaluate(el => el.reportValidity()), false);
+  await field.evaluate(el => { el.closest('fieldset').disabled = true; });
+  await nextForm.locator('.ml-form-summary').waitFor({ state: 'hidden' });
+  await field.evaluate(el => { el.closest('fieldset').disabled = false; });
+  await nextForm.locator('.ml-form-summary').waitFor();
+  await nextForm.evaluate(el => el.form.reset());
+  await nextForm.locator('.ml-form-summary').waitFor({ state: 'hidden' });
+  await field.evaluate(el => { el.removeAttribute('form'); });
+  await copy.waitForFunction(() => !document.querySelector('#external-fields input').hasAttribute('data-ml-form-managed'));
+  assert.equal(await external.locator('.ml-form-error').count(), 0);
+  await firstForm.evaluate(el => {
+    const section = el.parentElement;
+    el.remove();
+    el.reportValidity();
+    section.prepend(el);
+    section.querySelector('input').setAttribute('form', el.form.id);
+  });
+  await firstForm.locator('.ml-form-summary').waitFor();
+  await field.evaluate(el => { el.removeAttribute('required'); });
+  await firstForm.locator('.ml-form-summary').waitFor({ state: 'hidden' });
   assert.deepEqual(errors, []);
   console.log(engine.name() + ' form layout, validation, keyboard navigation, native submission, and offline export passed');
 } finally {

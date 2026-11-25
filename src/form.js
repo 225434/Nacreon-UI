@@ -6,6 +6,8 @@
   const controls = 'input:not([type="hidden"], [type="submit"], [type="reset"], [type="button"], [type="image"]), select, textarea';
   const widgets = 'ml-input, ml-select, ml-multi-select, ml-file-upload, ml-date-range, ml-choice-group';
   const structure = controls + ', form, fieldset, option, .ml-form-hint';
+  const fieldAttributes = ['id', 'disabled', 'readonly', 'required', 'form', 'type', 'name', 'min', 'max', 'step',
+    'minlength', 'maxlength', 'pattern', 'multiple', 'selected', 'value', 'data-error-message', 'error-message'];
   const ownership = new WeakMap();
   let nextId = 0;
 
@@ -31,7 +33,7 @@
   function messageFor(group, control) {
     const { validity, type } = control;
     if (validity.customError) return control.validationMessage;
-    const message = control.dataset.errorMessage || group.dataset.errorMessage || control.parentElement.getAttribute('error-message');
+    const message = control.dataset.errorMessage || group.dataset.errorMessage || control.parentElement?.getAttribute('error-message');
     if (message) return message;
     if (validity.valueMissing) {
       if (type === 'file') return '请选择文件。';
@@ -80,6 +82,7 @@
     #native;
     #events;
     #managed = new Set();
+    #groups = new Map();
     #errors = new Map();
     #touched = new WeakSet();
     #attempted = false;
@@ -90,6 +93,24 @@
     #summary;
     #live;
     #issues = [];
+    #linkedSelector = '';
+    #linkedChanges = new MutationObserver(records => {
+      const linked = this.#linkedSelector;
+      if (!linked) return;
+      if (!this.#native?.id) { this.refresh(); return; }
+      const containsLink = node => node.nodeType === 1 && (node.matches(linked) || node.querySelector(linked));
+      const ownerId = '#' + CSS.escape(this.#native.id);
+      if (records.some(({ target, type, attributeName, oldValue, addedNodes, removedNodes }) => {
+        if (this.contains(target)) return false;
+        if (this.#managed.has(target) || target.closest?.(linked)) return true;
+        if (attributeName === 'id') return target.id === this.#native.id || oldValue === this.#native.id;
+        if (type === 'attributes') return containsLink(target);
+        return [...addedNodes, ...removedNodes].some(node => containsLink(node) ||
+          (node.nodeType === 1 && (node.matches(ownerId) || node.querySelector(ownerId)))) ||
+          (target.closest?.('.ml-form-field')?.querySelector(linked) &&
+            [...addedNodes, ...removedNodes].some(node => node.nodeType === 1 && node.matches('.ml-form-hint')));
+      })) this.refresh();
+    });
     #structure = new MutationObserver(records => {
       if (records.some(record => record.type === 'attributes' || [...record.addedNodes, ...record.removedNodes]
         .some(node => node.nodeType === 1 && (node.matches(structure) || node.querySelector(structure))))) this.refresh();
@@ -102,31 +123,37 @@
       super.connectedCallback();
       this.#events = new AbortController();
       const signal = this.#events.signal;
-      this.addEventListener('invalid', this.#invalid, { capture: true, signal });
-      this.addEventListener('input', this.#edit, { signal });
-      this.addEventListener('change', this.#edit, { signal });
-      this.addEventListener('focusout', this.#blur, { signal });
+      const root = this.getRootNode();
+      root.addEventListener('invalid', this.#invalid, { capture: true, signal });
+      root.addEventListener('input', this.#edit, { signal });
+      root.addEventListener('change', this.#edit, { signal });
+      root.addEventListener('focusout', this.#blur, { signal });
       this.addEventListener('reset', this.#reset, { signal });
-      this.addEventListener('click', this.#activateSubmit, { capture: true, signal });
+      root.addEventListener('click', this.#activateSubmit, { capture: true, signal });
       const doc = this.ownerDocument;
       doc.addEventListener('pointerdown', this.#press, { capture: true, signal });
       doc.addEventListener('pointerup', this.#releasePointer, { capture: true, signal });
       doc.addEventListener('pointercancel', this.#releasePointer, { capture: true, signal });
       doc.defaultView?.addEventListener('blur', this.#releasePointer, { signal });
-      this.#structure.observe(this, { childList: true, subtree: true, attributes: true,
-        attributeFilter: ['disabled', 'readonly', 'required', 'form', 'type', 'name', 'min', 'max', 'step',
-          'minlength', 'maxlength', 'pattern', 'multiple', 'selected', 'value', 'data-error-message', 'error-message'] });
+      this.#structure.observe(this, { childList: true, subtree: true, attributeFilter: fieldAttributes });
       this.refresh();
     }
 
     disconnectedCallback() {
       this.#events.abort();
       this.#structure.disconnect();
+      this.#linkedChanges.disconnect();
+      this.#linkedSelector = '';
       this.#pointer = null;
       this.#deferredBlur = null;
       super.disconnectedCallback();
       queueMicrotask(() => {
-        if (!this.isConnected) for (const control of this.#managed) this.#release(control);
+        if (this.isConnected) return;
+        for (const control of this.#managed) this.#release(control);
+        this.#groups.clear();
+        for (const [group, error] of this.#errors) {
+          if (!this.contains(group)) { error.remove(); this.#errors.delete(group); }
+        }
       });
     }
 
@@ -164,7 +191,7 @@
       prior?.owner.#release(control);
       control.setAttribute('data-ml-form-managed', '');
       // Let a previously standalone input restore its authored ARIA state first.
-      control.parentElement.closest('ml-input')?.refresh?.();
+      control.parentElement?.closest('ml-input')?.refresh?.();
       const state = { owner: this, ids: [], priorInvalid: undefined };
       ownership.set(control, state);
       this.#managed.add(control);
@@ -181,7 +208,7 @@
     }
 
     #belongs(control) {
-      return control.form === this.#native && this.#native?.contains(control) && control.matches(controls)
+      return this.#native && control?.form === this.#native && control.matches(controls)
         && !control.closest('.ml-select-popup, ml-multi-picker');
     }
 
@@ -226,11 +253,20 @@
     refresh() {
       const form = this.form;
       if (form !== this.#native) this.#mount(form);
+      const linked = this.isConnected && form?.id ? '[form="' + CSS.escape(form.id) + '"]' : '';
+      if (linked !== this.#linkedSelector) {
+        this.#linkedChanges.disconnect();
+        this.#linkedSelector = linked;
+        if (linked) this.#linkedChanges.observe(this.getRootNode(), {
+          childList: true, subtree: true, attributeOldValue: true, attributeFilter: fieldAttributes,
+        });
+      }
+      const groups = new Map();
+      this.#groups = groups;
       if (!form) return true;
 
       const fields = new Set([...form.elements].filter(control => this.#belongs(control)));
       for (const control of this.#managed) if (!fields.has(control)) this.#release(control);
-      const groups = new Map();
       for (const control of fields) {
         const group = fieldGroup(control);
         if (!groups.has(group)) groups.set(group, []);
@@ -261,7 +297,7 @@
 
     #focus(control) {
       if (!control || control.matches(':disabled') || !this.#belongs(control)) return;
-      const multi = control.parentElement.closest('ml-multi-select');
+      const multi = control.parentElement?.closest('ml-multi-select');
       if (multi?.select === control && typeof multi.focus === 'function') multi.focus();
       else control.focus();
     }
@@ -274,7 +310,7 @@
     }
 
     #activateSubmit = event => {
-      const action = event.target.closest('button, input');
+      const action = event.target.closest?.('button, input');
       if (!event.isTrusted || action?.form !== this.#native || !['submit', 'image'].includes(action?.type)) return;
       this.#submitClick = event;
       setTimeout(() => { if (this.#submitClick === event) this.#submitClick = null; }, 0);
@@ -301,7 +337,8 @@
     };
 
     #press = event => {
-      if (event.button === 0 && this.#native?.contains(this.getRootNode().activeElement)) this.#pointer = event.pointerId;
+      const active = this.getRootNode().activeElement;
+      if (event.button === 0 && (this.#native?.contains(active) || this.#belongs(active))) this.#pointer = event.pointerId;
     };
 
     #releasePointer = event => {
@@ -317,8 +354,8 @@
     };
 
     #blur = event => {
-      const group = [...this.#managed].map(fieldGroup).find(element => element.contains(event.target));
-      if (!group || group.contains(event.relatedTarget)) return;
+      const group = event.target.closest && fieldGroup(event.target);
+      if (!this.#groups.has(group) || group.contains(event.relatedTarget)) return;
       if (this.#pointer !== null) this.#deferredBlur = group;
       else this.#validateBlur(group);
     };

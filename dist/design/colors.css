@@ -26,24 +26,35 @@
   --ml-color-danger: #bf1125;
   --ml-color-neutral: #515154;
 
-  --ml-color-background: #f2f2f7;
+  --ml-color-background: #f3f5f7;
   --ml-color-surface: #ffffff;
-  --ml-color-fill: #e5e5ea;
-  --ml-color-separator: #d1d1d6;
-  --ml-color-text: #1d1d1f;
-  --ml-color-text-secondary: #48484a;
-  --ml-color-text-tertiary: #636366;
+  --ml-color-surface-inset: #eef1f4;
+  --ml-color-surface-raised: #ffffff;
+  --ml-color-fill: #e4e9ee;
+  --ml-color-separator: #d3dbe2;
+  --ml-color-control-border: #788595;
+  --ml-color-selection: #dfedfb;
+  --ml-color-focus: #175697;
+  --ml-color-on-action: #07111b;
+  --ml-color-text: #182430;
+  --ml-color-text-secondary: #475563;
+  --ml-color-text-tertiary: #59697a;
 }
 
 [data-ml-theme="warm"] {
   --ml-color-neutral: #615950;
-  --ml-color-background: #f8f5ef;
-  --ml-color-surface: #fffdf8;
-  --ml-color-fill: #f1ece3;
-  --ml-color-separator: #dfd8ca;
-  --ml-color-text: #2d2923;
-  --ml-color-text-secondary: #625b50;
-  --ml-color-text-tertiary: #70695e;
+  --ml-color-background: #f0eee6;
+  --ml-color-surface: #fffdf7;
+  --ml-color-surface-inset: #ede9df;
+  --ml-color-surface-raised: #fffefa;
+  --ml-color-fill: #e7e2d7;
+  --ml-color-separator: #d9d3c5;
+  --ml-color-control-border: #867c69;
+  --ml-color-selection: #e2ebf2;
+  --ml-color-focus: #245a8e;
+  --ml-color-text: #312f28;
+  --ml-color-text-secondary: #595648;
+  --ml-color-text-tertiary: #676356;
 }
 
 [data-ml-theme="dark"] {
@@ -66,11 +77,17 @@
   --ml-color-danger: #ff8588;
   --ml-color-neutral: #c7c7cc;
 
-  --ml-color-background: #000000;
-  --ml-color-surface: #1c1c1e;
-  --ml-color-fill: #2c2c2e;
-  --ml-color-separator: #3a3a3c;
-  --ml-color-text: #f5f5f7;
-  --ml-color-text-secondary: #c7c7cc;
-  --ml-color-text-tertiary: #aeaeb2;
+  --ml-color-background: #11171e;
+  --ml-color-surface: #1c252f;
+  --ml-color-surface-inset: #161e26;
+  --ml-color-surface-raised: #27323e;
+  --ml-color-fill: #2e3945;
+  --ml-color-separator: #3c4854;
+  --ml-color-control-border: #788a9a;
+  --ml-color-selection: #293e52;
+  --ml-color-focus: #96c9ff;
+  --ml-color-on-action: #081420;
+  --ml-color-text: #eff3f7;
+  --ml-color-text-secondary: #c3ced7;
+  --ml-color-text-tertiary: #a5b2bf;
 }

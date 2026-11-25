@@ -1,6 +1,6 @@
 ml-form {
   /* Icon masks from icons.svg */
-  --ml-form-line: color-mix(in srgb, var(--ml-color-text-tertiary) 44%, var(--ml-color-surface));
+  --ml-form-line: var(--ml-color-control-border);
   --ml-form-danger-fill: color-mix(in srgb, var(--ml-color-danger) 9%, var(--ml-color-surface));
   --ml-select-width: 100%;
   --ml-multi-width: 100%;
@@ -15,7 +15,7 @@ ml-form {
   padding: var(--ml-form-padding, clamp(.85rem, 3vw, 1.6rem));
   border: var(--ml-border-width) solid color-mix(in srgb, var(--ml-color-separator) var(--ml-material-border-opacity), transparent);
   border-radius: var(--ml-form-radius, var(--ml-radius-xl));
-  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-material-fill-opacity), transparent);
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-material-content-opacity), transparent);
   background-image: var(--ml-skin);
   box-shadow: var(--ml-highlight-relief);
   -webkit-backdrop-filter: var(--ml-filter);
@@ -31,7 +31,7 @@ ml-form.ml-refractive {
 }
 ml-form > .ml-optical {
   position: absolute; z-index: -1; inset: 0; display: var(--ml-optics);
-  border-radius: inherit; pointer-events: none;
+  border-radius: inherit; pointer-events: none; opacity: .35;
 }
 ml-form > .ml-optical > svg { display: block; inline-size: 100%; block-size: 100%; border-radius: inherit; overflow: hidden; }
 ml-form[hidden], ml-form :is(.ml-form-section, .ml-form-field, .ml-form-hint, .ml-form-error, .ml-form-summary, .ml-form-result)[hidden] {
@@ -41,7 +41,7 @@ ml-form > form { display: grid; min-inline-size: 0; gap: var(--ml-space-5); marg
 ml-form :where(.ml-form-section, fieldset.ml-form-field) { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
 ml-form .ml-form-section > legend {
   max-inline-size: 100%; margin: 0 0 var(--ml-space-4); padding: 0; overflow-wrap: anywhere;
-  font-size: var(--ml-size-heading); font-weight: var(--ml-weight-semibold); letter-spacing: var(--ml-tracking-tight);
+  font-size: var(--ml-size-heading); font-weight: var(--ml-weight-semibold); letter-spacing: var(--ml-tracking-title);
 }
 ml-form :where(.ml-form-grid, .ml-form-field) { display: grid; grid-template-columns: minmax(0, 1fr); min-inline-size: 0; }
 ml-form .ml-form-grid { align-items: start; gap: var(--ml-space-4) var(--ml-space-5); }
@@ -56,7 +56,10 @@ ml-form :where(.ml-form-hint, .ml-form-error, .ml-form-result) {
   min-inline-size: 0; margin: 0; overflow-wrap: anywhere; font-size: var(--ml-size-caption); line-height: var(--ml-leading-body);
 }
 ml-form .ml-form-hint { color: var(--ml-color-text-secondary); }
-ml-form .ml-form-error { display: flex; align-items: baseline; gap: .4em; color: var(--ml-color-danger); }
+.ml-form-field > .ml-form-error:not([hidden]) {
+  display: flex; align-items: baseline; gap: .4em; margin: 0; color: var(--ml-color-danger);
+  font-size: var(--ml-size-caption); line-height: var(--ml-leading-body); overflow-wrap: anywhere;
+}
 ml-form :is(.ml-form-error, .ml-form-summary > p)::before {
   content: ""; flex: none; align-self: flex-start; inline-size: 1.1em; block-size: 1.1em;
   margin-block-start: .15em; background-color: currentColor;
@@ -64,15 +67,16 @@ ml-form :is(.ml-form-error, .ml-form-summary > p)::before {
   mask: var(--ml-form-icon-error-circle) center / contain no-repeat;
 }
 ml-form .ml-form-field > :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), textarea, select) {
-  box-sizing: border-box; inline-size: 100%; min-inline-size: 0; min-block-size: 2.8rem;
-  margin: 0; padding: .55rem .75rem;
+  box-sizing: border-box; inline-size: 100%; min-inline-size: 0; min-block-size: max(44px, var(--ml-control-height));
+  margin: 0; padding: .55rem var(--ml-control-padding-inline);
   border: var(--ml-border-width) solid var(--ml-form-line); border-radius: var(--ml-radius-md);
   background: var(--ml-color-surface); color: var(--ml-color-text); font: inherit;
   transition: border-color var(--ml-tone) ease;
 }
 ml-form .ml-form-field > textarea { resize: vertical; }
-ml-form .ml-form-field > :is(input, textarea, select)[aria-invalid="true"] { border-color: var(--ml-color-danger); }
-ml-form ml-select:has(> select[aria-invalid="true"]) { --ml-select-line: var(--ml-color-danger); }
+:is(ml-form .ml-form-field > :is(input, textarea, select), [form][data-ml-form-managed])[aria-invalid="true"] { border-color: var(--ml-color-danger); }
+ml-form ml-select:has(> select[aria-invalid="true"]),
+ml-select:has(> select[form][data-ml-form-managed][aria-invalid="true"]) { --ml-select-line: var(--ml-color-danger); }
 ml-form :is(.ml-form-field > :is(input, textarea, select), .ml-form-summary, .ml-form-summary button):focus-visible {
   outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: var(--ml-focus-offset);
 }
@@ -126,7 +130,7 @@ ml-form :is(.ml-form-error, .ml-form-summary):not([hidden]) {
     background: Canvas; color: CanvasText; border-color: CanvasText; box-shadow: none; backdrop-filter: none;
   }
   ml-form :is(.ml-form-error, .ml-form-summary > p)::before { forced-color-adjust: none; background-color: CanvasText; }
-  ml-form .ml-form-field > :is(input, textarea, select)[aria-invalid="true"], ml-form ml-select > select[aria-invalid="true"] {
+  :is(ml-form .ml-form-field > :is(input, textarea, select), ml-form ml-select > select, [form][data-ml-form-managed])[aria-invalid="true"] {
     border: var(--ml-border-width) dashed CanvasText;
   }
 }

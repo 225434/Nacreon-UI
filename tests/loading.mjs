@@ -1,3 +1,4 @@
+import { launchBrowser } from './helpers/browser.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, rmdir, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { chromium, firefox } from 'playwright';
 
 const engine = process.argv[2] === 'firefox' ? firefox : chromium;
-const browser = await engine.launch({ executablePath: engine.executablePath() });
+const browser = await launchBrowser(engine);
 const root = new URL('../', import.meta.url);
 const temp = await mkdtemp(join(tmpdir(), 'ml-loading-test-'));
 const file = join(temp, 'example.html');
@@ -32,8 +33,8 @@ try {
 
   await route('switch');
   await page.locator('#open-catalog').click();
-  await page.locator('#catalog-query').fill('骨架屏');
-  await page.locator('#catalog-query').press('Enter');
+  await page.getByRole('dialog', { name: '导航面板' }).getByRole('searchbox').fill('骨架屏');
+  await page.getByRole('dialog', { name: '导航面板' }).getByRole('searchbox').press('Enter');
   const stage = page.locator('#loading-specimen');
   const panel = stage.locator('ml-material');
   const body = stage.locator('#loading-preview-body');
@@ -69,7 +70,7 @@ try {
         assert.equal(await animation(ring), motion === 'base' ? 'none' : motion === 'low' ? 'ml-loading-fade' : 'ml-loading-turn');
         assert.equal(await animation(firstShape), motion === 'low' ? 'ml-skeleton-breathe' : 'none');
         assert.equal(await animation(firstShape, '::after'), ['medium', 'high'].includes(motion) ? 'ml-skeleton-sweep' : 'none');
-        assert.equal(await layer.count(), Number(material === 'high' || motion === 'high'), [theme, material, motion].join('/'));
+        assert.equal(await layer.count(), 1, [theme, material, motion].join('/'));
       }
     }
   }

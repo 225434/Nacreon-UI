@@ -3,16 +3,16 @@
 [data-ml-theme="dark"] { color-scheme: dark; }
 /* Components resolve elevation on the painted surface so nested themes use their own shadows. */
 :root, [data-ml-theme="light"] {
-  --ml-shadow-raised: 0 2px 6px rgb(20 32 48 / .10);
-  --ml-shadow-overlay: 0 8px 28px rgb(20 32 48 / .18);
+  --ml-shadow-raised: 0 1px 2px rgb(24 36 48 / .07), 0 4px 12px -6px rgb(24 36 48 / .15);
+  --ml-shadow-overlay: 0 2px 6px rgb(24 36 48 / .08), 0 16px 40px -12px rgb(24 36 48 / .26);
 }
 [data-ml-theme="warm"] {
-  --ml-shadow-raised: 0 2px 6px rgb(65 45 24 / .12);
-  --ml-shadow-overlay: 0 8px 28px rgb(65 45 24 / .18);
+  --ml-shadow-raised: 0 1px 2px rgb(63 49 29 / .08), 0 4px 12px -6px rgb(63 49 29 / .16);
+  --ml-shadow-overlay: 0 2px 6px rgb(63 49 29 / .09), 0 16px 40px -12px rgb(63 49 29 / .25);
 }
 [data-ml-theme="dark"] {
-  --ml-shadow-raised: 0 2px 6px rgb(0 0 0 / .38);
-  --ml-shadow-overlay: 0 8px 28px rgb(0 0 0 / .56);
+  --ml-shadow-raised: 0 1px 2px rgb(0 0 0 / .30), 0 4px 12px -6px rgb(0 0 0 / .44);
+  --ml-shadow-overlay: 0 2px 6px rgb(0 0 0 / .32), 0 16px 40px -12px rgb(0 0 0 / .64);
 }
 [data-ml-theme-surface] { background-color: var(--ml-color-background); color: var(--ml-color-text); }
 @media (forced-colors: active) {

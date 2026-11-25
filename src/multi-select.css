@@ -54,7 +54,7 @@ ml-multi-select:has(> select:disabled) { opacity: .58; }
   position: relative;
   display: grid;
   align-items: center;
-  min-block-size: 44px;
+  min-block-size: calc(max(44px, var(--ml-control-height)) - 2 * var(--ml-border-width));
   padding: .34rem 2.65rem .34rem .55rem;
   padding-inline: .55rem 2.65rem;
   box-sizing: border-box;
@@ -62,8 +62,8 @@ ml-multi-select:has(> select:disabled) { opacity: .58; }
 }
 .ml-multi-trigger {
   position: absolute;
-  inset: 0;
-  inline-size: 100%;
+  inset: calc(-1 * var(--ml-border-width));
+  inline-size: calc(100% + 2 * var(--ml-border-width));
   padding: 0;
   border: 0;
   border-radius: inherit;
@@ -175,7 +175,7 @@ ml-multi-picker {
   overflow: auto;
   border-radius: var(--ml-radius-lg);
   color: var(--ml-color-text);
-  background-color: color-mix(in srgb, var(--ml-color-surface) max(94%, var(--ml-select-menu-alpha)), transparent);
+  background-color: color-mix(in srgb, var(--ml-color-surface-raised) max(94%, var(--ml-select-menu-alpha)), transparent);
   box-shadow: var(--ml-select-menu-shadow, var(--ml-shadow-overlay));
   opacity: 0;
   transform: translateY(calc(-1 * var(--ml-select-shift))) scale(var(--ml-select-scale));

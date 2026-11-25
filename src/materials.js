@@ -6,13 +6,13 @@
   const { GlassScene } = globalThis[Symbol.for('material-lib.glass.v1')];
   const versions = new WeakMap();
   const levels = Object.freeze([
-    { value: 'base', label: '基础', name: '纯色表面', note: '关闭材质', description: '实色覆盖底纹，仅保留轮廓。',
+    { value: 'base', label: '关闭', name: '云母', note: '云母', description: '不透明底面带少量主题染色，背景细节隐去。',
       light: '轮廓微光', litDescription: '靠近指针的一段轮廓亮起，中央保持纯色。' },
-    { value: 'low', label: '低', name: '柔光表面', note: '柔光表面', description: '顶缘提亮，浅阴影托起表面。',
+    { value: 'low', label: '低', name: '增强云母', note: '增强云母', description: '不透明底面加强主题染色，边缘的明暗区分表面层级。',
       light: '局部柔光', litDescription: '指针在实色表面照出一小片柔光。' },
-    { value: 'medium', label: '中', name: '磨砂玻璃', note: '磨砂半透', description: '半透明表面柔化后方线条。',
+    { value: 'medium', label: '中', name: '磨砂玻璃', note: '磨砂玻璃', description: '半透明表面扩散底纹，背景轮廓变软。',
       light: '磨砂散射', litDescription: '光晕在磨砂层里散开，软阴影偏向背光侧。' },
-    { value: 'high', label: '高', name: '实心流体玻璃', note: '实心流体玻璃', description: '凸面均匀放大底纹，光线透过带色的玻璃内部，厚处色深。',
+    { value: 'high', label: '高', name: '实心流体玻璃', note: '实心流体玻璃', description: '凸面放大底纹，较厚的边缘透出更明显的主题色。',
       light: '玻璃聚光', litDescription: '迎光弧面锐亮，对侧聚出光斑，边缘泛出光谱色散。' },
   ].map(Object.freeze));
 

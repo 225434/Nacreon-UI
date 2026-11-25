@@ -27,7 +27,7 @@ label:has(> ml-choice > input:disabled) { color: var(--ml-color-text-tertiary); 
 
 ml-choice {
   --ml-choice-fill: var(--ml-color-surface);
-  --ml-choice-line: color-mix(in srgb, var(--ml-color-text-tertiary) 83%, var(--ml-color-surface));
+  --ml-choice-line: var(--ml-color-control-border);
   --ml-choice-active: var(--ml-choice-accent, var(--ml-color-action));
   position: relative; isolation: isolate; box-sizing: border-box; display: inline-grid; place-items: center;
   flex: none; inline-size: var(--ml-choice-size, 1.25rem); block-size: var(--ml-choice-size, 1.25rem);

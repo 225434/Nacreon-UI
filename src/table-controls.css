@@ -2,12 +2,18 @@
   display: block; position: relative; isolation: isolate; min-inline-size: 0; max-inline-size: 100%;
   color: var(--ml-ink); font-variant-numeric: tabular-nums;
   border: var(--ml-border-width) solid var(--ml-color-separator); border-radius: var(--ml-radius-lg);
-  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-opacity), transparent);
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-material-content-opacity), transparent);
   background-image: var(--ml-skin); box-shadow: var(--ml-segment-relief); backdrop-filter: var(--ml-filter);
 }
 :where(ml-data-table, ml-pagination), :where(ml-data-table, ml-pagination) * { box-sizing: border-box; }
 :is(ml-data-table, ml-pagination)[hidden], :is(ml-data-table, ml-pagination) [hidden] { display: none !important; }
 :is(ml-data-table, ml-pagination).ml-refractive { backdrop-filter: var(--ml-bend) blur(3px) saturate(1.1); }
+@media screen {
+  ml-data-table.ml-refractive {
+    --ml-table-window: initial;
+    backdrop-filter: var(--ml-table-window, var(--ml-bend)) blur(3px) saturate(1.1);
+  }
+}
 :is(ml-data-table, ml-pagination) > .ml-optical {
   display: var(--ml-optics); position: absolute; z-index: -1; inset: 0; border-radius: inherit;
   pointer-events: none; opacity: .42;

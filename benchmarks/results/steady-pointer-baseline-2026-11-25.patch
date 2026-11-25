@@ -1,0 +1,385 @@
+diff --git a/src/glass.js b/src/glass.js
+--- a/src/glass.js
++++ b/src/glass.js
+@@ -2,7 +2,7 @@
+   'use strict';
+ 
+   const key = Symbol.for('material-lib.glass.v1');
+-  if (globalThis[key]?.version >= 15) return;
++  if (globalThis[key]?.version >= 14) return;
+   const previousScene = globalThis[key]?.GlassScene;
+   const motionFrames = globalThis[Symbol.for('material-lib.motion-frames.v1')];
+   const { optics } = globalThis[Symbol.for('material-lib.glass-shader.v1')];
+@@ -11,7 +11,7 @@
+   const lightReturnDuration = 240;
+   const defaultLight = Object.freeze({ mode: 'pointer', strength: 1 });
+   let nextGlassId = 0;
+-  const mapStores = new WeakMap();
++  const normalMaps = new Map();
+ 
+   // Physical corners in clockwise order. CSS scales all radii together when adjacent arcs overlap.
+   function fitCorners(x, y, width, height) {
+@@ -108,7 +108,7 @@
+ 
+   // R/G carry the entire ray displacement; blue carries the front surface height.
+   // Work in optical radii so similar-sized controls can share a map at each resolution.
+-  function normalMapShape(width, height, corners, dpr) {
++  function glassNormals(width, height, corners, dpr) {
+     const shortSide = Math.min(width, height);
+     const aspectX = Math.round(width / shortSide * 16) / 16;
+     const aspectY = Math.round(height / shortSide * 16) / 16;
+@@ -117,15 +117,10 @@
+     const relativeRadius = Math.max(.001, Math.round(Math.min(1, 2 * optics.maxRadius / shortSide) * 1000) / 1000);
+     const resolution = Math.max(64, Math.min(512, 2 ** Math.ceil(Math.log2(shortSide * dpr))));
+     const key = [aspectX, aspectY, roundX, roundY, relativeRadius, resolution].join('/');
+-    const w = Math.min(1536, Math.round(resolution * aspectX));
+-    const h = Math.min(1536, Math.round(resolution * aspectY));
+-    return { key, w, h, aspectX, aspectY, relativeRadius, roundX, roundY };
+-  }
+-
+-  function drawNormalMap(canvas, shape) {
+-    const { w, h, aspectX, aspectY, relativeRadius, roundX, roundY } = shape;
+-    canvas.width = w;
+-    canvas.height = h;
++    if (normalMaps.has(key)) return normalMaps.get(key);
++    const canvas = document.createElement('canvas');
++    const w = canvas.width = Math.min(1536, Math.round(resolution * aspectX));
++    const h = canvas.height = Math.min(1536, Math.round(resolution * aspectY));
+     const context = canvas.getContext('2d');
+     const pixels = context.createImageData(w, h), data = pixels.data;
+     const halfW = aspectX / relativeRadius, halfH = aspectY / relativeRadius;
+@@ -196,133 +191,10 @@
+       }
+     }
+     context.putImageData(pixels, 0, 0);
+-  }
+-
+-  // Embedded with standalone components so an offline page needs no extra URL.
+-  function normalMapWorker() {
+-    self.onmessage = async ({ data }) => {
+-      try {
+-        const canvas = new OffscreenCanvas(1, 1);
+-        drawNormalMap(canvas, data.shape);
+-        const png = await canvas.convertToBlob({ type: 'image/png' });
+-        self.postMessage(new FileReaderSync().readAsDataURL(png));
+-      } catch {
+-        self.postMessage(null);
+-      }
+-    };
+-  }
+-
+-  class NormalMaps {
+-    static forDocument(doc) {
+-      if (!mapStores.has(doc)) mapStores.set(doc, new NormalMaps(doc));
+-      return mapStores.get(doc);
+-    }
+-
+-    constructor(doc) {
+-      this.doc = doc;
+-      this.cache = new Map();
+-      this.pending = new Map();
+-      this.workers = [];
+-      const win = doc.defaultView;
+-      this.disabled = !win.Worker || !win.OffscreenCanvas?.prototype.convertToBlob;
+-      this.limit = win.navigator.hardwareConcurrency > 2 ? 2 : 1;
+-    }
+-
+-    remember(key, url) {
+-      if (!this.cache.has(key) && this.cache.size >= 96) this.cache.delete(this.cache.keys().next().value);
+-      this.cache.set(key, url);
+-      return url;
+-    }
+-
+-    bake(shape) {
+-      const canvas = this.doc.createElement('canvas');
+-      drawNormalMap(canvas, shape);
+-      return this.remember(shape.key, canvas.toDataURL());
+-    }
+-
+-    get(shape, ready) {
+-      const cached = this.cache.get(shape.key);
+-      if (cached) return cached;
+-      if (!ready || this.disabled || shape.w * shape.h < 262144) return this.bake(shape);
+-      let task = this.pending.get(shape.key);
+-      if (!task) {
+-        task = { shape, listeners: new Set(), running: false };
+-        this.pending.set(shape.key, task);
+-      }
+-      task.listeners.add(ready);
+-      this.dispatch();
+-      return () => {
+-        task.listeners.delete(ready);
+-        if (!task.running && !task.listeners.size && this.pending.get(shape.key) === task) this.pending.delete(shape.key);
+-      };
+-    }
+-
+-    makeWorker() {
+-      const win = this.doc.defaultView;
+-      if (!this.workerURL) {
+-        const source = ['const optics = ' + JSON.stringify(optics) + ';', outlineAt, drawNormalMap,
+-          '(' + normalMapWorker + ')()'].join('\n');
+-        this.workerURL = win.URL.createObjectURL(new win.Blob([source], { type: 'text/javascript' }));
+-      }
+-      const slot = { worker: new win.Worker(this.workerURL), task: null };
+-      slot.worker.onmessage = ({ data }) => {
+-        if (!slot.task) return;
+-        if (typeof data !== 'string') { this.fallback(); return; }
+-        const { shape, listeners } = slot.task;
+-        slot.task = null;
+-        this.pending.delete(shape.key);
+-        this.remember(shape.key, data);
+-        for (const ready of listeners) ready(data);
+-        listeners.clear();
+-        this.dispatch();
+-      };
+-      slot.worker.onerror = event => { event.preventDefault(); this.fallback(); };
+-      slot.worker.onmessageerror = () => this.fallback();
+-      this.workers.push(slot);
+-      return slot;
+-    }
+-
+-    dispatch() {
+-      const win = this.doc.defaultView;
+-      win.clearTimeout(this.idle);
+-      try {
+-        for (const task of this.pending.values()) {
+-          if (task.running) continue;
+-          let slot = this.workers.find(worker => !worker.task);
+-          if (!slot && this.workers.length < this.limit) slot = this.makeWorker();
+-          if (!slot) return;
+-          slot.task = task;
+-          task.running = true;
+-          slot.worker.postMessage({ type: 'nacreon-normal-map', shape: task.shape });
+-        }
+-      } catch { this.fallback(); return; }
+-      if (!this.pending.size) this.idle = win.setTimeout(() => this.close(), 30000);
+-    }
+-
+-    close() {
+-      const win = this.doc.defaultView;
+-      win.clearTimeout(this.idle);
+-      for (const slot of this.workers) {
+-        slot.task = null;
+-        slot.worker.onmessage = slot.worker.onerror = slot.worker.onmessageerror = null;
+-        slot.worker.terminate();
+-      }
+-      this.workers.length = 0;
+-      if (this.workerURL) win.URL.revokeObjectURL(this.workerURL);
+-      this.workerURL = null;
+-    }
+-
+-    fallback() {
+-      this.close();
+-      this.disabled = true;
+-      for (const { shape, listeners } of this.pending.values()) {
+-        if (!listeners.size) continue;
+-        const url = this.cache.get(shape.key) || this.bake(shape);
+-        for (const ready of listeners) ready(url);
+-        listeners.clear();
+-      }
+-      this.pending.clear();
+-    }
++    const url = canvas.toDataURL();
++    if (normalMaps.size >= 96) normalMaps.delete(normalMaps.keys().next().value);
++    normalMaps.set(key, url);
++    return url;
+   }
+ 
+   function normalizedRgb(value, fallback) {
+@@ -426,7 +298,7 @@
+       this.light = defaultLight;
+       this.surface = surface;
+       this.lens = lens;
+-      const id = 'ml-glass-v15-' + ++nextGlassId;
++      const id = 'ml-glass-v14-' + ++nextGlassId;
+       this.layer = document.createElement('span');
+       this.layer.className = 'ml-optical';
+       this.layer.setAttribute('aria-hidden', 'true');
+@@ -489,13 +361,12 @@
+     }
+ 
+     remove() {
+-      this.cancelMap?.();
+       this.layer.remove();
+       this.surface.classList.remove('ml-refractive');
+       this.surface.style.removeProperty('--ml-bend');
+     }
+ 
+-    paint(pointer, pulse, now, backdrop = null, version = 0, deferMap = false) {
++    paint(pointer, pulse, now, backdrop = null, version = 0) {
+       if (!motionFrames.due(this, this.light.mediumMotion, now, this.scene)) return;
+       const box = this.layer.getBoundingClientRect();
+       const doc = this.surface.ownerDocument;
+@@ -531,38 +402,13 @@
+       if (this.light.mode !== 'pointer') pointer = null;
+       const dpr = win.devicePixelRatio || 1;
+       const opticalRadius = Math.min(thickness / 2, optics.maxRadius);
+-      const renderer = globalThis[Symbol.for('material-lib.glass-shader.v1')].forDocument(doc, () => {
+-        // An older standalone component can already own the document's scene.
+-        const scene = previousScene ? previousScene.forDocument(doc) : scenes.get(doc);
+-        if (scene?.painters.size) scene.wake();
+-        else scene?.remove();
+-      });
+       const shape = [width, height, radiusStyles, dpr].join('/');
+       if (shape !== this.shape) {
+-        this.cancelMap?.();
+-        this.cancelMap = null;
+         this.shape = shape;
+         this.corners = usedCorners(this.layer, radiusStyles, width, height);
+-        const install = url => {
+-          this.mapPending = false;
+-          if (this.maps[0].getAttribute('href') !== url) {
+-            for (const map of this.maps) map.setAttribute('href', url);
+-          }
+-        };
+-        this.mapPending = true;
+-        const store = NormalMaps.forDocument(doc);
+-        const result = store.get(normalMapShape(width, height, this.corners, dpr), deferMap && this.scene && renderer.program ? url => {
+-          if (this.shape !== shape || !this.layer.parentNode) return;
+-          install(url);
+-          this.cancelMap = null;
+-          this.state = null;
+-          this.scene.wake();
+-        } : null);
+-        if (typeof result === 'string') install(result);
+-        else if (this.mapPending) {
+-          this.cancelMap = result;
+-          // A resize can leave the previous shape's PNG installed during the new bake.
+-          for (const map of this.maps) map.removeAttribute('href');
++        const url = glassNormals(width, height, this.corners, dpr);
++        if (this.maps[0].getAttribute('href') !== url) {
++          for (const map of this.maps) map.setAttribute('href', url);
+         }
+         const outline = outlinePath(width, height, this.corners);
+         for (const face of [this.face, this.dome, this.interiorLight]) face.setAttribute('d', outline);
+@@ -587,6 +433,12 @@
+       const x = pointer ? restX + ((pointer.x - box.left) * sx - restX) * weight : restX;
+       const y = pointer ? restY + ((pointer.y - box.top) * sy - restY) * weight : restY;
+       const fraction = pulse ? Math.min(1, Math.max(0, (now - pulse.start) / waveDuration)) : 1;
++      const renderer = globalThis[Symbol.for('material-lib.glass-shader.v1')].forDocument(doc, () => {
++        // An older standalone component can already own the document's scene.
++        const scene = previousScene ? previousScene.forDocument(doc) : scenes.get(doc);
++        if (scene?.painters.size) scene.wake();
++        else scene?.remove();
++      });
+       let sample = null;
+       if (renderer.program && backdrop?.width && backdrop.height) {
+         const b = backdrop.getBoundingClientRect();
+@@ -612,7 +464,7 @@
+       style.setProperty('--ml-penumbra', Math.max(1.5, Math.min(120, thickness) * (.04 + .04 * energy)).toFixed(2) + 'px');
+       style.setProperty('--ml-cast-opacity', (.04 + .15 * energy).toFixed(3));
+       const depth = fraction < 1 ? Math.sin(fraction * Math.PI * 4) * (1 - fraction) ** 2 : 0;
+-      const scale = this.maps[0].hasAttribute('href') ? String(opticalRadius * optics.mapRange * (1 + depth * .26)) : '0';
++      const scale = String(opticalRadius * optics.mapRange * (1 + depth * .26));
+       if (this.displacement.getAttribute('scale') !== scale) this.displacement.setAttribute('scale', scale);
+       const cx = pulse ? (pulse.x - box.left) * sx : width / 2;
+       const cy = pulse ? (pulse.y - box.top) * sy : height / 2;
+@@ -788,5 +640,5 @@
+     }
+   }
+ 
+-  globalThis[key] = Object.freeze({ version: 15, GlassSurface, GlassScene: previousScene || GlassScene, waveDuration });
++  globalThis[key] = Object.freeze({ version: 14, GlassSurface, GlassScene: previousScene || GlassScene, waveDuration });
+ })();
+diff --git a/src/control-glass.js b/src/control-glass.js
+--- a/src/control-glass.js
++++ b/src/control-glass.js
+@@ -2,13 +2,13 @@
+   'use strict';
+ 
+   const key = Symbol.for('material-lib.glass-control.v1');
+-  if (globalThis[key]?.version >= 10) return;
++  if (globalThis[key]?.version >= 9) return;
+   const { GlassScene, GlassSurface, waveDuration } = globalThis[Symbol.for('material-lib.glass.v1')];
+   const events = ['pointerdown', 'click', 'transitionrun', 'transitionend', 'transitioncancel'];
+ 
+   // Optical treatment for a compact surface. Its content owns semantics and focus.
+   class GlassControl extends HTMLElement {
+-    static get version() { return 10; }
++    static get version() { return 9; }
+     #scene;
+     #glass;
+     #pulse;
+@@ -76,8 +76,8 @@
+       if (!this.getClientRects().length) return;
+       this.#glass = GlassSurface.forTier(this.#glass, this, true, tier, light);
+       if (tier !== 'high' || !dynamic || (this.#pulse && now - this.#pulse.start >= waveDuration)) this.#pulse = null;
+-      this.#glass.paint(pointer, this.#pulse, now, this.glassBackdrop, this.glassBackdropVersion, true);
+-      this.updateGlassViewport?.(this.#glass.mapPending ? null : this.#glass);
++      this.#glass.paint(pointer, this.#pulse, now, this.glassBackdrop, this.glassBackdropVersion);
++      this.updateGlassViewport?.(this.#glass);
+       if (light.mode === 'pointer' && this.getAnimations().some(a => a.transitionProperty && a.playState === 'running')) this.#scene.wake();
+       return light.mode === 'pointer';
+     };
+diff --git a/src/data-table.js b/src/data-table.js
+--- a/src/data-table.js
++++ b/src/data-table.js
+@@ -48,7 +48,6 @@
+       this.host = host;
+       this.glass = glass;
+       this.shape = glass.shape;
+-      this.pointer = glass.scene.pointer;
+       this.tiles = new Map();
+       this.events = new AbortController();
+       this.scrolling = new Set();
+@@ -89,26 +88,12 @@
+ 
+     remove() {
+       this.useFull();
+-      this.glass.scene.win.clearTimeout(this.pointerTimer);
+       this.source.onload = null;
+       this.events.abort();
+       this.resize.disconnect();
+       this.tiles.clear();
+       this.filter.remove();
+     }
+-
+-    // Pointer input can arrive much faster than the browser presents frames.
+-    // Schedule a single wake after the final change to restore the native grid.
+-    endPointer = () => {
+-      const win = this.glass.scene.win;
+-      const remaining = this.pointerUntil - win.performance.now();
+-      if (remaining > 0) {
+-        this.pointerTimer = win.setTimeout(this.endPointer, remaining);
+-      } else {
+-        this.pointerTimer = 0;
+-        this.glass.scene.wake();
+-      }
+-    };
+ 
+     tile(first, last) {
+       const key = first + '/' + last;
+@@ -132,13 +117,6 @@
+     update() {
+       if (!this.source.complete || !this.source.naturalHeight || this.source.naturalHeight % 16) return;
+       const host = this.host, win = host.ownerDocument.defaultView, box = host.getBoundingClientRect();
+-      const pointer = this.glass.light.mode === 'pointer' ? this.glass.scene.pointer : null;
+-      const moved = pointer && this.pointer && (pointer.x !== this.pointer.x || pointer.y !== this.pointer.y);
+-      this.pointer = pointer;
+-      if (!pointer && this.pointerTimer) {
+-        win.clearTimeout(this.pointerTimer);
+-        this.pointerTimer = 0;
+-      }
+       let top = 0, bottom = win.innerHeight, clip = null;
+       for (let el = host; el; el = el.assignedSlot || el.parentElement || el.getRootNode().host) {
+         const style = win.getComputedStyle(el);
+@@ -168,16 +146,11 @@
+       const hi = Math.min(16, Math.ceil((end + guard) / unit));
+       let anchored = win.devicePixelRatio !== 1;
+       if (anchored && hi > 4) {
+-        // The scrollport or its pointer light can move independently. The full
+-        // filter restores the native sampling grid once both have settled.
+-        const motion = !this.glass.scene.media.matches
++        // Use original texels around a moving scrollport. At rest, restore the
++        // full native grid: a fractional raster origin can round differently.
++        const motion = this.scrolling.size && !this.glass.scene.media.matches
+           && win.getComputedStyle(host).getPropertyValue('--ml-motion-level').trim();
+         if (motion !== 'high' && motion !== 'medium') { this.useFull(); return; }
+-        if (moved) {
+-          this.pointerUntil = win.performance.now() + 80;
+-          if (!this.pointerTimer) this.pointerTimer = win.setTimeout(this.endPointer, 80);
+-        }
+-        if (!this.scrolling.size && !(pointer && this.pointerTimer)) { this.useFull(); return; }
+         anchored = false;
+       }
+       const lo = anchored ? 0 : Math.max(0, Math.floor((start - guard) / unit));

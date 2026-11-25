@@ -1,3 +1,4 @@
+import { launchBrowser } from './helpers/browser.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, rmdir, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { chromium, firefox } from 'playwright';
 
 const engine = process.argv[2] === 'firefox' ? firefox : chromium;
-const browser = await engine.launch({ executablePath: engine.executablePath() });
+const browser = await launchBrowser(engine);
 const root = new URL('../', import.meta.url);
 const temp = await mkdtemp(join(tmpdir(), 'ml-upload-test-'));
 const file = join(temp, 'sample.html');
@@ -39,8 +40,8 @@ try {
 
   await route('switch');
   await page.locator('#open-catalog').click();
-  await page.locator('#catalog-query').fill('拖放上传');
-  await page.locator('#catalog-query').press('Enter');
+  await page.getByRole('dialog', { name: '导航面板' }).getByRole('searchbox').fill('拖放上传');
+  await page.getByRole('dialog', { name: '导航面板' }).getByRole('searchbox').press('Enter');
   const field = page.locator('#file-upload-specimen ml-file-upload');
   const zone = field.locator('ml-file-drop');
   const native = field.locator('input[type="file"]');
@@ -80,9 +81,8 @@ try {
       for (const motion of grades) {
         await choose('motion', motion);
         await frames();
-        const visible = material === 'high' || motion === 'high';
-        assert.equal(await layer.count(), Number(visible), [theme, material, motion].join('/'));
-        if (visible) assert(await layer.evaluate(el => getComputedStyle(el).borderRadius === getComputedStyle(el.parentElement).borderRadius));
+        assert.equal(await layer.count(), 1, [theme, material, motion].join('/'));
+        assert(await layer.evaluate(el => getComputedStyle(el).borderRadius === getComputedStyle(el.parentElement).borderRadius));
       }
     }
   }
@@ -163,6 +163,46 @@ try {
   await exported.locator('input[type="file"]').setInputFiles(fixture('离线.csv', 'text/csv'));
   await exported.getByRole('button', { name: '模拟上传' }).press('Enter');
   await exported.locator('.ml-file-row[data-state="complete"]').waitFor();
+  const dynamic = await example.evaluate(async () => {
+    const form = document.createElement('form');
+    const host = document.createElement('ml-file-upload');
+    document.body.append(form);
+    form.append(host);
+    const input = document.createElement('input');
+    input.type = 'file'; input.name = 'attachment';
+    input.setAttribute('aria-describedby', 'existing-hint');
+    host.append(input);
+    await Promise.resolve();
+    const late = host.querySelector('label')?.control === input;
+    const changes = [];
+    host.addEventListener('ml-files-change', event => changes.push(event.detail.files.map(file => file.name)));
+    host.addFiles([new File(['old'], 'old.txt')]);
+    let finish, signal, progress, selectionAtAbort, abortedAtChange;
+    host.upload = (_, options) => new Promise(resolve => {
+      finish = resolve; signal = options.signal; progress = options.onProgress;
+      signal.addEventListener('abort', () => { selectionAtAbort = host.entries.map(entry => entry.file.name); });
+    });
+    const pending = host.start();
+    host.addEventListener('ml-files-change', () => { abortedAtChange = signal.aborted; }, { once: true });
+    const next = input.cloneNode();
+    const transfer = new DataTransfer(); transfer.items.add(new File(['new'], 'new.txt'));
+    next.files = transfer.files;
+    input.replaceWith(next);
+    progress(1, 1); finish();
+    await Promise.resolve();
+    const rebound = host.querySelector('label')?.control === next;
+    await pending;
+    const selected = [host.files[0]?.name, host.entries[0]?.state, new FormData(form).get('attachment')?.name];
+    const priorDescription = input.getAttribute('aria-describedby');
+    next.remove(); await Promise.resolve();
+    const removed = !host.querySelector('.ml-file-view') && !host.hasAttribute('data-ml-file-ready') && !host.entries.length;
+    host.remove(); form.append(host); host.append(input); await Promise.resolve();
+    const views = host.querySelectorAll('.ml-file-view').length;
+    form.remove();
+    return { late, rebound, abortedAtChange, selectionAtAbort, selected, priorDescription, removed, views, changes };
+  });
+  assert.deepEqual(dynamic, { late: true, rebound: true, abortedAtChange: true, selectionAtAbort: ['new.txt'], selected: ['new.txt', 'ready', 'new.txt'],
+    priorDescription: 'existing-hint', removed: true, views: 1, changes: [['old.txt'], ['new.txt'], [], ['old.txt']] });
   await example.addInitScript(() => { delete window.DataTransfer; });
   await example.reload();
   assert(await exported.locator('input[type="file"]').evaluate(el => el.getBoundingClientRect().width > 10));

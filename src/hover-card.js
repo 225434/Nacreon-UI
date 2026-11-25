@@ -35,6 +35,7 @@
     get open() { return Boolean(this.#openEvents); }
 
     connectedCallback() {
+      globalThis[Symbol.for('material-lib.motion-frames.v1')].watch(this.getRootNode());
       this.#children.observe(this, { childList: true });
       this.#bind();
     }
@@ -243,13 +244,14 @@
     #paint = (pointer, now) => {
       if (this.#trigger.matches(':disabled')) { this.hide(); return; }
       const style = getComputedStyle(this.#surface);
-      const follows = style.getPropertyValue('--ml-follow').trim() === '1';
-      const tier = GlassSurface.lightingTier(style, follows);
+      const light = GlassSurface.lighting(style, this.#scene.media.matches);
+      const follows = light.mode === 'pointer';
+      const tier = GlassSurface.lightingTier(style, light);
       if (!tier) {
         this.#glass?.remove(); this.#glass = null; return;
       }
-      this.#glass = GlassSurface.forTier(this.#glass, this.#surface, false, tier);
-      this.#glass.paint(follows ? pointer : null, null, now);
+      this.#glass = GlassSurface.forTier(this.#glass, this.#surface, false, tier, light);
+      this.#glass.paint(pointer, null, now);
       if (follows && this.#panel.getAnimations().some(animation => animation.playState === 'running')) this.#scene.wake();
       return follows;
     };

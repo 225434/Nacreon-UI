@@ -7,7 +7,7 @@
   <meta name="description" content="在 Nacreon UI 中试用自适应组件，切换浅色、暖色和深色主题，挑选配色与 SVG 图标。">
   <title>切换组件 · Nacreon UI</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./preview/gallery.css?v=9ffa9a4b9187">
+  <link rel="stylesheet" href="./preview/gallery.css?v=cedcd1d0bf8d">
   <style id="navigation-demo-style">
     .ml-nav-sample { container: nav-sample / inline-size; box-sizing: border-box; min-inline-size: 0; color: var(--ml-ink); font-family: var(--ml-type-family, var(--ml-font-sans)); text-align: start; }
     .ml-nav-sample *, .ml-nav-board * { box-sizing: border-box; }
@@ -134,11 +134,11 @@
     .ml-menu-sample dd { margin: 0; font-variant-numeric: tabular-nums; }
     .ml-menu-sample .sample-undo { min-height: 44px; padding: .4rem .65rem; border: var(--ml-border-width) solid var(--ml-color-separator); border-radius: .6rem; background: var(--ml-color-surface); color: var(--ml-accent-ink); font: inherit; cursor: pointer; }
   </style>
-  <script defer src="./preview/components.js?v=448185b94b5d"></script>
-  <script defer src="./preview/gallery.js?v=8413e4b5de49"></script>
+  <script defer src="./preview/components.js?v=c756ef25fdaf"></script>
+  <script defer src="./preview/gallery.js?v=30fe820b9d0d"></script>
 </head>
 <body>
-  <svg class="icon-defs" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <svg class="icon-defs" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" data-small-stroke="2">
     <defs data-category="navigation" data-label="导航与布局">
       <symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" data-label="图层" data-keywords="素材 层叠 stack collection"><path d="m3 8 9-5 9 5-9 5z" fill="var(--ml-icon-pane, none)"/><path d="M3.5 12l8.5 4.8 8.5-4.8"/><path d="M3.5 16l8.5 4.8 8.5-4.8"/></symbol>
       <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" data-label="主页" data-keywords="首页 房子 home dashboard"><path d="m3 10 8-6.5a1.6 1.6 0 0 1 2 0l8 6.5M5.3 8.6v10.3c0 .9.7 1.6 1.6 1.6H10v-6h4v6h3.1c.9 0 1.6-.7 1.6-1.6V8.6" fill="var(--ml-icon-pane, none)"/></symbol>
@@ -247,13 +247,7 @@
         <span lang="en">Nacreon UI</span>
       </div>
       <div class="catalog-location">
-        <ml-button variant="quiet" class="topbar-action">
-          <button id="open-catalog" class="catalog-trigger" type="button" aria-haspopup="dialog" aria-controls="component-catalog" aria-expanded="false" aria-describedby="catalog-current">
-            <svg class="icon catalog-symbol" aria-hidden="true"><use href="#i-grid"/></svg>
-            组件目录
-            <svg class="icon catalog-chevron" aria-hidden="true"><use href="#i-chevron-down"/></svg>
-          </button>
-        </ml-button>
+        <button id="open-catalog" class="ml-navigation-panel-trigger" type="button" aria-haspopup="dialog" aria-controls="component-catalog" aria-expanded="false" aria-describedby="catalog-current" title="浏览组件与设计资源">导航面板</button>
         <span id="catalog-current">切换组件</span>
       </div>
       <nav class="topnav" aria-label="素材库工具">
@@ -268,109 +262,74 @@
   </header>
 
   <ml-dialog id="gallery-catalog" dismiss-on-backdrop>
-    <dialog id="component-catalog" aria-labelledby="catalog-title">
-      <div class="ml-dialog-panel catalog-panel">
-        <div class="catalog-head">
-          <h2 id="catalog-title">组件目录</h2>
-          <span id="catalog-count" role="status"></span>
-          <button class="icon-button catalog-dismiss" type="button" data-ml-dialog-close aria-label="关闭组件目录" title="关闭组件目录">
-            <svg class="icon" aria-hidden="true"><use href="#i-close"/></svg>
-          </button>
-        </div>
-        <div class="catalog-search">
-          <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
-          <input id="catalog-query" type="search" aria-label="搜索全部组件和资源" aria-controls="catalog-links" placeholder="搜索全部组件和资源" autocomplete="off" spellcheck="false" enterkeyhint="go">
-          <button id="catalog-clear" type="button" aria-label="清除搜索" title="清除搜索" hidden>
-            <svg class="icon" aria-hidden="true"><use href="#i-close"/></svg>
-          </button>
-        </div>
-        <div class="catalog-browse">
-          <div class="catalog-categories" role="group" aria-label="目录分类"></div>
-          <div class="catalog-scroll">
-            <nav class="component-nav" id="catalog-links" aria-label="选择组件">
-              <section>
-                <h3><svg class="icon" aria-hidden="true"><use href="#i-toggle"/></svg>基础控件</h3>
-                <div class="catalog-links">
-                  <a href="#switch" data-en="Switch" data-keywords="开关 分段控件 toggle segmented" data-lead="在同一套外观下，控制开关、选择模式或切换页面。" aria-current="page">切换组件</a>
-                  <a href="#button" data-en="Button" data-keywords="按键" data-lead="比较操作层级，试用按压、处理和禁用状态。">按钮组件</a>
-                  <a href="#tag" data-en="Tag" data-keywords="筛选标签 chip token" data-lead="用标签标记记录状态、筛选素材，或编辑一组已选属性。">标签组件</a>
-                  <a href="#badge" data-en="Badges &amp; Indicators" data-keywords="角标 状态指示器 数量徽标 通知徽标 状态标签 通用标签" data-lead="在服务、记录和消息入口旁显示状态、数量与分类。">徽标与指示器</a>
-                </div>
-              </section>
-              <section>
-                <h3><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg>表单输入</h3>
-                <div class="catalog-links">
-                  <a href="#input" data-en="Text Field" data-keywords="文本框 搜索 密码 多行备注 textarea" data-lead="填写文本、搜索记录或输入密码，试用字段的编辑状态与校验反馈。">输入框</a>
-                  <a href="#select" data-en="Select" data-keywords="下拉框 选择框" data-lead="从列表中选择一项，按分组浏览，或输入名称快速查找。">下拉选择框</a>
-                  <a href="#multi-select" data-en="Searchable Multi-select" data-keywords="搜索多选 多选下拉 搜索框 标签 分组选项 combobox listbox" data-lead="按名称、分组或关键词筛选，连续勾选多个选项，再从字段中直接移除已选标签。">可搜索多选框</a>
-                  <a href="#file-upload" data-en="File Upload" data-keywords="附件 文件选择 拖放 拖拽 上传 file picker dropzone" data-lead="选择或拖入文件，核对格式和大小，再查看上传进度。预览使用本地模拟上传。">文件选择与拖放上传</a>
-                  <a href="#form" data-en="Form" data-keywords="表单布局 单列 双列 横向标签 校验 验证 必填 错误汇总 form validation" data-lead="切换表单布局，试用必填和数值校验，再从错误汇总定位到字段。">通用表单</a>
-                  <a href="#choice" data-en="Checkbox &amp; Radio Group" data-keywords="复选 单选" data-lead="逐项勾选报告内容，或从几种版式中选定一种。">复选框与单选组</a>
-                  <a href="#slider" data-en="Slider" data-keywords="滑动条" data-lead="拖动滑块调节数值，或按刻度选择回放速度。">滑块</a>
-                  <a href="#stepper" data-en="Stepper" data-keywords="数字加减" data-lead="按步长增减数量和间隔，也可以直接输入精确数值。">步进器</a>
-                  <a href="#date-picker" data-en="Date Picker" data-keywords="单日 单日期 日历 年 月 日 calendar date" data-lead="直接输入日期，或在月历中点选一天。">单日期选择器</a>
-                  <a href="#time-picker" data-en="Time Picker" data-keywords="时刻 小时 分钟 秒 24 小时 闹钟 clock time" data-lead="在可滚动的时间列里点选时、分、秒，确认后写入时间。">时间选择器</a>
-                  <a href="#date-range" data-en="Date Range Picker" data-keywords="日历 日期区间 calendar" data-lead="直接填写起止日期，或打开日历点选同日、跨月和跨年的区间。">日期范围选择器</a>
-                </div>
-              </section>
-              <section>
-                <h3><svg class="icon" aria-hidden="true"><use href="#i-sidebar"/></svg>导航与操作</h3>
-                <div class="catalog-links">
-                  <a href="#toolbar" data-en="Toolbar" data-keywords="工具条" data-lead="把常用操作放在一组，在图文、仅图标和纵向布局之间切换。">工具栏</a>
-                  <a href="#sidebar" data-en="Sidebar" data-keywords="侧边栏" data-lead="按分组浏览记录，展开或收起侧栏，在窄空间内使用折叠导航。">侧栏</a>
-                  <a href="#tabs" data-en="Tabs" data-keywords="页签 标签页 选项卡 分页签 内容面板 tablist tabpanel" data-lead="在同一处查看概览、数据或备注，切换页签时保留面板里的输入。">页签与内容面板</a>
-                  <a href="#breadcrumb" data-en="Breadcrumbs" data-keywords="路径 上级目录 面包屑 层级 breadcrumb trail" data-lead="沿路径返回上级页面，切换到窄容器可查看折叠后的层级。">面包屑导航</a>
-                  <a href="#steps" data-en="Steps" data-keywords="步骤条 步骤指示 多步骤表单 分步表单 表单向导 流程导航 step indicator wizard" data-lead="查看流程进度，依次填写和核对，也可返回已完成的步骤继续修改。">步骤条</a>
-                  <a href="#tree" data-en="Tree View" data-keywords="树形导航 目录树 文件夹 多级目录 展开 折叠 单选 tree navigation folder" data-lead="展开目录查看子节点，选中目录或文件可查看路径和资料详情。">树形导航</a>
-                  <a href="#menu" data-en="Action Menu" data-keywords="菜单" data-lead="从记录旁打开菜单，执行操作、勾选显示字段，或切换排序方式。">操作菜单</a>
-                  <a href="#pagination" data-en="Pagination" data-keywords="分页器 页码" data-lead="浏览相邻页面、调整每页条数，或输入页码定位到一段记录。">分页</a>
-                </div>
-              </section>
-              <section>
-                <h3><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>内容展示</h3>
-                <div class="catalog-links">
-                  <a href="#list" data-en="Lists" data-keywords="分组列表 列表项" data-lead="用一行呈现记录，按主题分组，或展开查看详情。">列表项与分组列表</a>
-                  <a href="#accordion" data-en="Accordion" data-keywords="折叠面板 折叠区 手风琴 展开 收起 FAQ disclosure" data-lead="点按标题查看详情，可逐项浏览，也可展开多项一起阅读。">折叠面板</a>
-                  <a href="#data-table" data-en="Data Table" data-keywords="表格 数据表" data-lead="按相册、日期或照片数量排序，跨页勾选需要处理的记录。">数据表格</a>
-                  <a href="#info" data-en="Information" data-keywords="信息胶囊 信息卡片 通用卡片" data-lead="用胶囊补充字段说明，用卡片呈现指标、记录与相关操作。">信息组件</a>
-                  <a href="#media-viewer" data-en="Media Viewer" data-keywords="图片 视频 预览器 相册 播放器 缩放 拖动 缩略图 lightbox gallery video media" data-lead="在缩略图间切换素材，放大拖动查看图片细节，或播放风景短片。">图片与视频预览器</a>
-                  <a href="#empty-state" data-en="Empty State" data-keywords="占位 暂无数据 空数据 无搜索结果 筛选 加载失败 重试 无权限 no results error restricted" data-lead="内容为空时，说明发生了什么，并给出创建、清除筛选或重试等操作。">通用空状态</a>
-                  <a href="#hover-card" data-en="Hover Card" data-keywords="悬停卡片 浮层信息" data-lead="悬停、聚焦或轻点文件与字段，在原处查看详情。">悬停信息卡片</a>
-                </div>
-              </section>
-              <section>
-                <h3><svg class="icon" aria-hidden="true"><use href="#i-modal"/></svg>弹层与反馈</h3>
-                <div class="catalog-links">
-                  <a href="#dialog" data-en="Dialog" data-keywords="模态框 对话框 modal" data-lead="在画布中调整外观，或打开模态弹窗试用提示、确认与表单。">弹窗组件</a>
-                  <a href="#drawer" data-en="Detail Drawer" data-keywords="侧滑抽屉" data-lead="保留当前浏览位置，从侧边或底部打开一条记录的详情。">详情抽屉</a>
-                  <a href="#tooltip" data-en="Tooltip" data-keywords="工具提示 气泡提示 悬停提示 字段说明 图标说明 tool tip hint" data-lead="悬停、用 Tab 聚焦或轻点照片的信息按钮，查看简短说明。">工具提示</a>
-                  <a href="#progress" data-en="Progress Bar" data-keywords="进度" data-lead="查看任务的完成比例，或在总量未知时显示等待状态。">进度条</a>
-                  <a href="#loading" data-en="Loading State" data-keywords="加载指示器 骨架屏 加载中 等待 旋转 spinner skeleton" data-lead="等待操作完成时显示加载指示器，读取列表、卡片或表格时用骨架预留内容空间。">通用加载状态</a>
-                  <a href="#feedback" data-en="Toast &amp; Banner" data-keywords="轻提示 消息横幅 通知" data-lead="用轻提示确认刚完成的操作，用消息横幅保留需要处理的信息。">消息反馈</a>
-                  <a href="#island" data-en="Expandable Status Panel" data-keywords="动态岛 状态岛" data-lead="点按岛上的状态，在原处展开简讯、进度或明细。">动态状态岛</a>
-                </div>
-              </section>
-              <section>
-                <h3><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg>设计资源</h3>
-                <div class="catalog-links">
-                  <a href="#colors" data-en="Color Palette" data-keywords="颜色 配色 调色板" data-lead="挑选颜色，比较三种主题下的色值，复制到你的界面。">色彩库</a>
-                  <a href="#icons" data-en="Icon Library" data-keywords="图标 搜索图标" data-lead="按名称或用途查找图标。将动效调到「高」，移动指针可以照亮图标的笔画或玻璃棱面。">图标库</a>
-                  <a href="#materials" data-en="Material Presets" data-keywords="表面 纯色 柔光 磨砂 流体玻璃 GPU Shader WebGL 折射 光源" data-lead="将动效调到「高」，移动鼠标，在同一组色带上比较四档材质的受光变化。">材质库</a>
-                  <a href="#motion" data-en="Motion Library" data-keywords="动画 运动 时间 时长 缓动 弹簧 回弹 位移 按压 淡入 淡出 入场 退场 animation easing spring" data-lead="切换位置、按压或出入场，比较同一个动作在四个档位下的速度和收尾。">动效库</a>
-                  <a href="#typography" data-en="Typography" data-keywords="字体 排版 字号 字重 行高 字距 字阶 标题 正文 等宽 数字 字体栈 type scale font" data-lead="输入一段文字，在标题、正文、数字等样式间切换，查看实际字号、行高和字重。">字体与排版库</a>
-                  <a href="#tokens" data-en="Design Tokens" data-keywords="设计令牌 CSS 变量 间距 圆角 描边 阴影 字体 颜色 材质 动效 token spacing radius" data-lead="按用途查找 CSS 变量，查看它在当前外观下的取值，然后复制到自己的样式中。">设计令牌库</a>
-                  <a href="#themes" data-en="Theme Library" data-keywords="主题 浅色 暖色 深色 作用域 局部覆盖 继承 换肤 light warm dark theme" data-lead="在同一张相册摘要上比较三种主题，可应用到整页，也可只改变样本所在的容器。">主题库</a>
-                </div>
-              </section>
-            </nav>
-            <div class="catalog-empty" hidden>
-              <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
-              <p>没有找到匹配项</p>
-              <button type="button" id="catalog-reset">清除搜索</button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <dialog id="component-catalog" aria-label="导航面板">
+      <ml-navigation-panel label="导航面板" search-label="搜索全部组件和资源">
+        <nav id="catalog-links" aria-label="选择组件">
+          <section>
+            <h3><svg class="icon" aria-hidden="true"><use href="#i-toggle"/></svg>基础控件</h3>
+            <a href="#switch" data-icon="toggle" data-en="Switch" data-keywords="开关 分段控件 toggle segmented" data-lead="在同一套外观下，控制开关、选择模式或切换页面。" aria-current="page">切换组件</a>
+            <a href="#button" data-icon="mode" data-en="Button" data-keywords="按键" data-lead="比较操作层级，试用按压、处理和禁用状态。">按钮组件</a>
+            <a href="#tag" data-icon="tag" data-en="Tag" data-keywords="筛选标签 chip token" data-lead="用标签标记记录状态、筛选素材，或编辑一组已选属性。">标签组件</a>
+            <a href="#badge" data-icon="bell" data-en="Badges &amp; Indicators" data-keywords="角标 状态指示器 数量徽标 通知徽标 状态标签 通用标签" data-lead="在服务、记录和消息入口旁显示状态、数量与分类。">徽标与指示器</a>
+          </section>
+          <section>
+            <h3><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg>表单输入</h3>
+            <a href="#input" data-icon="edit" data-en="Text Field" data-keywords="文本框 搜索 密码 多行备注 textarea" data-lead="填写文本、搜索记录或输入密码，试用字段的编辑状态与校验反馈。">输入框</a>
+            <a href="#select" data-icon="chevron-down" data-en="Select" data-keywords="下拉框 选择框" data-lead="从列表中选择一项，按分组浏览，或输入名称快速查找。">下拉选择框</a>
+            <a href="#multi-select" data-icon="check-circle" data-en="Searchable Multi-select" data-keywords="搜索多选 多选下拉 搜索框 标签 分组选项 combobox listbox" data-lead="按名称、分组或关键词筛选，连续勾选多个选项，再从字段中直接移除已选标签。">可搜索多选框</a>
+            <a href="#file-upload" data-icon="upload" data-en="File Upload" data-keywords="附件 文件选择 拖放 拖拽 上传 file picker dropzone" data-lead="选择或拖入文件，核对格式和大小，再查看上传进度。预览使用本地模拟上传。">文件选择与拖放上传</a>
+            <a href="#form" data-icon="form" data-en="Form" data-keywords="表单布局 单列 双列 横向标签 校验 验证 必填 错误汇总 form validation" data-lead="切换表单布局，试用必填和数值校验，再从错误汇总定位到字段。">通用表单</a>
+            <a href="#choice" data-icon="check" data-en="Checkbox &amp; Radio Group" data-keywords="复选 单选" data-lead="逐项勾选报告内容，或从几种版式中选定一种。">复选框与单选组</a>
+            <a href="#slider" data-icon="sliders" data-en="Slider" data-keywords="滑动条" data-lead="拖动滑块调节数值，或按刻度选择回放速度。">滑块</a>
+            <a href="#stepper" data-icon="plus" data-en="Stepper" data-keywords="数字加减" data-lead="按步长增减数量和间隔，也可以直接输入精确数值。">步进器</a>
+            <a href="#date-picker" data-icon="calendar" data-en="Date Picker" data-keywords="单日 单日期 日历 年 月 日 calendar date" data-lead="直接输入日期，或在月历中点选一天。">单日期选择器</a>
+            <a href="#time-picker" data-icon="clock" data-en="Time Picker" data-keywords="时刻 小时 分钟 秒 24 小时 闹钟 clock time" data-lead="在可滚动的时间列里点选时、分、秒，确认后写入时间。">时间选择器</a>
+            <a href="#date-range" data-icon="calendar" data-en="Date Range Picker" data-keywords="日历 日期区间 calendar" data-lead="直接填写起止日期，或打开日历点选同日、跨月和跨年的区间。">日期范围选择器</a>
+          </section>
+          <section>
+            <h3><svg class="icon" aria-hidden="true"><use href="#i-sidebar"/></svg>导航与操作</h3>
+            <a href="#toolbar" data-icon="sliders" data-en="Toolbar" data-keywords="工具条" data-lead="把常用操作放在一组，在图文、仅图标和纵向布局之间切换。">工具栏</a>
+            <a href="#navigation-panel" data-icon="grid" data-en="Navigation Panel" data-keywords="组件目录 Component Catalog catalog 索引 分类目录 组件导航 搜索索引 catalogue directory component index" data-lead="在单栏列表中逐级浏览。正常型采用固定高度，紧凑型贴合当前列表。">导航面板</a>
+            <a href="#sidebar" data-icon="sidebar" data-en="Sidebar" data-keywords="侧边栏" data-lead="按分组浏览记录，展开或收起侧栏，在窄空间内使用折叠导航。">侧栏</a>
+            <a href="#tabs" data-icon="mode" data-en="Tabs" data-keywords="页签 标签页 选项卡 分页签 内容面板 tablist tabpanel" data-lead="在同一处查看概览、数据或备注，切换页签时保留面板里的输入。">页签与内容面板</a>
+            <a href="#breadcrumb" data-icon="link" data-en="Breadcrumbs" data-keywords="路径 上级目录 面包屑 层级 breadcrumb trail" data-lead="沿路径返回上级页面，切换到窄容器可查看折叠后的层级。">面包屑导航</a>
+            <a href="#steps" data-icon="arrow-right" data-en="Steps" data-keywords="步骤条 步骤指示 多步骤表单 分步表单 表单向导 流程导航 step indicator wizard" data-lead="查看流程进度，依次填写和核对，也可返回已完成的步骤继续修改。">步骤条</a>
+            <a href="#tree" data-icon="folder" data-en="Tree View" data-keywords="树形导航 目录树 文件夹 多级目录 展开 折叠 单选 tree navigation folder" data-lead="展开目录查看子节点，选中目录或文件可查看路径和资料详情。">树形导航</a>
+            <a href="#menu" data-icon="menu" data-en="Action Menu" data-keywords="菜单" data-lead="从记录旁打开菜单，执行操作、勾选显示字段，或切换排序方式。">操作菜单</a>
+            <a href="#pagination" data-icon="more" data-en="Pagination" data-keywords="分页器 页码" data-lead="浏览相邻页面、调整每页条数，或输入页码定位到一段记录。">分页</a>
+          </section>
+          <section>
+            <h3><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>内容展示</h3>
+            <a href="#list" data-icon="list" data-en="Lists" data-keywords="分组列表 列表项" data-lead="用一行呈现记录，按主题分组，或展开查看详情。">列表项与分组列表</a>
+            <a href="#accordion" data-icon="chevron-down" data-en="Accordion" data-keywords="折叠面板 折叠区 手风琴 展开 收起 FAQ disclosure" data-lead="点按标题查看详情，可逐项浏览，也可展开多项一起阅读。">折叠面板</a>
+            <a href="#data-table" data-icon="grid" data-en="Data Table" data-keywords="表格 数据表" data-lead="按相册、日期或照片数量排序，跨页勾选需要处理的记录。">数据表格</a>
+            <a href="#info" data-icon="info" data-en="Information" data-keywords="信息胶囊 信息卡片 通用卡片" data-lead="用胶囊补充字段说明，用卡片呈现指标、记录与相关操作。">信息组件</a>
+            <a href="#media-viewer" data-icon="image" data-en="Media Viewer" data-keywords="图片 视频 预览器 相册 播放器 缩放 拖动 缩略图 lightbox gallery video media" data-lead="在缩略图间切换素材，放大拖动查看图片细节，或播放风景短片。">图片与视频预览器</a>
+            <a href="#empty-state" data-icon="archive" data-en="Empty State" data-keywords="占位 暂无数据 空数据 无搜索结果 筛选 加载失败 重试 无权限 no results error restricted" data-lead="内容为空时，说明发生了什么，并给出创建、清除筛选或重试等操作。">通用空状态</a>
+            <a href="#hover-card" data-icon="page" data-en="Hover Card" data-keywords="悬停卡片 浮层信息" data-lead="悬停、聚焦或轻点文件与字段，在原处查看详情。">悬停信息卡片</a>
+          </section>
+          <section>
+            <h3><svg class="icon" aria-hidden="true"><use href="#i-modal"/></svg>弹层与反馈</h3>
+            <a href="#dialog" data-icon="modal" data-en="Dialog" data-keywords="模态框 对话框 modal" data-lead="在画布中调整外观，或打开模态弹窗试用提示、确认与表单。">弹窗组件</a>
+            <a href="#drawer" data-icon="sidebar" data-en="Detail Drawer" data-keywords="侧滑抽屉" data-lead="保留当前浏览位置，从侧边或底部打开一条记录的详情。">详情抽屉</a>
+            <a href="#tooltip" data-icon="help-circle" data-en="Tooltip" data-keywords="工具提示 气泡提示 悬停提示 字段说明 图标说明 tool tip hint" data-lead="悬停、用 Tab 聚焦或轻点照片的信息按钮，查看简短说明。">工具提示</a>
+            <a href="#progress" data-icon="gauge" data-en="Progress Bar" data-keywords="进度" data-lead="查看任务的完成比例，或在总量未知时显示等待状态。">进度条</a>
+            <a href="#loading" data-icon="timer" data-en="Loading State" data-keywords="加载指示器 骨架屏 加载中 等待 旋转 spinner skeleton" data-lead="等待操作完成时显示加载指示器，读取列表、卡片或表格时用骨架预留内容空间。">通用加载状态</a>
+            <a href="#feedback" data-icon="bell" data-en="Toast &amp; Banner" data-keywords="轻提示 消息横幅 通知" data-lead="用轻提示确认刚完成的操作，用消息横幅保留需要处理的信息。">消息反馈</a>
+            <a href="#island" data-icon="signal" data-en="Expandable Status Panel" data-keywords="动态岛 状态岛" data-lead="点按岛上的状态，在原处展开简讯、进度或明细。">动态状态岛</a>
+          </section>
+          <section>
+            <h3><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg>设计资源</h3>
+            <a href="#colors" data-icon="drop" data-en="Color Palette" data-keywords="颜色 配色 调色板" data-lead="挑选颜色，比较三种主题下的色值，复制到你的界面。">色彩库</a>
+            <a href="#icons" data-icon="aperture" data-en="Icon Library" data-keywords="图标 搜索图标" data-lead="按名称或用途查找图标。将动效调到「高」，移动指针可以照亮图标的笔画或玻璃棱面。">图标库</a>
+            <a href="#materials" data-icon="layers" data-en="Material Presets" data-keywords="表面 纯色 柔光 磨砂 流体玻璃 GPU Shader WebGL 折射 光源" data-lead="将动效调到「高」，移动鼠标，在同一组色带上比较四档材质的受光变化。">材质库</a>
+            <a href="#motion" data-icon="play" data-en="Motion Library" data-keywords="动画 运动 时间 时长 缓动 弹簧 回弹 位移 按压 淡入 淡出 入场 退场 animation easing spring" data-lead="切换位置、按压或出入场，比较同一个动作在四个档位下的速度和收尾。">动效库</a>
+            <a href="#typography" data-icon="keyboard" data-en="Typography" data-keywords="字体 排版 字号 字重 行高 字距 字阶 标题 正文 等宽 数字 字体栈 type scale font" data-lead="输入一段文字，在标题、正文、数字等样式间切换，查看实际字号、行高和字重。">字体与排版库</a>
+            <a href="#tokens" data-icon="ruler" data-en="Design Tokens" data-keywords="设计令牌 CSS 变量 间距 圆角 描边 阴影 字体 颜色 材质 动效 token spacing radius" data-lead="按用途查找 CSS 变量，查看它在当前外观下的取值，然后复制到自己的样式中。">设计令牌库</a>
+            <a href="#themes" data-icon="sun" data-en="Theme Library" data-keywords="主题 浅色 暖色 深色 作用域 局部覆盖 继承 换肤 light warm dark theme" data-lead="在同一张相册摘要上比较三种主题，可应用到整页，也可只改变样本所在的容器。">主题库</a>
+          </section>
+        </nav>
+      </ml-navigation-panel>
     </dialog>
   </ml-dialog>
 
@@ -398,6 +357,11 @@
           <legend class="sr-only">应用主题的范围</legend>
           <label><input type="radio" name="theme-scope" value="page" checked><span>整页主题</span></label>
           <label><input type="radio" name="theme-scope" value="local"><span>局部容器</span></label>
+        </fieldset>
+        <fieldset id="material-surfaces" class="use-picker" hidden>
+          <legend class="sr-only">表面用途</legend>
+          <label><input type="radio" name="material-surface" value="lens" checked><span>展示面</span></label>
+          <label><input type="radio" name="material-surface" value="content"><span>阅读面</span></label>
         </fieldset>
         <fieldset id="motion-kinds" class="use-picker" hidden>
           <legend class="sr-only">演示动作</legend>
@@ -437,6 +401,18 @@
           <label><input type="radio" name="toolbar-kind" value="icons"><span>仅图标</span></label>
           <label><input type="radio" name="toolbar-kind" value="vertical"><span>纵向</span></label>
         </fieldset>
+        <div id="catalog-options" hidden>
+          <fieldset id="catalog-kinds" class="use-picker">
+            <legend class="sr-only">导航面板呈现方式</legend>
+            <label><input type="radio" name="catalog-kind" value="inline" checked><span>嵌入页面</span></label>
+            <label><input type="radio" name="catalog-kind" value="dialog"><span>弹窗打开</span></label>
+          </fieldset>
+          <fieldset class="use-picker">
+            <legend class="sr-only">导航面板尺寸</legend>
+            <label><input type="radio" name="catalog-density" value="normal" checked><span>正常型</span></label>
+            <label><input type="radio" name="catalog-density" value="compact"><span>紧凑型</span></label>
+          </fieldset>
+        </div>
         <fieldset id="sidebar-kinds" class="use-picker" hidden>
           <legend class="sr-only">侧栏布局</legend>
           <label><input type="radio" name="sidebar-kind" value="auto" checked><span>自适应</span></label>
@@ -605,26 +581,26 @@
             </ml-tooltip>
           </div>
           <div class="stage-center">
-            <div class="specimen" data-specimen="toggle">
+            <div class="specimen" data-specimen="toggle" data-preview-page="switch"><template data-preview-content>
               <ml-switch class="hero-toggle" data-example="hints" label="快捷键提示" checked></ml-switch>
-            </div>
-            <div class="specimen" data-specimen="mode" hidden>
+            </template></div>
+            <div class="specimen" data-specimen="mode" hidden data-preview-page="switch"><template data-preview-content>
               <ml-switch kind="mode" class="hero-segments" label="预览尺寸" data-example="size" value="detail">
                 <button type="button" value="actual"><svg class="icon" aria-hidden="true"><use href="#i-size"/></svg>原寸</button>
                 <button type="button" value="detail"><svg class="icon" aria-hidden="true"><use href="#i-zoom"/></svg>放大</button>
               </ml-switch>
-            </div>
-            <div class="specimen" data-specimen="page" hidden>
+            </template></div>
+            <div class="specimen" data-specimen="page" hidden data-preview-page="switch"><template data-preview-content>
               <ml-switch kind="page" class="hero-segments" label="示例页面" data-example="page" value="overview">
                 <a href="#page-overview" data-value="overview">概览</a><a href="#page-specs" data-value="specs">详情</a><a href="#page-keys" data-value="keys">备注</a>
               </ml-switch>
-            </div>
+            </template></div>
             <ml-button id="hero-button" variant="primary" hidden>
               <button type="button"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg><span>记录一次</span></button>
             </ml-button>
             <ml-dialog id="dialog-inline" hidden></ml-dialog>
             <ml-button id="dialog-reopen" variant="secondary" hidden><button type="button">重新预览</button></ml-button>
-            <div id="tag-specimens" hidden>
+            <div id="tag-specimens" hidden data-preview-page="tag">
               <div class="ml-tag-group" data-tag-view="status" role="group" aria-label="记录状态">
                 <ml-tag label="草稿"></ml-tag>
                 <ml-tag label="进行中" tone="info"></ml-tag>
@@ -635,15 +611,16 @@
               <div class="ml-tag-group" data-tag-view="filter" data-tag-filters role="group" aria-label="筛选素材类型" hidden></div>
               <div class="ml-tag-group" data-tag-view="removable" data-tag-tokens role="group" aria-label="记录标签" tabindex="-1" hidden></div>
             </div>
-            <div id="input-specimen" hidden></div>
-            <div id="value-specimen" hidden></div>
-            <div id="toolbar-specimen" class="nav-specimen" hidden></div>
-            <div id="sidebar-specimen" class="nav-specimen" hidden></div>
-            <div id="tabs-specimen" hidden></div>
-            <div id="steps-specimen" hidden></div>
-            <div id="tree-specimen" hidden></div>
-            <div id="media-viewer-specimen" hidden></div>
-            <figure id="tooltip-specimen" hidden>
+            <div id="input-specimen" hidden data-preview-page="input"></div>
+            <div id="value-specimen" hidden data-preview-page="slider stepper date-picker time-picker date-range"></div>
+            <div id="toolbar-specimen" class="nav-specimen" hidden data-preview-page="toolbar"></div>
+            <div id="sidebar-specimen" class="nav-specimen" hidden data-preview-page="sidebar"></div>
+            <div id="tabs-specimen" hidden data-preview-page="tabs"></div>
+            <div id="steps-specimen" hidden data-preview-page="steps"></div>
+            <div id="catalog-specimen" hidden data-preview-page="navigation-panel"></div>
+            <div id="tree-specimen" hidden data-preview-page="tree"></div>
+            <div id="media-viewer-specimen" hidden data-preview-page="media-viewer"></div>
+            <figure id="tooltip-specimen" hidden data-preview-page="tooltip"><template data-preview-content>
               <img src="./preview/assets/media/alpine-lake.jpg" alt="雪峰与松林倒映在湖面上" width="1672" height="941" loading="lazy">
               <figcaption>
                 <strong>山间湖泊</strong>
@@ -651,8 +628,8 @@
                   <button type="button" aria-label="照片信息"><ml-icon name="info" size="22"></ml-icon></button>
                 </ml-tooltip>
               </figcaption>
-            </figure>
-            <div id="breadcrumb-specimen" hidden>
+            </template></figure>
+            <div id="breadcrumb-specimen" hidden data-preview-page="breadcrumb"><template data-preview-content>
               <ml-breadcrumb>
                 <nav aria-label="当前位置"><ol role="list"></ol></nav>
               </ml-breadcrumb>
@@ -666,9 +643,9 @@
                   <span></span><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"/></svg>
                 </a>
               </section>
-            </div>
-            <div id="drawer-specimen" class="nav-specimen" hidden></div>
-            <div id="data-table-specimen" class="records-specimen" hidden></div>
+            </template></div>
+            <div id="drawer-specimen" class="nav-specimen" hidden data-preview-page="drawer"></div>
+            <div id="data-table-specimen" class="records-specimen" hidden data-preview-page="data-table"></div>
             <template id="record-table-source">
               <ml-data-table>
                 <table>
@@ -698,7 +675,7 @@
                 <ml-pagination page-size="3" page-sizes="3,5,10" label="素材记录分页"></ml-pagination>
               </ml-data-table>
             </template>
-            <div id="pagination-specimen" class="records-specimen" hidden>
+            <div id="pagination-specimen" class="records-specimen" hidden data-preview-page="pagination">
               <ml-pagination total="238" page="6" page-size="10" page-sizes="5,10,20,50" label="记录分页"></ml-pagination>
             </div>
             <template id="value-templates">
@@ -739,30 +716,30 @@
                 <label>结束日期<input name="to" type="date" min="2030-11-01" max="2030-11-30" value="2030-11-13"></label>
               </ml-date-range>
             </template>
-            <div id="choice-specimen" hidden></div>
-            <div id="list-specimen" hidden></div>
-            <div id="accordion-specimen" hidden>
+            <div id="choice-specimen" hidden data-preview-page="choice"></div>
+            <div id="list-specimen" hidden data-preview-page="list"></div>
+            <div id="accordion-specimen" hidden data-preview-page="accordion"><template data-preview-content>
               <div class="accordion-album">
                 <img src="./preview/assets/media/alpine-lake.jpg" alt="" width="56" height="44" loading="lazy">
                 <div><h3>山间湖泊</h3><p>风景相册</p></div>
               </div>
-            </div>
-            <div id="empty-state-specimen" hidden></div>
-            <div id="menu-specimen" hidden></div>
-            <div id="select-specimen" hidden>
+            </template></div>
+            <div id="empty-state-specimen" hidden data-preview-page="empty-state"></div>
+            <div id="menu-specimen" hidden data-preview-page="menu"></div>
+            <div id="select-specimen" hidden data-preview-page="select">
               <label for="hero-select">排序方式</label>
               <ml-select><select id="hero-select"></select></ml-select>
             </div>
-            <div id="multi-select-specimen" hidden></div>
-            <div id="file-upload-specimen" hidden></div>
-            <div id="form-specimen" hidden></div>
-            <div id="hover-specimen" hidden></div>
-            <div id="info-specimen" hidden></div>
-            <div id="progress-specimen" hidden>
+            <div id="multi-select-specimen" hidden data-preview-page="multi-select"></div>
+            <div id="file-upload-specimen" hidden data-preview-page="file-upload"></div>
+            <div id="form-specimen" hidden data-preview-page="form"></div>
+            <div id="hover-specimen" hidden data-preview-page="hover-card"></div>
+            <div id="info-specimen" hidden data-preview-page="info"></div>
+            <div id="progress-specimen" hidden data-preview-page="progress">
               <span class="progress-mark" aria-hidden="true"><ml-icon name="archive" size="22"></ml-icon></span>
               <ml-progress><progress aria-label="风景照片归档" value="16" max="25"></progress></ml-progress>
             </div>
-            <div id="loading-specimen" hidden>
+            <div id="loading-specimen" hidden data-preview-page="loading"><template data-preview-content>
               <ml-material class="loading-preview-panel">
                 <header class="loading-preview-head">
                   <span class="loading-record-icon" aria-hidden="true"><ml-icon name="archive" size="21"></ml-icon></span>
@@ -794,8 +771,8 @@
                   </div>
                 </div>
               </ml-material>
-            </div>
-            <div id="feedback-specimen" hidden>
+            </template></div>
+            <div id="feedback-specimen" hidden data-preview-page="feedback">
               <ml-toast id="feedback-preview-toast" inline></ml-toast>
               <ml-banner id="feedback-preview-banner" dismissible hidden>
                 <div class="ml-banner-content"><strong></strong><p></p></div>
@@ -803,13 +780,13 @@
               </ml-banner>
               <ml-button id="feedback-restore" variant="secondary" hidden><button type="button">重新显示</button></ml-button>
             </div>
-            <div id="island-specimen" class="island-dock" data-ml-island-bounds data-direction="right" hidden>
+            <div id="island-specimen" class="island-dock" data-ml-island-bounds data-direction="right" hidden data-preview-page="island">
               <ml-island id="hero-island" direction="right" tone="mint" open>
                 <button type="button"><span class="ml-island-mark" aria-hidden="true"><ml-icon name="archive"></ml-icon></span>图像归档 <span class="ml-island-value">68%</span></button>
                 <div class="ml-island-panel"></div>
               </ml-island>
             </div>
-            <div id="badge-specimens" hidden>
+            <div id="badge-specimens" hidden data-preview-page="badge">
               <ul class="badge-sheet" data-badge-view="indicator" aria-label="服务状态">
                 <li><span class="badge-row-title"><svg class="icon" aria-hidden="true"><use href="#i-signal"/></svg>导入服务</span><ml-badge kind="indicator" state="online" data-badge-live></ml-badge></li>
                 <li><span class="badge-row-title"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg>素材同步</span><ml-badge kind="indicator" state="busy"></ml-badge></li>
@@ -841,9 +818,9 @@
                 </div>
               </div>
             </div>
-            <div id="material-specimen" hidden></div>
-            <div id="motion-specimen" class="motion-sample" hidden></div>
-            <div id="palette-specimen" hidden>
+            <div id="material-specimen" hidden data-preview-page="materials"></div>
+            <div id="motion-specimen" class="motion-sample" hidden data-preview-page="motion"></div>
+            <div id="palette-specimen" hidden data-preview-page="colors">
               <div class="palette-face">
                 <div class="palette-identity">
                   <strong id="palette-name"></strong>
@@ -854,7 +831,7 @@
               </div>
               <fieldset><legend class="sr-only">选择色样</legend><div id="palette-strip"></div></fieldset>
             </div>
-            <div id="typography-specimen" class="foundation-sheet" data-resource="typography" hidden>
+            <div id="typography-specimen" class="foundation-sheet" data-resource="typography" hidden data-preview-page="typography">
               <div class="type-sheet-head"><strong id="type-name"></strong></div>
               <p id="type-live"></p>
               <dl class="type-metrics" aria-label="实际排版参数">
@@ -864,7 +841,7 @@
               <label class="type-editor" for="type-text">试排文字<input id="type-text" type="text" maxlength="240" autocomplete="off"></label>
               <details class="type-stack"><summary>字体回退顺序</summary><code id="type-stack" dir="ltr"></code></details>
             </div>
-            <div id="tokens-specimen" class="foundation-sheet" data-resource="tokens" hidden>
+            <div id="tokens-specimen" class="foundation-sheet" data-resource="tokens" hidden data-preview-page="tokens">
               <div id="token-selection">
                 <div class="token-head"><strong id="token-title"></strong><span id="token-group-label"></span></div>
                 <div id="token-art" aria-hidden="true"><div id="token-demo"></div></div>
@@ -872,7 +849,7 @@
               </div>
               <p id="token-empty" hidden>没有匹配的令牌。可以更换分组或搜索词。</p>
             </div>
-            <div id="themes-specimen" data-resource="themes" data-ml-theme-surface hidden>
+            <div id="themes-specimen" data-resource="themes" data-ml-theme-surface hidden data-preview-page="themes">
               <div class="theme-record" data-ml-prose>
                 <p data-ml-type="caption">素材记录 · DEMO-101</p><h3 data-ml-type="heading">山间湖泊选集</h3>
                 <div class="theme-measure"><span data-ml-type="metric">128.64</span><span data-ml-type="label">MB</span></div>
@@ -880,7 +857,7 @@
               </div>
               <div id="theme-swatches" aria-label="当前主题色样"></div>
             </div>
-            <div id="icon-specimen" hidden>
+            <div id="icon-specimen" hidden data-preview-page="icons">
               <div id="icon-selected">
                 <ml-button class="icon-plate" variant="secondary" icon-only><button type="button" data-copy-icon aria-label="复制所选图标的 SVG"><ml-icon id="icon-enlarged" size="76"></ml-icon></button></ml-button>
                 <div class="icon-details">
@@ -919,7 +896,7 @@
               <label><input type="radio" name="value-state" value="disabled"><span>禁用</span></label>
             </fieldset>
             <ml-button variant="secondary" id="info-advance" hidden><button type="button">复核下一组</button></ml-button>
-            <div id="progress-tools" hidden>
+            <div id="progress-tools" hidden data-preview-page="progress">
               <ml-button variant="secondary"><button type="button" id="progress-pause">暂停</button></ml-button>
               <ml-button><button type="button" id="progress-advance" data-advance="归档下一张" data-total="25">归档下一张</button></ml-button>
             </div>
@@ -932,11 +909,11 @@
             <ml-button id="form-tools" variant="secondary" hidden><button type="button">载入示例数据</button></ml-button>
             <ml-button id="breadcrumb-tools" variant="secondary" hidden><button type="button">恢复深层路径</button></ml-button>
             <ml-button id="steps-tools" variant="secondary" hidden><button type="button">重新开始</button></ml-button>
-            <div id="tree-tools" hidden>
+            <div id="tree-tools" hidden data-preview-page="tree"><template data-preview-content>
               <ml-button variant="secondary"><button type="button" data-tree-open>全部展开</button></ml-button>
               <ml-button variant="quiet"><button type="button" data-tree-close>全部折叠</button></ml-button>
-            </div>
-            <div id="tabs-tools" hidden>
+            </template></div>
+            <div id="tabs-tools" hidden data-preview-page="tabs"><template data-preview-content>
               <fieldset id="tabs-variants" class="use-picker button-states">
                 <legend class="sr-only">页签外观</legend>
                 <label><input type="radio" name="tabs-variant" value="line" checked><span>底线</span></label>
@@ -947,8 +924,8 @@
                 <label><input type="radio" name="tabs-activation" value="auto" checked><span>跟随焦点</span></label>
                 <label><input type="radio" name="tabs-activation" value="manual"><span>按键确认</span></label>
               </fieldset>
-            </div>
-            <div id="loading-tools" hidden>
+            </template></div>
+            <div id="loading-tools" hidden data-preview-page="loading"><template data-preview-content>
               <fieldset id="spinner-variants" class="use-picker button-states">
                 <legend class="sr-only">指示器样式</legend>
                 <label><input type="radio" name="spinner-variant" value="ring" checked><span>圆环</span></label>
@@ -961,8 +938,8 @@
                 <label><input type="radio" name="skeleton-preset" value="table"><span>表格</span></label>
               </fieldset>
               <ml-button variant="secondary"><button type="button" id="loading-toggle" aria-controls="loading-preview-body">完成加载</button></ml-button>
-            </div>
-            <div id="feedback-tools" hidden>
+            </template></div>
+            <div id="feedback-tools" hidden data-preview-page="feedback">
               <fieldset id="feedback-tones" class="use-picker">
                 <legend class="sr-only">消息状态</legend>
                 <label><input type="radio" name="feedback-tone" value="info"><span>信息</span></label>
@@ -972,7 +949,7 @@
               </fieldset>
               <ml-button id="feedback-play" variant="secondary"><button type="button">试播轻提示</button></ml-button>
             </div>
-            <div id="input-tools" hidden>
+            <div id="input-tools" hidden data-preview-page="input">
               <fieldset id="input-states" class="use-picker">
                 <legend class="sr-only">输入状态</legend>
                 <label><input type="radio" name="input-state" value="editable" checked><span>可编辑</span></label>
@@ -981,7 +958,7 @@
               </fieldset>
               <ml-button id="input-verify" variant="secondary"><button type="button">检查输入</button></ml-button>
             </div>
-            <div id="island-tools" hidden>
+            <div id="island-tools" hidden data-preview-page="island">
               <fieldset id="island-content" class="use-picker">
                 <legend class="sr-only">展开内容</legend>
                 <label><input type="radio" name="island-content" value="brief"><span>简讯</span></label>
@@ -996,16 +973,16 @@
                 <label class="island-custom-color"><span>自选色</span><input type="color" id="island-custom-color" aria-label="自选岛身颜色" value="#00c8b3"></label>
               </fieldset>
             </div>
-            <div id="token-tools" data-resource="tokens" hidden>
+            <div id="token-tools" data-resource="tokens" hidden data-preview-page="tokens">
               <button class="code-button" type="button" id="token-play" hidden>演示过渡</button>
               <button class="code-button" type="button" id="copy-token"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>复制变量</button>
               <span id="token-copy-status" role="status"></span>
             </div>
-            <div id="palette-tools" hidden>
+            <div id="palette-tools" hidden data-preview-page="colors">
               <ml-button variant="secondary"><button type="button" data-copy-palette="palette-hex"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>复制 HEX</button></ml-button>
               <ml-button variant="secondary"><button type="button" data-copy-palette="palette-variable"><svg class="icon" aria-hidden="true"><use href="#i-code"/></svg>复制变量</button></ml-button>
             </div>
-            <div id="icon-tools" hidden>
+            <div id="icon-tools" hidden data-preview-page="icons">
               <ml-button variant="secondary"><button type="button" id="replay-icon-motion"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>重播动效</button></ml-button>
               <ml-button variant="secondary"><button type="button" data-copy-icon><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>复制 SVG</button></ml-button>
               <ml-button variant="secondary"><button type="button" id="download-icon"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>下载 SVG</button></ml-button>
@@ -1018,7 +995,7 @@
               <label><input type="radio" name="button-state" value="busy"><span>处理中</span></label>
               <label><input type="radio" name="button-state" value="disabled"><span>禁用</span></label>
             </fieldset>
-            <div id="choice-tools" hidden>
+            <div id="choice-tools" hidden data-preview-page="choice">
               <fieldset class="use-picker button-states" id="choice-layout">
                 <legend class="sr-only">选项排列方式</legend>
                 <label><input type="radio" name="choice-layout" value="stack" checked><span>纵向</span></label>
@@ -1035,7 +1012,7 @@
               <label><input type="radio" name="menu-entrance" value="text" checked><span>文字入口</span></label>
               <label><input type="radio" name="menu-entrance" value="icon"><span>图标入口</span></label>
             </fieldset>
-            <div id="list-tools" hidden>
+            <div id="list-tools" hidden data-preview-page="list">
               <fieldset class="use-picker button-states" id="list-row-kinds" hidden>
                 <legend class="sr-only">列表项用途</legend>
                 <label><input type="radio" name="list-row-kind" value="info" checked><span>信息</span></label>
@@ -1057,7 +1034,7 @@
               <svg class="icon" aria-hidden="true"><use href="#i-modal"/></svg>打开模态弹窗
             </button>
             <button type="button" class="code-button tag-undo" data-tag-undo hidden><svg class="icon" aria-hidden="true"><use href="#i-undo"/></svg>撤销移除</button>
-            <div id="badge-tools" hidden>
+            <div id="badge-tools" hidden data-preview-page="badge">
               <div data-badge-tools="indicator"><button type="button" data-badge-op="cycle">切换导入状态</button></div>
               <div data-badge-tools="count" hidden>
                 <button type="button" data-badge-op="less" aria-label="减少一条记录">−1</button><button type="button" data-badge-op="add" aria-label="增加一条记录">+1</button><button type="button" data-badge-op="hundred" aria-label="增加一百条记录">+100</button><button type="button" data-badge-op="zero">清零</button>
@@ -1091,24 +1068,38 @@
           <fieldset class="appearance-field">
             <legend>材质</legend><span class="field-note" id="material-note">实心流体玻璃</span>
             <div class="level-options">
-              <label><input type="radio" name="material" value="base"><span>基础</span></label>
+              <label><input type="radio" name="material" value="base"><span>关闭</span></label>
               <label><input type="radio" name="material" value="low"><span>低</span></label>
               <label><input type="radio" name="material" value="medium"><span>中</span></label>
               <label><input type="radio" name="material" value="high" checked><span>高</span></label>
             </div>
           </fieldset>
+          <ml-slider class="appearance-field appearance-range" id="transparency-field" unit="%">
+            <label for="material-transparency">材质透明度</label><input type="range" id="material-transparency" min="0" max="100" value="60">
+          </ml-slider>
+          <fieldset class="appearance-field" id="glass-density-field" hidden>
+            <legend>玻璃染色浓度</legend><span class="field-note" id="density-note">适中</span>
+            <ml-slider unit="×" style="--ml-thumb: 1.35rem"><label class="sr-only" for="glass-density">玻璃染色浓度</label><input type="range" id="glass-density" min="0.4" max="2" step="0.1" value="1"></ml-slider>
+          </fieldset>
           <fieldset class="appearance-field">
-            <legend>动态效果</legend><span class="field-note" id="motion-note">指针照明 · 液面回弹</span>
+            <legend>光源</legend><span class="field-note" id="light-note"></span>
+            <div class="theme-options light-options">
+              <label><input type="radio" name="light-source" value="pointer" checked><span>指针光源</span></label>
+              <label><input type="radio" name="light-source" value="fixed"><span>固定光源</span></label>
+              <label><input type="radio" name="light-source" value="none"><span>无光源</span></label>
+            </div>
+          </fieldset>
+          <ml-slider class="appearance-field appearance-range" id="light-intensity-field" unit="%">
+            <label for="light-intensity">光源强度</label><input type="range" id="light-intensity" min="0" max="100" value="100">
+          </ml-slider>
+          <fieldset class="appearance-field">
+            <legend>动态效果</legend><span class="field-note" id="motion-note">弹性反馈</span>
             <div class="level-options">
               <label><input type="radio" name="motion" value="base"><span>基础</span></label>
               <label><input type="radio" name="motion" value="low"><span>低</span></label>
               <label><input type="radio" name="motion" value="medium"><span>中</span></label>
               <label><input type="radio" name="motion" value="high" checked><span>高</span></label>
             </div>
-          </fieldset>
-          <fieldset class="appearance-field" id="glass-density-field" hidden>
-            <legend>玻璃浓度</legend><span class="field-note" id="density-note">适中</span>
-            <ml-slider unit="×" style="--ml-thumb: 1.35rem"><label class="sr-only" for="glass-density">玻璃浓度</label><input type="range" id="glass-density" min="0.4" max="2" step="0.1" value="1"></ml-slider>
           </fieldset>
         </aside>
       </div>
@@ -1118,10 +1109,10 @@
       <div class="section-heading"><h2 id="examples-title">应用示例</h2><span class="section-rule" aria-hidden="true"></span>
         <button id="motion-sync" class="code-button" type="button" aria-controls="motion-examples" hidden><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>同步演示</button>
       </div>
-      <fieldset id="typography-examples" class="type-grid" data-resource="typography" hidden>
+      <fieldset id="typography-examples" class="type-grid" data-resource="typography" hidden data-preview-page="typography">
         <legend class="sr-only">选择试排样式</legend>
       </fieldset>
-      <div id="tokens-examples" data-resource="tokens" hidden>
+      <div id="tokens-examples" data-resource="tokens" hidden data-preview-page="tokens">
         <div class="token-filters">
           <label class="foundation-search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input id="token-search" type="search" aria-label="搜索令牌" placeholder="搜索名称、变量或 CSS 属性" autocomplete="off"></label>
           <ml-select><select id="token-group" aria-label="令牌分组"><option value="">全部分组</option></select></ml-select>
@@ -1129,12 +1120,12 @@
         </div>
         <div class="token-directory"><div class="token-columns" aria-hidden="true"><span>名称</span><span>CSS 变量</span><span>当前值</span></div><div id="token-list" role="group" aria-label="选择令牌"></div></div>
       </div>
-      <fieldset id="themes-examples" class="theme-grid" data-resource="themes" hidden>
+      <fieldset id="themes-examples" class="theme-grid" data-resource="themes" hidden data-preview-page="themes">
         <legend class="sr-only">选择主题预设</legend>
       </fieldset>
-      <fieldset id="motion-examples" class="motion-grid" hidden>
+      <fieldset id="motion-examples" class="motion-grid" hidden data-preview-page="motion"><template data-preview-content>
         <legend class="sr-only">选择要预览的动效档位</legend>
-      </fieldset>
+      </template></fieldset>
       <template id="motion-move-template">
         <div class="motion-lane">
           <div class="ml-motion-track">
@@ -1149,7 +1140,7 @@
       <template id="motion-reveal-template">
         <div class="motion-notice-frame"><ml-material class="motion-notice"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg><span>更改已保存</span></ml-material></div>
       </template>
-      <fieldset id="materials-examples" class="material-grid" hidden>
+      <fieldset id="materials-examples" class="material-grid" hidden data-preview-page="materials">
         <legend class="sr-only">选择要放大预览的材质档位</legend>
       </fieldset>
       <details id="material-history" hidden>
@@ -1164,7 +1155,7 @@
           <ml-material class="material-lens"><span class="material-lens-label"><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg>表面样本</span></ml-material>
         </span>
       </template>
-      <div id="icons-examples" hidden>
+      <div id="icons-examples" hidden data-preview-page="icons">
         <div class="icon-catalog-bar">
           <label class="icon-search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input id="icon-search" type="search" aria-label="搜索图标" placeholder="搜索名称或用途" autocomplete="off"></label>
           <ml-select><select id="icon-category" aria-label="图标分类"><option value="all">全部分类</option></select></ml-select>
@@ -1174,7 +1165,7 @@
         <div id="icon-grid" role="radiogroup" aria-label="选择图标"></div>
         <div id="icon-empty" hidden><p>没有匹配的图标</p><button type="button" class="code-button" id="clear-icon-filter">清除筛选</button></div>
       </div>
-      <div id="colors-examples" hidden>
+      <div id="colors-examples" hidden data-preview-page="colors">
         <p class="palette-table-note" id="palette-table-status" role="status">点击色值即可复制。</p>
         <div class="palette-table-wrap">
           <table class="palette-table" aria-label="当前色板在三种主题下的 HEX 色值">
@@ -1188,7 +1179,7 @@
           </table>
         </div>
       </div>
-      <div class="example-grid" id="switch-examples">
+      <div class="example-grid" id="switch-examples" data-preview-page="switch"><template data-preview-content>
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-toggle"/></svg></span><h3>开关</h3></div>
           <p>显示或隐藏预览区的快捷键提示。</p>
@@ -1211,8 +1202,8 @@
             <a href="#page-overview" data-value="overview">概览</a><a href="#page-specs" data-value="specs">详情</a><a href="#page-keys" data-value="keys">备注</a>
           </ml-switch></div>
         </article>
-      </div>
-      <div class="example-grid" id="button-examples" hidden>
+      </template></div>
+      <div class="example-grid" id="button-examples" hidden data-preview-page="button">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-form"/></svg></span><h3>表单提交</h3></div>
           <p id="name-status" role="status">输入名称，保存本页的样本名。</p>
@@ -1235,7 +1226,7 @@
           </div>
         </article>
       </div>
-      <div class="example-grid" id="dialog-examples" hidden>
+      <div class="example-grid" id="dialog-examples" hidden data-preview-page="dialog">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg></span><h3>信息提示</h3></div>
           <p>查看当前主题、材质与动态效果。</p>
@@ -1252,7 +1243,7 @@
           <div class="sample-row"><ml-button variant="secondary"><button type="button" data-open-dialog="form" aria-haspopup="dialog">编辑名称</button></ml-button></div>
         </article>
       </div>
-      <div class="example-grid" id="tag-examples" hidden>
+      <div class="example-grid" id="tag-examples" hidden data-preview-page="tag">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-timer"/></svg></span><h3>记录状态</h3></div>
           <p>用文字、图标和颜色标记记录的处理进度。</p>
@@ -1277,7 +1268,7 @@
           </div>
         </article>
       </div>
-      <div class="example-grid" id="select-examples" hidden>
+      <div class="example-grid" id="select-examples" hidden data-preview-page="select">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-sort"/></svg></span><h3>记录排序</h3></div>
           <p>选择排列方式，查看三条记录的顺序。</p>
@@ -1328,7 +1319,7 @@
           </form>
         </article>
       </div>
-      <div id="multi-select-examples" class="example-grid multi-select-examples" hidden>
+      <div id="multi-select-examples" class="example-grid multi-select-examples" hidden data-preview-page="multi-select"><template data-preview-content>
         <article class="example-card">
           <h3>报告范围</h3>
           <form id="multi-select-form" class="multi-example-form">
@@ -1371,8 +1362,8 @@
             </tbody>
           </table>
         </article>
-      </div>
-      <div id="file-upload-examples" class="example-grid file-upload-examples" hidden>
+      </template></div>
+      <div id="file-upload-examples" class="example-grid file-upload-examples" hidden data-preview-page="file-upload"><template data-preview-content>
         <article class="example-card">
           <h3>报告附件</h3>
           <form id="file-attachment-form" enctype="multipart/form-data">
@@ -1395,8 +1386,8 @@
             <ml-button variant="secondary"><button id="file-photo-sample" type="button">选用示例照片</button></ml-button>
           </div>
         </article>
-      </div>
-      <div id="form-examples" hidden>
+      </template></div>
+      <div id="form-examples" hidden data-preview-page="form"><template data-preview-content>
         <ml-form validate-on="submit">
           <form aria-label="补交附件" enctype="multipart/form-data">
             <fieldset class="ml-form-section">
@@ -1415,8 +1406,8 @@
             </div>
           </form>
         </ml-form>
-      </div>
-      <div class="example-grid" id="tooltip-examples" hidden>
+      </template></div>
+      <div class="example-grid" id="tooltip-examples" hidden data-preview-page="tooltip"><template data-preview-content>
         <article class="example-card">
           <div class="card-top"><span class="card-icon" aria-hidden="true"><ml-icon name="bookmark" size="18"></ml-icon></span><h3>相册收藏</h3></div>
           <p>把「山间湖泊」加入收藏，方便下次找到。</p>
@@ -1435,8 +1426,8 @@
             </ml-tooltip>
           </div>
         </article>
-      </div>
-      <div class="example-grid" id="hover-card-examples" hidden>
+      </template></div>
+      <div class="example-grid" id="hover-card-examples" hidden data-preview-page="hover-card">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg></span><h3>素材信息</h3></div>
           <p>停在文件名上，查看图像的尺寸与格式。</p>
@@ -1453,7 +1444,7 @@
           <div class="sample-row" data-hover-example="record"><span id="hover-saved-status" role="status">未收藏</span></div>
         </article>
       </div>
-      <div class="example-grid" id="progress-examples" hidden>
+      <div class="example-grid" id="progress-examples" hidden data-preview-page="progress">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><ml-icon name="check-circle" size="20"></ml-icon></span><h3>相册复核</h3></div>
           <p>这批素材包含 8 个相册，可以逐组核对。</p>
@@ -1473,7 +1464,7 @@
           <ml-button variant="secondary"><button type="button" data-advance="上传下一块" data-step="16">重试上传</button></ml-button>
         </article>
       </div>
-      <div class="example-grid loading-examples" id="loading-examples" hidden>
+      <div class="example-grid loading-examples" id="loading-examples" hidden data-preview-page="loading"><template data-preview-content>
         <article class="example-card" id="loading-sync-example">
           <h3>同步相册目录</h3>
           <div class="loading-sync-info" id="loading-sync-content" aria-busy="false">
@@ -1496,8 +1487,8 @@
           </div>
           <span class="ml-loading-sr" role="status" data-loading-announcement>已加载 3 条记录</span>
         </article>
-      </div>
-      <div class="example-grid" id="feedback-examples" hidden>
+      </template></div>
+      <div class="example-grid" id="feedback-examples" hidden data-preview-page="feedback">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><ml-icon name="copy" size="20"></ml-icon></span><h3>复制编号</h3></div>
           <p>复制素材记录编号后，在屏幕下方查看结果。</p>
@@ -1519,12 +1510,12 @@
           </ml-banner>
         </article>
       </div>
-      <article id="media-viewer-examples" class="example-card media-viewer-example" hidden>
+      <article id="media-viewer-examples" class="example-card media-viewer-example" hidden data-preview-page="media-viewer"><template data-preview-content>
         <h3>风景样例</h3>
         <p>湖泊、海岸与沙丘，三张照片各停留四秒。</p>
         <a href="./preview/assets/media/landscape-slideshow.webm" download>下载风景短片</a>
-      </article>
-      <article id="steps-examples" class="example-card steps-flow" hidden>
+      </template></article>
+      <article id="steps-examples" class="example-card steps-flow" hidden data-preview-page="steps"><template data-preview-content>
         <h3>素材归档审批</h3>
         <ml-steps current="supplement">
           <ol role="list" aria-label="素材归档审批流程">
@@ -1535,8 +1526,8 @@
           </ol>
         </ml-steps>
         <p id="steps-flow-status" role="status">缺少湖泊精选拍摄照片，待补齐后继续。</p>
-      </article>
-      <article id="tabs-examples" class="example-card tabs-archive" hidden>
+      </template></article>
+      <article id="tabs-examples" class="example-card tabs-archive" hidden data-preview-page="tabs"><template data-preview-content>
         <h3>相册附件</h3>
         <p>方向键浏览附件分类，按 Enter 或空格打开。窄屏可横向滑动页签。</p>
         <ml-tabs variant="pill" activation="manual">
@@ -1557,13 +1548,13 @@
           <section data-panel="forms" hidden><h4>复核表单</h4><p>本次选片的三个相册均已核对。</p></section>
           <section data-panel="reports" hidden><h4>归档报告</h4><p>记录 DEMO-101 · 晨光组相册摘要。</p></section>
         </ml-tabs>
-      </article>
-      <article id="navigation-examples" class="example-card nav-workspace-example" hidden>
+      </template></article>
+      <article id="navigation-examples" class="example-card nav-workspace-example" hidden data-preview-page="toolbar sidebar drawer">
         <div class="card-top"><span class="card-icon"><ml-icon name="folder" size="20"></ml-icon></span><h3>素材记录工作区</h3></div>
         <p>从侧栏切换分组，选中一条记录后可在工具栏收藏或打开详情。</p>
         <div class="ml-nav-board" data-ml-sidebar-layout></div>
       </article>
-      <div class="example-grid records-examples" id="data-table-examples" hidden>
+      <div class="example-grid records-examples" id="data-table-examples" hidden data-preview-page="data-table">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><ml-icon name="check-circle" size="20"></ml-icon></span><h3>批量复核</h3></div>
           <p>勾选本页或单条记录，再翻页继续选择。</p>
@@ -1597,7 +1588,7 @@
           </ml-data-table>
         </article>
       </div>
-      <div class="example-grid records-examples" id="pagination-examples" hidden>
+      <div class="example-grid records-examples" id="pagination-examples" hidden data-preview-page="pagination">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><ml-icon name="folder" size="20"></ml-icon></span><h3>浏览归档</h3></div>
           <p>每页显示两份报告，翻页后更新文件列表。</p>
@@ -1616,7 +1607,7 @@
           <ml-pagination total="995" page-size="10" page="35" jump label="长目录分页"></ml-pagination>
         </article>
       </div>
-      <div class="example-grid value-examples" id="slider-examples" hidden>
+      <div class="example-grid value-examples" id="slider-examples" hidden data-preview-page="slider">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><ml-icon name="page" size="20"></ml-icon></span><h3>阅读字号</h3></div>
           <p>拖动滑块，预览素材记录的正文字号。</p>
@@ -1630,7 +1621,7 @@
           <output class="value-result" id="playback-length" for="playback-rate">播放时长 60 秒</output>
         </article>
       </div>
-      <div class="example-grid value-examples" id="stepper-examples" hidden>
+      <div class="example-grid value-examples" id="stepper-examples" hidden data-preview-page="stepper">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><ml-icon name="copy" size="20"></ml-icon></span><h3>报告份数</h3></div>
           <p>每份报告有 8 页，调整份数即可得到总页数。</p>
@@ -1644,7 +1635,7 @@
           <output class="value-result" id="capture-frequency" for="capture-interval">每分钟约 40 张</output>
         </article>
       </div>
-      <div class="example-grid picker-examples" id="date-picker-examples" hidden>
+      <div class="example-grid picker-examples" id="date-picker-examples" hidden data-preview-page="date-picker">
         <article class="example-card">
           <div class="card-top"><span class="card-icon" aria-hidden="true"><ml-icon name="calendar" size="20"></ml-icon></span><h3>预约照片展映</h3></div>
           <p>11 月开放预约，场次间隔 30 分钟。</p>
@@ -1661,7 +1652,7 @@
           </form>
         </article>
       </div>
-      <div class="example-grid picker-examples" id="time-picker-examples" hidden>
+      <div class="example-grid picker-examples" id="time-picker-examples" hidden data-preview-page="time-picker">
         <article class="example-card">
           <div class="card-top"><span class="card-icon" aria-hidden="true"><ml-icon name="play" size="20"></ml-icon></span><h3>白天展映</h3></div>
           <p>09:00 至 18:00，每 15 分钟一个场次。</p>
@@ -1673,7 +1664,7 @@
           <ml-time-picker><label>发布时间<input type="time" name="publish-time" min="22:00" max="02:00" step="30" value="23:45:30"></label></ml-time-picker>
         </article>
       </div>
-      <div class="example-grid value-examples" id="date-range-examples" hidden>
+      <div class="example-grid value-examples" id="date-range-examples" hidden data-preview-page="date-range">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><ml-icon name="filter" size="20"></ml-icon></span><h3>筛选素材记录</h3></div>
           <p>填写任一端或选择完整区间，查看日期匹配的记录。</p>
@@ -1698,7 +1689,7 @@
           <output class="value-result" id="booking-days">预约 5 天</output>
         </article>
       </div>
-      <div class="example-grid" id="input-examples" hidden>
+      <div class="example-grid" id="input-examples" hidden data-preview-page="input">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><ml-icon name="form" size="20"></ml-icon></span><h3>编号校验</h3></div>
           <p>确认记录编号时，在字段下方查看格式检查结果。</p>
@@ -1737,12 +1728,12 @@
           </form>
         </article>
       </div>
-      <div class="example-grid" id="menu-examples" hidden>
+      <div class="example-grid" id="menu-examples" hidden data-preview-page="menu">
         <article class="example-card"><div class="card-top"><span class="card-icon"><ml-icon name="more" size="20"></ml-icon></span><h3>行尾操作</h3></div><p>从行尾的更多按钮查看详情、置顶或移除记录。</p><div data-menu-example="record"></div></article>
         <article class="example-card"><div class="card-top"><span class="card-icon"><ml-icon name="sliders" size="20"></ml-icon></span><h3>自定义摘要</h3></div><p>勾选需要显示的字段，可一次调整多项。</p><div data-menu-example="view"></div></article>
         <article class="example-card"><div class="card-top"><span class="card-icon"><ml-icon name="sort" size="20"></ml-icon></span><h3>队列排序</h3></div><p>选定时间顺序，观察队列中的记录重新排列。</p><div data-menu-example="sort"></div></article>
       </div>
-      <div class="example-grid accordion-examples" id="accordion-examples" hidden>
+      <div class="example-grid accordion-examples" id="accordion-examples" hidden data-preview-page="accordion"><template data-preview-content>
         <article class="example-card">
           <div class="card-top"><span class="card-icon" aria-hidden="true"><ml-icon name="help-circle" size="18"></ml-icon></span><h3>照片使用常见问题</h3></div>
           <ml-accordion mode="single" role="group" aria-label="照片使用常见问题">
@@ -1774,8 +1765,8 @@
             </details>
           </ml-accordion>
         </article>
-      </div>
-      <div class="example-grid" id="list-examples" hidden>
+      </template></div>
+      <div class="example-grid" id="list-examples" hidden data-preview-page="list">
         <article class="example-card" id="list-record" tabindex="-1">
           <div class="card-top"><span class="card-icon"><ml-icon name="image" size="20"></ml-icon></span><h3>山间湖泊记录</h3></div>
           <p>记录 DEMO-101 位于山野主题相册，09:42 完成导入。</p>
@@ -1802,7 +1793,7 @@
           </button></ml-list-item>
         </article>
       </div>
-      <div class="example-grid empty-examples" id="empty-state-examples" hidden>
+      <div class="example-grid empty-examples" id="empty-state-examples" hidden data-preview-page="empty-state"><template data-preview-content>
         <article class="example-card" id="empty-filter-example">
           <h3>筛选数据表格</h3>
           <ml-input clearable>
@@ -1856,8 +1847,8 @@
           </div>
           <span class="sr-only" role="status"></span>
         </article>
-      </div>
-      <div class="example-grid" id="choice-examples" hidden>
+      </template></div>
+      <div class="example-grid" id="choice-examples" hidden data-preview-page="choice">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><ml-icon name="bell" size="20"></ml-icon></span><h3>消息订阅</h3></div>
           <p>分别勾选希望接收的提醒类型。</p>
@@ -1891,7 +1882,7 @@
           </form>
         </article>
       </div>
-      <div class="example-grid" id="island-examples" hidden>
+      <div class="example-grid" id="island-examples" hidden data-preview-page="island">
         <article class="example-card">
           <div class="card-top"><span class="card-icon"><ml-icon name="save" size="20"></ml-icon></span><h3>保存反馈</h3></div>
           <p>展开一条简讯，查看刚保存的记录编号。</p>
@@ -1923,7 +1914,7 @@
           </div>
         </article>
       </div>
-      <div class="example-grid" id="info-examples" hidden>
+      <div class="example-grid" id="info-examples" hidden data-preview-page="info">
         <ml-card role="article" aria-label="导出参数">
           <header class="ml-card-header"><span class="ml-card-mark"><ml-icon name="camera"></ml-icon></span><div><h3 class="ml-card-title">导出参数</h3><p class="ml-card-meta">风景照片 · 导出预设</p></div></header>
           <div class="info-pill-list">
@@ -1942,7 +1933,7 @@
           <footer class="ml-card-footer"><details class="ml-card-disclosure"><summary>查看交接事项</summary><p class="ml-card-body">为岸边细节挑一张封面，并将照片加入风景相册。</p></details></footer>
         </ml-card>
       </div>
-      <div class="example-grid" id="badge-examples" hidden>
+      <div class="example-grid" id="badge-examples" hidden data-preview-page="badge">
         <article class="example-card" data-badge-example="indicator">
           <div class="card-top"><span class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-signal"/></svg></span><h3>状态指示器</h3></div>
           <p>用灯形和文字显示导入服务的当前状态。</p>

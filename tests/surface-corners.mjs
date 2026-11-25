@@ -1,9 +1,10 @@
+import { launchBrowser } from './helpers/browser.mjs';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { chromium, firefox } from 'playwright';
 
 const engine = process.argv[2] === 'firefox' ? firefox : chromium;
-const browser = await engine.launch({ executablePath: engine.executablePath() });
+const browser = await launchBrowser(engine);
 const root = new URL('../', import.meta.url);
 const grades = ['base', 'low', 'medium', 'high'];
 const frames = page => page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
@@ -26,6 +27,40 @@ async function checkPaint(layer, rounded, message, expectedRenderer) {
   if (expectedRenderer) assert.equal(result.renderer, expectedRenderer, message);
   for (const [i, alpha] of result.alpha.entries()) {
     assert(rounded[i] ? alpha === 0 : alpha > 8, message + ' ' + JSON.stringify(result));
+  }
+}
+
+async function checkNativeMaps(page) {
+  // Full, decoded RGBA from the accepted material before the map-baking optimization.
+  const cases = [
+    [1038, 40633, '24px', '0f3374a9958a7464438a586bd3066bb8c8165980066af272f487000f32a3bb57'],
+    [78, 160, '13px 13px 26px 26px / 31px 31px 2px 2px', '4a1dc1e9ed3684c480620c644f1190d23c20d14f434a352fa48c20685b5d6ad7'],
+    [160, 78, '24px 11px 11px 24px / 19px 32px 32px 19px', 'bf358b70f38a3326839afcbede066736c61874ba919d75d982b7b70cf6892edc'],
+    [210, 180, '95% 0 0 0 / 94% 0 0 0', '36faa9d3173310473ef81daee264ecfa8fd0506391459243beb23c07c2941fae'],
+  ];
+  for (const [width, height, radius, expected] of cases) {
+    const hash = await page.evaluate(async ({ width, height, radius }) => {
+      const { GlassSurface } = window[Symbol.for('material-lib.glass.v1')];
+      const host = document.body.appendChild(document.createElement('div'));
+      host.style.cssText = `position:fixed;top:0;left:0;width:${width}px;height:${height}px`;
+      const surface = new GlassSurface(host, false);
+      try {
+        surface.layer.style.cssText = 'display:block;position:absolute;inset:0;border-radius:' + radius;
+        surface.paint(null, null, 0);
+        const image = new Image();
+        image.src = surface.layer.querySelector('filter[id$="-bend"] feImage').getAttribute('href');
+        await image.decode();
+        const ctx = new OffscreenCanvas(image.width, image.height).getContext('2d');
+        ctx.drawImage(image, 0, 0);
+        const rgba = ctx.getImageData(0, 0, image.width, image.height).data;
+        const digest = await crypto.subtle.digest('SHA-256', rgba);
+        return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+      } finally {
+        surface.remove();
+        host.remove();
+      }
+    }, { width, height, radius });
+    assert.equal(hash, expected, `native glass map ${width}×${height} with radius ${radius}`);
   }
 }
 
@@ -60,7 +95,7 @@ async function listGallery(page) {
           assert.equal(state.surface, '20px', label);
           assert.equal(state.content, state.surface, label);
           assert.equal(state.rowLenses, 0, label);
-          assert.equal(state.lens, material === 'high' || motion === 'high' ? state.surface : null, label);
+          assert.equal(state.lens, state.surface, label);
           if (state.lens) assert(state.fits, label);
         }
       }
@@ -140,6 +175,7 @@ try {
     };
   });
   await joinedSurfaces(fallback, 'svg');
+  await checkNativeMaps(fallback);
   await fallback.goto(new URL('index.html#list', root).href);
   await select(fallback, 'list-kind', 'group');
   const group = fallback.locator('#list-specimen ml-list-group').first();
@@ -151,7 +187,7 @@ try {
   await select(fallback, 'material', 'low');
   await group.locator(':scope > [data-ml-light="low"]').waitFor({ state: 'attached' });
   await fallback.emulateMedia({ reducedMotion: 'reduce' });
-  await layer.waitFor({ state: 'detached' });
+  await group.locator(':scope > [data-ml-light="low"][data-ml-lit]').waitFor({ state: 'attached' });
   await fallback.emulateMedia({ forcedColors: 'active' });
   await select(fallback, 'material', 'high');
   await frames(fallback);

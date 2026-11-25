@@ -1,11 +1,30 @@
 /* Shared by all standalone components and the material library. */
+@property --ml-material-fill-opacity { syntax: "<percentage>"; inherits: true; initial-value: 100%; }
+@property --ml-material-content-opacity { syntax: "<percentage>"; inherits: true; initial-value: 100%; }
+:root {
+  --ml-light-source: pointer;
+  --ml-light-intensity: 1;
+  --ml-material-transparency: 60%;
+  --ml-glass-density: 1;
+}
+[data-ml-light-source="pointer"] { --ml-light-source: pointer; }
+[data-ml-light-source="fixed"] { --ml-light-source: fixed; }
+[data-ml-light-source="none"] { --ml-light-source: none; }
+:root, [data-ml-material="high"], [data-ml-material="medium"] {
+  --ml-glass-fill: calc(100% - clamp(0%, var(--ml-material-transparency), 100%));
+  --ml-control-fill: calc(100% - clamp(0%, var(--ml-material-transparency), 100%) * .42);
+  --ml-reading-fill: calc(100% - clamp(0%, var(--ml-material-transparency), 100%) * .15);
+}
+[data-ml-material="low"], [data-ml-material="base"] {
+  --ml-glass-fill: initial; --ml-control-fill: initial; --ml-reading-fill: initial;
+}
 :root, [data-ml-theme="light"] {
   --ml-glass-lamp-rgb: 243 249 255;
   --ml-glass-body-rgb: 138 192 217;
   --ml-glass-face-gain: .135;
   --ml-glass-shadow-rgb: 23 37 53;
-  --ml-pointer-tint-rgb: 117 176 223;
-  --ml-pointer-diffuse: .49;
+  --ml-pointer-tint-rgb: 160 188 214;
+  --ml-pointer-diffuse: .40;
   --ml-pointer-shine: .42;
 }
 [data-ml-theme="warm"] {
@@ -13,8 +32,8 @@
   --ml-glass-body-rgb: 220 183 139;
   --ml-glass-face-gain: .13;
   --ml-glass-shadow-rgb: 49 36 24;
-  --ml-pointer-tint-rgb: 218 164 97;
-  --ml-pointer-diffuse: .51;
+  --ml-pointer-tint-rgb: 228 206 166;
+  --ml-pointer-diffuse: .38;
   --ml-pointer-shine: .37;
 }
 [data-ml-theme="dark"] {
@@ -22,26 +41,26 @@
   --ml-glass-body-rgb: 75 128 159;
   --ml-glass-face-gain: .072;
   --ml-glass-shadow-rgb: 4 10 19;
-  --ml-pointer-tint-rgb: 138 183 220;
-  --ml-pointer-diffuse: .32;
+  --ml-pointer-tint-rgb: 125 150 173;
+  --ml-pointer-diffuse: .29;
   --ml-pointer-shine: .17;
 }
 
 :root, [data-ml-material="high"] {
   --ml-material-level: high;
-  --ml-material-fill-opacity: 32%;
+  --ml-material-fill-opacity: var(--ml-glass-fill, 32%);
+  --ml-material-content-opacity: var(--ml-reading-fill, 92%);
   --ml-material-border-opacity: 58%;
   --ml-optics: block;
-  --ml-opacity: 72%;
-  --ml-pearl-opacity: 38%;
-  --ml-selection-opacity: 68%;
+  --ml-opacity: var(--ml-control-fill, 72%);
+  --ml-pearl-opacity: var(--ml-control-fill, 38%);
+  --ml-selection-opacity: var(--ml-control-fill, 68%);
   --ml-glass-core: initial;
-  --ml-glass-density: 1;
   --ml-filter: blur(1.1px) saturate(1.18);
-  --ml-skin: linear-gradient(160deg, #ffffff24, transparent 45%, #092a3210 81%, #d9faff38);
-  --ml-rail-relief: inset 0 0 0 .009em #193b3332, inset 0 .018em .028em #ffffff8f,
-    inset 0 -.033em .046em #10392f35, 0 .025em .055em #12251f20, 0 .13em .24em -.12em #162b263d;
-  --ml-gloss: radial-gradient(ellipse at 50% 48%, #ffffff24 18%, transparent 58%, #e6ffff66 83%, #ffffffaa);
+  --ml-skin-wash: 0%; --ml-skin-light: 16%; --ml-skin-edge: 20%;
+  --ml-rail-relief: inset 0 0 0 .009em #0000001a, inset 0 .018em .028em #ffffff70,
+    inset 0 -.033em .046em #00000017, 0 .025em .055em #00000010, 0 .13em .24em -.12em #00000026;
+  --ml-gloss: radial-gradient(ellipse at 50% 48%, #ffffff16 18%, transparent 58%, #ffffff39 83%, #ffffff73);
   --ml-knob-relief: inset 0 0 0 .012em #ffffffe0, inset 0 0 .075em .02em #ffffff7a,
     0 .02em .052em #12332942, 0 .07em .15em -.04em #142d254a;
   --ml-segment-relief: inset 0 1px 1px #ffffff82, inset 0 -1px 2px #15242c29,
@@ -50,18 +69,20 @@
     inset 0 -1px 2px #17293224, 0 1px 2px #19242c38, 0 3px 6px -3px #19242c36;
 }
 [data-ml-material="medium"], [data-ml-material="low"], [data-ml-material="base"] {
+  --ml-material-content-opacity: 100%;
   --ml-pearl-opacity: 100%;
   --ml-selection-opacity: 100%;
   --ml-glass-core: none;
 }
 [data-ml-material="medium"] {
   --ml-material-level: medium;
-  --ml-material-fill-opacity: 57%;
+  --ml-material-fill-opacity: var(--ml-glass-fill, 57%);
+  --ml-material-content-opacity: var(--ml-reading-fill, 96%);
   --ml-material-border-opacity: 70%;
   --ml-optics: none;
-  --ml-opacity: 88%;
-  --ml-filter: blur(7px);
-  --ml-skin: linear-gradient(165deg, #ffffff24, transparent 74%);
+  --ml-opacity: var(--ml-control-fill, 88%);
+  --ml-filter: blur(14px) saturate(1.1);
+  --ml-skin-wash: 6%; --ml-skin-light: 24%; --ml-skin-edge: 12%;
   --ml-rail-relief: inset 0 .016em .033em #ffffff73, 0 .04em .09em #192a3029;
   --ml-gloss: linear-gradient(150deg, #ffffff7d, transparent 72%);
   --ml-knob-relief: 0 .026em .07em #17252b3d;
@@ -75,7 +96,7 @@
   --ml-optics: none;
   --ml-opacity: 100%;
   --ml-filter: none;
-  --ml-skin: linear-gradient(180deg, #ffffff36, transparent 56%, #19272c08);
+  --ml-skin-wash: 68%; --ml-skin-light: 18%; --ml-skin-edge: 38%;
   --ml-rail-relief: inset 0 .015em 0 #ffffff45;
   --ml-gloss: none;
   --ml-knob-relief: 0 .015em .038em #19272c2b;
@@ -89,12 +110,19 @@
   --ml-optics: none;
   --ml-opacity: 100%;
   --ml-filter: none;
-  --ml-skin: none;
+  --ml-skin-wash: 18%; --ml-skin-light: 5%; --ml-skin-edge: 7%;
   --ml-rail-relief: none;
   --ml-gloss: none;
   --ml-knob-relief: none;
   --ml-segment-relief: none;
   --ml-highlight-relief: none;
+}
+/* Recompute paint where either axis changes, including a theme nested inside a material scope. */
+:where(:root, [data-ml-material], [data-ml-theme], ml-material) {
+  --ml-skin-tint: color-mix(in srgb, var(--ml-color-fill) 72%, rgb(var(--ml-mica-tint-rgb, var(--ml-glass-body-rgb))));
+  --ml-skin: radial-gradient(ellipse at 8% 0%, color-mix(in srgb, var(--ml-skin-tint) var(--ml-skin-wash), transparent), transparent 76%),
+    linear-gradient(145deg, color-mix(in srgb, var(--ml-color-surface-raised) var(--ml-skin-light), transparent), transparent 55%,
+      color-mix(in srgb, var(--ml-skin-tint) var(--ml-skin-edge), transparent));
 }
 @media (forced-colors: active) {
   :root, [data-ml-material] { --ml-material-level: none !important; }

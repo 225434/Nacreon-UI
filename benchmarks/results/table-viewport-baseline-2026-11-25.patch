@@ -1,0 +1,208 @@
+diff --git a/src/control-glass.js b/src/control-glass.js
+--- a/src/control-glass.js
++++ b/src/control-glass.js
+@@ -2,13 +2,13 @@
+   'use strict';
+ 
+   const key = Symbol.for('material-lib.glass-control.v1');
+-  if (globalThis[key]?.version >= 9) return;
++  if (globalThis[key]?.version >= 8) return;
+   const { GlassScene, GlassSurface, waveDuration } = globalThis[Symbol.for('material-lib.glass.v1')];
+   const events = ['pointerdown', 'click', 'transitionrun', 'transitionend', 'transitioncancel'];
+ 
+   // Optical treatment for a compact surface. Its content owns semantics and focus.
+   class GlassControl extends HTMLElement {
+-    static get version() { return 9; }
++    static get version() { return 8; }
+     #scene;
+     #glass;
+     #pulse;
+@@ -40,7 +40,6 @@
+     }
+ 
+     #clear() {
+-      if (this.#glass) this.updateGlassViewport?.(null);
+       this.#glass?.remove();
+       this.#glass = null;
+       this.#pulse = null;
+@@ -77,7 +76,6 @@
+       this.#glass = GlassSurface.forTier(this.#glass, this, true, tier, light);
+       if (tier !== 'high' || !dynamic || (this.#pulse && now - this.#pulse.start >= waveDuration)) this.#pulse = null;
+       this.#glass.paint(pointer, this.#pulse, now, this.glassBackdrop, this.glassBackdropVersion);
+-      this.updateGlassViewport?.(this.#glass);
+       if (light.mode === 'pointer' && this.getAnimations().some(a => a.transitionProperty && a.playState === 'running')) this.#scene.wake();
+       return light.mode === 'pointer';
+     };
+diff --git a/src/data-table.js b/src/data-table.js
+--- a/src/data-table.js
++++ b/src/data-table.js
+@@ -40,119 +40,6 @@
+     wrap.append(box); cell.append(wrap); row.prepend(cell);
+     return cell;
+   }
+-
+-  // Keep the original SVG for foreground caustics, printing, and the handoff between strips.
+-  // Chrome transports the displacement bitmap with compositor updates, even for clipped tables.
+-  class TableRefraction {
+-    constructor(host, glass) {
+-      this.host = host;
+-      this.glass = glass;
+-      this.shape = glass.shape;
+-      this.tiles = new Map();
+-      this.events = new AbortController();
+-      this.resize = new ResizeObserver(() => glass.scene.wake());
+-      this.source = new Image();
+-      this.source.onload = () => glass.scene.wake();
+-      this.source.src = glass.maps[0].getAttribute('href');
+-      this.filter = glass.displacement.parentNode.cloneNode(true);
+-      this.filter.id += '-viewport';
+-      this.map = this.filter.querySelector('feImage');
+-      this.bend = this.filter.querySelector('feDisplacementMap');
+-      glass.displacement.parentNode.after(this.filter);
+-      this.url = 'url("#' + this.filter.id + '")';
+-      for (let root = host.getRootNode(); root.host; root = root.host.getRootNode()) {
+-        root.addEventListener('scroll', () => glass.scene.wake(), { capture: true, passive: true, signal: this.events.signal });
+-      }
+-    }
+-
+-    useFull() {
+-      if (this.active) this.host.style.removeProperty('--ml-table-window');
+-      this.active = null;
+-    }
+-
+-    remove() {
+-      this.useFull();
+-      this.source.onload = null;
+-      this.events.abort();
+-      this.resize.disconnect();
+-      this.tiles.clear();
+-      this.filter.remove();
+-    }
+-
+-    tile(first, last) {
+-      const key = first + '/' + last;
+-      if (this.tiles.has(key)) return this.tiles.get(key);
+-      const { naturalWidth: width, naturalHeight: height } = this.source;
+-      const canvas = this.host.ownerDocument.createElement('canvas');
+-      canvas.width = width;
+-      canvas.height = height * (last - first) / 16;
+-      const context = canvas.getContext('2d');
+-      context.drawImage(this.source, 0, height * first / 16, width, canvas.height, 0, 0, width, canvas.height);
+-      const image = new Image(), tile = { first, last, image, ready: false };
+-      image.src = canvas.toDataURL();
+-      if (this.tiles.size >= 8) this.tiles.delete(this.tiles.keys().next().value);
+-      this.tiles.set(key, tile);
+-      image.decode().then(() => {
+-        if (this.tiles.get(key) === tile) { tile.ready = true; this.glass.scene.wake(); }
+-      }, () => {});
+-      return tile;
+-    }
+-
+-    update() {
+-      if (!this.source.complete || !this.source.naturalHeight || this.source.naturalHeight % 16) return;
+-      const host = this.host, win = host.ownerDocument.defaultView, box = host.getBoundingClientRect();
+-      let top = 0, bottom = win.innerHeight, clip = null;
+-      for (let el = host; el; el = el.assignedSlot || el.parentElement || el.getRootNode().host) {
+-        const style = win.getComputedStyle(el);
+-        // The original filter also handles rotated, scaled and perspective-transformed layouts.
+-        if (style.transform !== 'none' || style.rotate !== 'none' || style.scale !== 'none' || style.perspective !== 'none'
+-          || Number(style.zoom || 1) !== 1) {
+-          this.useFull();
+-          return;
+-        }
+-        if (el !== host && style.overflowY !== 'visible') {
+-          const bounds = el.getBoundingClientRect();
+-          top = Math.max(top, bounds.top);
+-          bottom = Math.min(bottom, bounds.bottom);
+-          clip ||= el;
+-        }
+-      }
+-      if (this.clip !== clip) {
+-        this.resize.disconnect();
+-        if (clip) this.resize.observe(clip);
+-        this.clip = clip;
+-      }
+-      const start = Math.max(0, top - box.top), end = Math.min(box.height, bottom - box.top);
+-      // With device scaling Chrome can round a scrolled subimage and the full image
+-      // differently. Keep the full native sampling grid wherever the top is clipped.
+-      if (end <= start || (win.devicePixelRatio !== 1 && start > 0)) { this.useFull(); return; }
+-      const unit = box.height / 16, guard = Math.max(128, end - start);
+-      const lo = Math.max(0, Math.floor((start - guard) / unit));
+-      const hi = Math.min(16, Math.ceil((end + guard) / unit));
+-      // Use original texels and power-of-two scales so sampling keeps its pixel phase.
+-      const span = 2 ** Math.ceil(Math.log2(Math.max(2, hi - lo)));
+-      const first = Math.max(0, Math.min(16 - span, Math.floor((lo + hi - span) / 2)));
+-      if (span >= 16 || !box.width) { this.useFull(); return; }
+-      const tile = this.tile(first, first + span);
+-      const scale = this.glass.displacement.getAttribute('scale');
+-      if (this.bend.getAttribute('scale') !== scale) this.bend.setAttribute('scale', scale);
+-      if (!tile.ready) {
+-        if (this.active && (start < this.active.first * unit || end > this.active.last * unit)) this.useFull();
+-        return;
+-      }
+-      if (this.active === tile && this.width === box.width && this.height === box.height) return;
+-      this.map.setAttribute('x', 0);
+-      this.map.setAttribute('y', unit * first);
+-      this.map.setAttribute('width', box.width);
+-      this.map.setAttribute('height', unit * span);
+-      this.map.setAttribute('href', tile.image.src);
+-      this.host.style.setProperty('--ml-table-window', this.url);
+-      this.active = tile;
+-      this.width = box.width;
+-      this.height = box.height;
+-    }
+-  }
+-
+   class DataTable extends GlassControl {
+     static observedAttributes = ['selectable', 'sort-by', 'sort-direction', 'empty-text'];
+     #table;
+@@ -167,7 +54,6 @@
+     #sorted = false;
+     #busy = false;
+     #connected = false;
+-    #refraction;
+     #resizes = new ResizeObserver(() => this.#overflow());
+     #changes = new MutationObserver(records => {
+       const sourceChanged = records.some(r =>
+@@ -178,17 +64,6 @@
+     });
+     get table() { return this.#table; }
+     get glassContent() { return this.#table; }
+-    updateGlassViewport(glass) {
+-      const eligible = glass?.layer.dataset.mlRenderer === 'webgl'
+-        && glass.layer.clientHeight > Math.max(2048, 4 * this.ownerDocument.defaultView.innerHeight);
+-      if (this.#refraction && (!eligible || this.#refraction.glass !== glass || this.#refraction.shape !== glass.shape)) {
+-        this.#refraction.remove();
+-        this.#refraction = null;
+-      }
+-      if (!eligible) return;
+-      this.#refraction ||= new TableRefraction(this, glass);
+-      this.#refraction.update();
+-    }
+     get visibleRows() { return this.#onPage.slice(); }
+     get selectedRows() {
+       return this.#table ? [...this.#table.tBodies].flatMap(body => [...body.rows]).filter(row => row.hasAttribute('data-selected')) : [];
+@@ -199,7 +74,6 @@
+     }
+     connectedCallback() {
+       this.#connected = true;
+-      this.style.removeProperty('--ml-table-window');
+       super.connectedCallback();
+       this.addEventListener('click', this.#click);
+       this.addEventListener('change', this.#check);
+diff --git a/src/table-controls.css b/src/table-controls.css
+--- a/src/table-controls.css
++++ b/src/table-controls.css
+@@ -8,12 +8,6 @@
+ :where(ml-data-table, ml-pagination), :where(ml-data-table, ml-pagination) * { box-sizing: border-box; }
+ :is(ml-data-table, ml-pagination)[hidden], :is(ml-data-table, ml-pagination) [hidden] { display: none !important; }
+ :is(ml-data-table, ml-pagination).ml-refractive { backdrop-filter: var(--ml-bend) blur(3px) saturate(1.1); }
+-@media screen {
+-  ml-data-table.ml-refractive {
+-    --ml-table-window: initial;
+-    backdrop-filter: var(--ml-table-window, var(--ml-bend)) blur(3px) saturate(1.1);
+-  }
+-}
+ :is(ml-data-table, ml-pagination) > .ml-optical {
+   display: var(--ml-optics); position: absolute; z-index: -1; inset: 0; border-radius: inherit;
+   pointer-events: none; opacity: .42;

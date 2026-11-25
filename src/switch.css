@@ -152,7 +152,7 @@ ml-switch:is([kind="mode"], [kind="page"]) > :is(button, a) {
   justify-content: center;
   gap: .45em;
   min-inline-size: 0;
-  min-block-size: max(44px, var(--ml-option-height, 44px));
+  min-block-size: max(44px, var(--ml-option-height, var(--ml-control-height)));
   margin: 0;
   padding: .36em var(--ml-option-pad, .85em);
   border: 0;

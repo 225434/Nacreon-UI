@@ -26,24 +26,35 @@
   --ml-color-danger: #bf1125;
   --ml-color-neutral: #515154;
 
-  --ml-color-background: #f2f2f7;
+  --ml-color-background: #f3f5f7;
   --ml-color-surface: #ffffff;
-  --ml-color-fill: #e5e5ea;
-  --ml-color-separator: #d1d1d6;
-  --ml-color-text: #1d1d1f;
-  --ml-color-text-secondary: #48484a;
-  --ml-color-text-tertiary: #636366;
+  --ml-color-surface-inset: #eef1f4;
+  --ml-color-surface-raised: #ffffff;
+  --ml-color-fill: #e4e9ee;
+  --ml-color-separator: #d3dbe2;
+  --ml-color-control-border: #788595;
+  --ml-color-selection: #dfedfb;
+  --ml-color-focus: #175697;
+  --ml-color-on-action: #07111b;
+  --ml-color-text: #182430;
+  --ml-color-text-secondary: #475563;
+  --ml-color-text-tertiary: #59697a;
 }
 
 [data-ml-theme="warm"] {
   --ml-color-neutral: #615950;
-  --ml-color-background: #f8f5ef;
-  --ml-color-surface: #fffdf8;
-  --ml-color-fill: #f1ece3;
-  --ml-color-separator: #dfd8ca;
-  --ml-color-text: #2d2923;
-  --ml-color-text-secondary: #625b50;
-  --ml-color-text-tertiary: #70695e;
+  --ml-color-background: #f0eee6;
+  --ml-color-surface: #fffdf7;
+  --ml-color-surface-inset: #ede9df;
+  --ml-color-surface-raised: #fffefa;
+  --ml-color-fill: #e7e2d7;
+  --ml-color-separator: #d9d3c5;
+  --ml-color-control-border: #867c69;
+  --ml-color-selection: #e2ebf2;
+  --ml-color-focus: #245a8e;
+  --ml-color-text: #312f28;
+  --ml-color-text-secondary: #595648;
+  --ml-color-text-tertiary: #676356;
 }
 
 [data-ml-theme="dark"] {
@@ -66,13 +77,19 @@
   --ml-color-danger: #ff8588;
   --ml-color-neutral: #c7c7cc;
 
-  --ml-color-background: #000000;
-  --ml-color-surface: #1c1c1e;
-  --ml-color-fill: #2c2c2e;
-  --ml-color-separator: #3a3a3c;
-  --ml-color-text: #f5f5f7;
-  --ml-color-text-secondary: #c7c7cc;
-  --ml-color-text-tertiary: #aeaeb2;
+  --ml-color-background: #11171e;
+  --ml-color-surface: #1c252f;
+  --ml-color-surface-inset: #161e26;
+  --ml-color-surface-raised: #27323e;
+  --ml-color-fill: #2e3945;
+  --ml-color-separator: #3c4854;
+  --ml-color-control-border: #788a9a;
+  --ml-color-selection: #293e52;
+  --ml-color-focus: #96c9ff;
+  --ml-color-on-action: #081420;
+  --ml-color-text: #eff3f7;
+  --ml-color-text-secondary: #c3ced7;
+  --ml-color-text-tertiary: #a5b2bf;
 }
 
 /* A named scope also sets the appearance of native controls inside it. */
@@ -80,16 +97,16 @@
 [data-ml-theme="dark"] { color-scheme: dark; }
 /* Components resolve elevation on the painted surface so nested themes use their own shadows. */
 :root, [data-ml-theme="light"] {
-  --ml-shadow-raised: 0 2px 6px rgb(20 32 48 / .10);
-  --ml-shadow-overlay: 0 8px 28px rgb(20 32 48 / .18);
+  --ml-shadow-raised: 0 1px 2px rgb(24 36 48 / .07), 0 4px 12px -6px rgb(24 36 48 / .15);
+  --ml-shadow-overlay: 0 2px 6px rgb(24 36 48 / .08), 0 16px 40px -12px rgb(24 36 48 / .26);
 }
 [data-ml-theme="warm"] {
-  --ml-shadow-raised: 0 2px 6px rgb(65 45 24 / .12);
-  --ml-shadow-overlay: 0 8px 28px rgb(65 45 24 / .18);
+  --ml-shadow-raised: 0 1px 2px rgb(63 49 29 / .08), 0 4px 12px -6px rgb(63 49 29 / .16);
+  --ml-shadow-overlay: 0 2px 6px rgb(63 49 29 / .09), 0 16px 40px -12px rgb(63 49 29 / .25);
 }
 [data-ml-theme="dark"] {
-  --ml-shadow-raised: 0 2px 6px rgb(0 0 0 / .38);
-  --ml-shadow-overlay: 0 8px 28px rgb(0 0 0 / .56);
+  --ml-shadow-raised: 0 1px 2px rgb(0 0 0 / .30), 0 4px 12px -6px rgb(0 0 0 / .44);
+  --ml-shadow-overlay: 0 2px 6px rgb(0 0 0 / .32), 0 16px 40px -12px rgb(0 0 0 / .64);
 }
 [data-ml-theme-surface] { background-color: var(--ml-color-background); color: var(--ml-color-text); }
 @media (forced-colors: active) {
@@ -119,6 +136,15 @@
   --ml-tracking-normal: 0em;
   --ml-measure: 65ch;
 }
+/* Mixed-language pages can set lang on a section to select its heading metrics. */
+:where(:root, [lang]) {
+  --ml-leading-title: var(--ml-leading-tight);
+  --ml-tracking-title: var(--ml-tracking-tight);
+}
+:where(:root, [lang]):where(:lang(zh), :lang(ja), :lang(ko)) {
+  --ml-leading-title: 1.32;
+  --ml-tracking-title: 0em;
+}
 
 :where(:root) {
   --ml-space-1: .25rem;
@@ -129,6 +155,10 @@
   --ml-space-6: 2rem;
   --ml-space-7: 3rem;
   --ml-space-8: 4rem;
+  --ml-control-height: 2.75rem;
+  --ml-control-padding-inline: .875rem;
+  --ml-row-padding-block: .625rem;
+  --ml-row-padding-block-compact: .375rem;
   --ml-radius-sm: .5rem;
   --ml-radius-md: .75rem;
   --ml-radius-lg: 1rem;
@@ -140,13 +170,32 @@
 }
 
 /* Shared by all standalone components and the material library. */
+@property --ml-material-fill-opacity { syntax: "<percentage>"; inherits: true; initial-value: 100%; }
+@property --ml-material-content-opacity { syntax: "<percentage>"; inherits: true; initial-value: 100%; }
+:root {
+  --ml-light-source: pointer;
+  --ml-light-intensity: 1;
+  --ml-material-transparency: 60%;
+  --ml-glass-density: 1;
+}
+[data-ml-light-source="pointer"] { --ml-light-source: pointer; }
+[data-ml-light-source="fixed"] { --ml-light-source: fixed; }
+[data-ml-light-source="none"] { --ml-light-source: none; }
+:root, [data-ml-material="high"], [data-ml-material="medium"] {
+  --ml-glass-fill: calc(100% - clamp(0%, var(--ml-material-transparency), 100%));
+  --ml-control-fill: calc(100% - clamp(0%, var(--ml-material-transparency), 100%) * .42);
+  --ml-reading-fill: calc(100% - clamp(0%, var(--ml-material-transparency), 100%) * .15);
+}
+[data-ml-material="low"], [data-ml-material="base"] {
+  --ml-glass-fill: initial; --ml-control-fill: initial; --ml-reading-fill: initial;
+}
 :root, [data-ml-theme="light"] {
   --ml-glass-lamp-rgb: 243 249 255;
   --ml-glass-body-rgb: 138 192 217;
   --ml-glass-face-gain: .135;
   --ml-glass-shadow-rgb: 23 37 53;
-  --ml-pointer-tint-rgb: 117 176 223;
-  --ml-pointer-diffuse: .49;
+  --ml-pointer-tint-rgb: 160 188 214;
+  --ml-pointer-diffuse: .40;
   --ml-pointer-shine: .42;
 }
 [data-ml-theme="warm"] {
@@ -154,8 +203,8 @@
   --ml-glass-body-rgb: 220 183 139;
   --ml-glass-face-gain: .13;
   --ml-glass-shadow-rgb: 49 36 24;
-  --ml-pointer-tint-rgb: 218 164 97;
-  --ml-pointer-diffuse: .51;
+  --ml-pointer-tint-rgb: 228 206 166;
+  --ml-pointer-diffuse: .38;
   --ml-pointer-shine: .37;
 }
 [data-ml-theme="dark"] {
@@ -163,26 +212,26 @@
   --ml-glass-body-rgb: 75 128 159;
   --ml-glass-face-gain: .072;
   --ml-glass-shadow-rgb: 4 10 19;
-  --ml-pointer-tint-rgb: 138 183 220;
-  --ml-pointer-diffuse: .32;
+  --ml-pointer-tint-rgb: 125 150 173;
+  --ml-pointer-diffuse: .29;
   --ml-pointer-shine: .17;
 }
 
 :root, [data-ml-material="high"] {
   --ml-material-level: high;
-  --ml-material-fill-opacity: 32%;
+  --ml-material-fill-opacity: var(--ml-glass-fill, 32%);
+  --ml-material-content-opacity: var(--ml-reading-fill, 92%);
   --ml-material-border-opacity: 58%;
   --ml-optics: block;
-  --ml-opacity: 72%;
-  --ml-pearl-opacity: 38%;
-  --ml-selection-opacity: 68%;
+  --ml-opacity: var(--ml-control-fill, 72%);
+  --ml-pearl-opacity: var(--ml-control-fill, 38%);
+  --ml-selection-opacity: var(--ml-control-fill, 68%);
   --ml-glass-core: initial;
-  --ml-glass-density: 1;
   --ml-filter: blur(1.1px) saturate(1.18);
-  --ml-skin: linear-gradient(160deg, #ffffff24, transparent 45%, #092a3210 81%, #d9faff38);
-  --ml-rail-relief: inset 0 0 0 .009em #193b3332, inset 0 .018em .028em #ffffff8f,
-    inset 0 -.033em .046em #10392f35, 0 .025em .055em #12251f20, 0 .13em .24em -.12em #162b263d;
-  --ml-gloss: radial-gradient(ellipse at 50% 48%, #ffffff24 18%, transparent 58%, #e6ffff66 83%, #ffffffaa);
+  --ml-skin-wash: 0%; --ml-skin-light: 16%; --ml-skin-edge: 20%;
+  --ml-rail-relief: inset 0 0 0 .009em #0000001a, inset 0 .018em .028em #ffffff70,
+    inset 0 -.033em .046em #00000017, 0 .025em .055em #00000010, 0 .13em .24em -.12em #00000026;
+  --ml-gloss: radial-gradient(ellipse at 50% 48%, #ffffff16 18%, transparent 58%, #ffffff39 83%, #ffffff73);
   --ml-knob-relief: inset 0 0 0 .012em #ffffffe0, inset 0 0 .075em .02em #ffffff7a,
     0 .02em .052em #12332942, 0 .07em .15em -.04em #142d254a;
   --ml-segment-relief: inset 0 1px 1px #ffffff82, inset 0 -1px 2px #15242c29,
@@ -191,18 +240,20 @@
     inset 0 -1px 2px #17293224, 0 1px 2px #19242c38, 0 3px 6px -3px #19242c36;
 }
 [data-ml-material="medium"], [data-ml-material="low"], [data-ml-material="base"] {
+  --ml-material-content-opacity: 100%;
   --ml-pearl-opacity: 100%;
   --ml-selection-opacity: 100%;
   --ml-glass-core: none;
 }
 [data-ml-material="medium"] {
   --ml-material-level: medium;
-  --ml-material-fill-opacity: 57%;
+  --ml-material-fill-opacity: var(--ml-glass-fill, 57%);
+  --ml-material-content-opacity: var(--ml-reading-fill, 96%);
   --ml-material-border-opacity: 70%;
   --ml-optics: none;
-  --ml-opacity: 88%;
-  --ml-filter: blur(7px);
-  --ml-skin: linear-gradient(165deg, #ffffff24, transparent 74%);
+  --ml-opacity: var(--ml-control-fill, 88%);
+  --ml-filter: blur(14px) saturate(1.1);
+  --ml-skin-wash: 6%; --ml-skin-light: 24%; --ml-skin-edge: 12%;
   --ml-rail-relief: inset 0 .016em .033em #ffffff73, 0 .04em .09em #192a3029;
   --ml-gloss: linear-gradient(150deg, #ffffff7d, transparent 72%);
   --ml-knob-relief: 0 .026em .07em #17252b3d;
@@ -216,7 +267,7 @@
   --ml-optics: none;
   --ml-opacity: 100%;
   --ml-filter: none;
-  --ml-skin: linear-gradient(180deg, #ffffff36, transparent 56%, #19272c08);
+  --ml-skin-wash: 68%; --ml-skin-light: 18%; --ml-skin-edge: 38%;
   --ml-rail-relief: inset 0 .015em 0 #ffffff45;
   --ml-gloss: none;
   --ml-knob-relief: 0 .015em .038em #19272c2b;
@@ -230,12 +281,19 @@
   --ml-optics: none;
   --ml-opacity: 100%;
   --ml-filter: none;
-  --ml-skin: none;
+  --ml-skin-wash: 18%; --ml-skin-light: 5%; --ml-skin-edge: 7%;
   --ml-rail-relief: none;
   --ml-gloss: none;
   --ml-knob-relief: none;
   --ml-segment-relief: none;
   --ml-highlight-relief: none;
+}
+/* Recompute paint where either axis changes, including a theme nested inside a material scope. */
+:where(:root, [data-ml-material], [data-ml-theme], ml-material) {
+  --ml-skin-tint: color-mix(in srgb, var(--ml-color-fill) 72%, rgb(var(--ml-mica-tint-rgb, var(--ml-glass-body-rgb))));
+  --ml-skin: radial-gradient(ellipse at 8% 0%, color-mix(in srgb, var(--ml-skin-tint) var(--ml-skin-wash), transparent), transparent 76%),
+    linear-gradient(145deg, color-mix(in srgb, var(--ml-color-surface-raised) var(--ml-skin-light), transparent), transparent 55%,
+      color-mix(in srgb, var(--ml-skin-tint) var(--ml-skin-edge), transparent));
 }
 @media (forced-colors: active) {
   :root, [data-ml-material] { --ml-material-level: none !important; }
@@ -243,20 +301,22 @@
 
 /* Shared motion tiers. build.mjs includes only the marked component sections used by each bundle. */
 
+@property --ml-native-transition { syntax: "*"; inherits: false; initial-value: none; }
+
 :root { --ml-spring: cubic-bezier(.2, 1.23, .37, 1); }
 @supports (transition-timing-function: linear(0, 1)) {
   :root {
-    --ml-spring: linear(0, .09 5%, .33 12%, .69 22%, .91 32%, 1.025 44%, 1.038 52%,
-      1.014 64%, .997 78%, 1);
+    --ml-spring: linear(0, .09 5%, .33 12%, .69 22%, .91 32%, 1.015 44%, 1.025 52%,
+      1.009 64%, .998 78%, 1);
   }
 }
 :root, [data-ml-motion="high"] {
   --ml-motion-level: high;
-  --ml-down-scale: .96 .93; --ml-down-shift: 1.5px; --ml-down-time: 115ms;
-  --ml-enter-time: 370ms; --ml-exit-time: 150ms; --ml-enter-shift: 14px; --ml-enter-scale: .93;
-  --ml-travel: 530ms;
-  --ml-leading: 415ms;
-  --ml-tone: 180ms;
+  --ml-down-scale: .98 .96; --ml-down-shift: 1px; --ml-down-time: 95ms;
+  --ml-enter-time: 280ms; --ml-exit-time: 135ms; --ml-enter-shift: 8px; --ml-enter-scale: .97;
+  --ml-travel: 420ms;
+  --ml-leading: 330ms;
+  --ml-tone: 160ms;
   --ml-ease: var(--ml-spring);
   --ml-front-ease: cubic-bezier(.18, .84, .28, 1);
   --ml-press: .972;
@@ -276,9 +336,9 @@
 [data-ml-motion="medium"] {
   --ml-motion-level: medium;
   --ml-down-scale: .977; --ml-down-shift: 1px; --ml-down-time: 110ms;
-  --ml-enter-time: 185ms; --ml-exit-time: 135ms; --ml-enter-shift: 8px; --ml-enter-scale: .985;
-  --ml-travel: 220ms;
-  --ml-leading: 220ms;
+  --ml-enter-time: 180ms; --ml-exit-time: 125ms; --ml-enter-shift: 5px; --ml-enter-scale: .99;
+  --ml-travel: 200ms;
+  --ml-leading: 200ms;
   --ml-tone: 150ms;
   --ml-ease: cubic-bezier(.2, .75, .28, 1);
   --ml-front-ease: var(--ml-ease);
@@ -349,25 +409,29 @@
   font-size: var(--ml-size-body); font-weight: var(--ml-weight-regular); line-height: var(--ml-leading-body);
   letter-spacing: var(--ml-tracking-normal); font-variant-numeric: normal; overflow-wrap: anywhere;
 }
-[data-ml-type="display"], [data-ml-type="title"], [data-ml-type="metric"] {
-  line-height: var(--ml-leading-tight); letter-spacing: var(--ml-tracking-tight);
+[data-ml-type="display"], [data-ml-type="title"] {
+  line-height: var(--ml-leading-title); letter-spacing: var(--ml-tracking-title); text-wrap: balance;
 }
 [data-ml-type="display"] { font-size: var(--ml-size-display); font-weight: var(--ml-weight-bold); }
 [data-ml-type="title"] { font-size: var(--ml-size-title); font-weight: var(--ml-weight-semibold); }
 [data-ml-type="heading"] {
-  font-size: var(--ml-size-heading); font-weight: var(--ml-weight-semibold); line-height: var(--ml-leading-compact);
+  font-size: var(--ml-size-heading); font-weight: var(--ml-weight-semibold); line-height: var(--ml-leading-compact); text-wrap: balance;
 }
 [data-ml-type="label"] {
   font-size: var(--ml-size-label); font-weight: var(--ml-weight-medium); line-height: var(--ml-leading-compact);
 }
 [data-ml-type="caption"] { font-size: var(--ml-size-caption); line-height: var(--ml-leading-compact); }
-[data-ml-type="metric"] { font-size: var(--ml-size-metric); font-weight: var(--ml-weight-semibold); font-variant-numeric: tabular-nums; }
+[data-ml-type="metric"] {
+  font-size: var(--ml-size-metric); font-weight: var(--ml-weight-semibold); font-variant-numeric: lining-nums tabular-nums;
+  line-height: var(--ml-leading-tight); letter-spacing: var(--ml-tracking-tight);
+}
 [data-ml-type="code"] {
   font-family: var(--ml-type-family, var(--ml-font-mono)); font-size: var(--ml-size-label); font-variant-numeric: tabular-nums;
 }
 [data-ml-prose] { max-inline-size: var(--ml-measure); overflow-wrap: anywhere; }
 [data-ml-prose] > :where(h1, h2, h3, p, pre) { margin-block: 0; }
 [data-ml-prose] > :where(h1, h2, h3, p, pre) + :where(h1, h2, h3, p, pre) { margin-block-start: 1em; }
+[data-ml-prose] > :where(h1, h2, h3) + p { margin-block-start: .5em; }
 
 /* Appearance tokens inherit, so different specimens can coexist on one page. */
 :where(
@@ -382,32 +446,32 @@
 }
 :root, [data-ml-theme="light"], [data-ml-theme="warm"], [data-ml-theme="dark"] {
   --ml-blue: var(--ml-color-action);
-  --ml-on-accent: #000;
+  --ml-on-accent: var(--ml-color-on-action);
   --ml-accent-ink: var(--ml-color-info);
-  --ml-focus: var(--ml-blue);
+  --ml-focus: var(--ml-color-focus);
   --ml-accent: var(--ml-color-green);
   --ml-ink: var(--ml-color-text);
   --ml-muted: var(--ml-color-text-secondary);
 }
 :root, [data-ml-theme="light"] {
   --ml-off: #8e8e93;
-  --ml-bed: #e2e6ea;
-  --ml-selected: #fff;
-  --ml-pearl: #f8faf9;
+  --ml-bed: var(--ml-color-fill);
+  --ml-selected: var(--ml-color-surface-raised);
+  --ml-pearl: var(--ml-color-surface-raised);
   --ml-edge: #808890;
 }
 [data-ml-theme="warm"] {
   --ml-off: #a49d93;
-  --ml-bed: #e9e2d7;
-  --ml-selected: #fffdf7;
-  --ml-pearl: #fffdf5;
+  --ml-bed: var(--ml-color-fill);
+  --ml-selected: var(--ml-color-surface-raised);
+  --ml-pearl: var(--ml-color-surface);
   --ml-edge: #9c9284;
 }
 [data-ml-theme="dark"] {
-  --ml-off: #636366;
+  --ml-off: var(--ml-color-fill);
   --ml-bed: var(--ml-color-surface);
   --ml-selected: var(--ml-color-fill);
-  --ml-pearl: #f2f5f5;
+  --ml-pearl: color-mix(in srgb, var(--ml-color-surface-raised) 30%, var(--ml-color-text-secondary));
   --ml-edge: #848a93;
 }
 
@@ -437,12 +501,22 @@
 }
 
 .ml-optical {
+  /* The renderer reads this resolved sRGB colour. The same paint feeds the SVG fallback. */
+  --ml-optical-body: color-mix(in srgb, var(--ml-color-surface) 82%, rgb(var(--ml-glass-body-rgb, 138 192 217)));
+  color: var(--ml-optical-body);
   box-shadow: var(--ml-cast-x, 0px) var(--ml-cast-y, 1px) var(--ml-penumbra, 3px)
     rgb(var(--ml-glass-shadow-rgb, 23 37 53) / var(--ml-cast-opacity, .14));
 }
 .ml-optical > canvas {
   position: absolute; inset: 0; display: none; inline-size: 100%; block-size: 100%;
   border-radius: inherit; pointer-events: none;
+}
+/* The outer layer casts the shadow. Its moving offsets do not paint the SVG or canvas. */
+.ml-optical > :is(svg, canvas) {
+  --ml-cast-x: initial;
+  --ml-cast-y: initial;
+  --ml-penumbra: initial;
+  --ml-cast-opacity: initial;
 }
 .ml-optical[data-ml-renderer="webgl"] > canvas { display: block; }
 /* Keep the SVG filter definitions available to the native backdrop. */
@@ -467,7 +541,7 @@
 }
 .ml-optical[data-ml-light="base"]::before {
   background: radial-gradient(circle var(--ml-light-reach) var(--ml-light-at),
-    color-mix(in srgb, var(--ml-color-action) 60%, rgb(var(--ml-glass-lamp-rgb))) 14%, transparent 100%);
+    color-mix(in srgb, rgb(var(--ml-pointer-tint-rgb)) 70%, var(--ml-color-control-border)) 14%, transparent 100%);
 }
 .ml-optical[data-ml-light="low"] {
   background: radial-gradient(circle var(--ml-light-reach) var(--ml-light-at),
@@ -508,14 +582,14 @@
   --ml-button-line: #8a929d;
 }
 :root, [data-ml-material="high"] {
-  --ml-button-alpha: 77%;
+  --ml-button-alpha: var(--ml-control-fill, 77%);
   --ml-button-quiet-tint: 14%;
   --ml-button-coat: initial;
   --ml-button-shadow: inset 0 1px 1px #ffffff9c, inset 0 -2px 3px #112f4426,
     0 2px 3px #122d4521, 0 7px 14px -7px #15344d4d;
 }
 [data-ml-material="medium"] {
-  --ml-button-alpha: 89%;
+  --ml-button-alpha: var(--ml-control-fill, 89%);
   --ml-button-quiet-tint: 12%;
   --ml-button-coat: none;
   --ml-button-shadow: initial;
@@ -551,7 +625,7 @@ ml-button {
   box-shadow: var(--ml-button-shadow, var(--ml-shadow-raised));
   -webkit-backdrop-filter: var(--ml-filter);
   backdrop-filter: var(--ml-filter);
-  transition: var(--ml-static-transition, scale var(--ml-travel) var(--ml-ease), translate var(--ml-travel) var(--ml-ease));
+  --ml-native-transition: scale translate; transition: var(--ml-static-transition, scale var(--ml-travel) var(--ml-ease), translate var(--ml-travel) var(--ml-ease));
 }
 ml-button[hidden], ml-button:has(> button[hidden]) { display: none; }
 ml-button[variant="secondary"] {
@@ -590,7 +664,7 @@ ml-button > button {
   justify-content: center;
   gap: .5em;
   min-inline-size: min(100%, 44px);
-  min-block-size: max(44px, var(--ml-button-height, 2.75rem));
+  min-block-size: max(44px, var(--ml-button-height, var(--ml-control-height)));
   max-inline-size: 100%;
   margin: 0;
   padding: .45em var(--ml-button-pad, 1.25em);
@@ -619,11 +693,11 @@ ml-button > button::after {
   pointer-events: none;
   background: var(--ml-ink);
   opacity: 0;
-  transition: var(--ml-static-transition, opacity var(--ml-tone) ease);
+  --ml-native-transition: opacity; transition: var(--ml-static-transition, opacity var(--ml-tone) ease);
 }
 ml-button:not([variant="secondary"], [variant="quiet"], [variant="danger"]) > button::after { background: white; }
 ml-button > button > svg { flex: none; width: 1.13em; height: 1.13em; }
-ml-button[icon-only] > button { inline-size: max(44px, var(--ml-button-height, 2.75rem)); padding-inline: .35em; }
+ml-button[icon-only] > button { inline-size: max(44px, var(--ml-button-height, var(--ml-control-height))); padding-inline: .35em; }
 ml-button > button:focus-visible { outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: var(--ml-focus-offset); }
 @media (hover: hover) {
   ml-button > button:enabled:hover::after { opacity: .075; }
@@ -654,7 +728,7 @@ ml-button > button[aria-busy="true"]::before {
   ml-button { --ml-follow: 0 !important; }
   ml-button, ml-button > button::before, ml-button > button::after {
     animation: none !important;
-    transition: none !important;
+    --ml-native-transition: none; transition: none !important;
     scale: 1 !important;
     translate: none !important;
   }
@@ -689,13 +763,13 @@ ml-button > button[aria-busy="true"]::before {
   --ml-dialog-scrim: #06080b82;
 }
 :root, [data-ml-material="high"] {
-  --ml-dialog-alpha: 81%;
+  --ml-dialog-alpha: var(--ml-material-content-opacity);
   --ml-dialog-coat: initial;
   --ml-dialog-shadow: inset 0 1px 1px #fff8, inset 0 -1px 3px #192a3e1c,
     0 2px 5px #192b3c13, 0 16px 40px -17px #182d4956;
 }
 [data-ml-material="medium"] {
-  --ml-dialog-alpha: 91%;
+  --ml-dialog-alpha: var(--ml-material-content-opacity);
   --ml-dialog-coat: none;
   --ml-dialog-shadow: initial;
 }
@@ -729,9 +803,9 @@ ml-dialog > dialog {
   border: var(--ml-border-width) solid var(--ml-dialog-line);
   border-radius: var(--ml-dialog-radius, var(--ml-radius-xl));
   color: var(--ml-ink);
-  background-color: var(--ml-dialog-fill, var(--ml-color-surface));
-  background-color: color-mix(in srgb, var(--ml-dialog-fill, var(--ml-color-surface)) var(--ml-dialog-alpha), transparent);
-  background-image: var(--ml-dialog-coat, radial-gradient(ellipse at center, var(--ml-dialog-fill, var(--ml-color-surface)) 26%, transparent 93%)), var(--ml-skin);
+  background-color: var(--ml-dialog-fill, var(--ml-color-surface-raised));
+  background-color: color-mix(in srgb, var(--ml-dialog-fill, var(--ml-color-surface-raised)) var(--ml-dialog-alpha), transparent);
+  background-image: var(--ml-dialog-coat, radial-gradient(ellipse at center, var(--ml-dialog-fill, var(--ml-color-surface-raised)) 26%, transparent 93%)), var(--ml-skin);
   box-shadow: var(--ml-dialog-shadow, var(--ml-shadow-overlay));
   -webkit-backdrop-filter: var(--ml-filter);
   backdrop-filter: var(--ml-filter);
@@ -739,7 +813,7 @@ ml-dialog > dialog {
   text-align: start;
   opacity: 0;
   transform: translateY(var(--ml-dialog-shift)) scale(var(--ml-dialog-scale));
-  transition-property: opacity, transform, display, overlay;
+  --ml-native-transition: opacity transform display overlay; transition-property: opacity, transform, display, overlay;
   transition-duration: var(--ml-dialog-out);
   transition-timing-function: ease-out;
   transition-behavior: allow-discrete;
@@ -758,7 +832,7 @@ ml-dialog > dialog.ml-refractive {
 }
 ml-dialog > dialog::backdrop {
   background-color: transparent;
-  transition: background-color var(--ml-dialog-out, 150ms) ease-out, display var(--ml-dialog-out, 150ms) allow-discrete,
+  --ml-native-transition: background-color display overlay; transition: background-color var(--ml-dialog-out, 150ms) ease-out, display var(--ml-dialog-out, 150ms) allow-discrete,
     overlay var(--ml-dialog-out, 150ms) allow-discrete;
 }
 ml-dialog > dialog:modal::backdrop { background-color: var(--ml-dialog-scrim, #18223157); }
@@ -780,7 +854,7 @@ ml-dialog .ml-dialog-head, ml-dialog .ml-dialog-actions { display: flex; flex: n
 ml-dialog .ml-dialog-head { padding: 1.35rem var(--ml-space-5) 0; }
 ml-dialog .ml-dialog-title {
   margin: 0; color: var(--ml-ink); font: inherit; font-weight: var(--ml-weight-semibold);
-  font-size: var(--ml-size-heading); line-height: 1.32; letter-spacing: var(--ml-tracking-tight); overflow-wrap: anywhere;
+  font-size: var(--ml-size-heading); line-height: var(--ml-leading-title); letter-spacing: var(--ml-tracking-title); overflow-wrap: anywhere;
 }
 ml-dialog .ml-dialog-symbol {
   flex: none; display: grid; place-items: center; inline-size: 2.5rem; block-size: 2.5rem;
@@ -799,7 +873,7 @@ ml-dialog .ml-dialog-facts dd { margin: .12rem 0 0; color: var(--ml-ink); font-w
 ml-dialog .ml-dialog-field { display: grid; gap: .35rem; padding: 3px; margin-inline: -3px; color: var(--ml-ink); font-weight: var(--ml-weight-medium); }
 ml-dialog .ml-dialog-field input {
   box-sizing: border-box; inline-size: 100%; min-inline-size: 0; min-block-size: 44px;
-  padding: .48rem .72rem; border: var(--ml-border-width) solid var(--ml-dialog-line); border-radius: var(--ml-radius-md);
+  padding: .48rem var(--ml-control-padding-inline); border: var(--ml-border-width) solid var(--ml-color-control-border); border-radius: var(--ml-radius-md);
   background: var(--ml-dialog-field); color: var(--ml-ink); font: inherit; font-size: var(--ml-size-body); font-weight: var(--ml-weight-regular);
 }
 ml-dialog .ml-dialog-field input:focus-visible { outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: 0; }
@@ -811,7 +885,7 @@ ml-dialog .ml-dialog-actions { flex-wrap: wrap; justify-content: flex-end; paddi
 }
 @media (prefers-reduced-motion: reduce) {
   ml-dialog > dialog { --ml-follow: 0 !important; }
-  ml-dialog > dialog, ml-dialog > dialog::backdrop { transition: none !important; transform: none !important; }
+  ml-dialog > dialog, ml-dialog > dialog::backdrop { --ml-native-transition: none; transition: none !important; transform: none !important; }
 }
 @media (forced-colors: active) {
   ml-dialog > dialog.ml-refractive { -webkit-backdrop-filter: none; backdrop-filter: none; }
@@ -820,7 +894,7 @@ ml-dialog .ml-dialog-actions { flex-wrap: wrap; justify-content: flex-end; paddi
 }
 
 :root {
-  --ml-drawer-icon-close: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%206%2012%2012M18%206%206%2018%22%2F%3E%3C%2Fsvg%3E");
+  --ml-drawer-icon-close: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%206%2012%2012M18%206%206%2018%22%2F%3E%3C%2Fsvg%3E");
 }
 ml-drawer { display: contents; }
 ml-drawer[hidden] { display: none; }
@@ -831,7 +905,7 @@ ml-drawer > ml-dialog > dialog {
   inline-size: min(var(--ml-drawer-width, 27rem), 100%); max-inline-size: 100%;
   block-size: 100vh; block-size: 100dvh; max-block-size: 100dvh;
   border-radius: 0; border-start-start-radius: 1.25rem; border-end-start-radius: 1.25rem;
-  background-color: color-mix(in srgb, var(--ml-dialog-fill, var(--ml-color-surface)) 60%, color-mix(in srgb, var(--ml-dialog-fill, var(--ml-color-surface)) var(--ml-dialog-alpha), transparent));
+  background-color: color-mix(in srgb, var(--ml-dialog-fill, var(--ml-color-surface-raised)) 60%, color-mix(in srgb, var(--ml-dialog-fill, var(--ml-color-surface-raised)) var(--ml-dialog-alpha), transparent));
   overflow: hidden; transform: var(--ml-drawer-offset);
 }
 ml-drawer:dir(rtl) > ml-dialog > dialog { --ml-drawer-offset: translateX(calc(-1 * var(--ml-drawer-slide))); }
@@ -861,12 +935,12 @@ ml-drawer .ml-drawer-header {
   padding: max(var(--ml-space-4), env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) var(--ml-space-4) max(1.25rem, env(safe-area-inset-left));
   border-block-end: var(--ml-border-width) solid var(--ml-color-separator);
 }
-ml-drawer .ml-drawer-header :is(h1, h2, h3) { margin: 0; font: inherit; font-size: var(--ml-size-heading); line-height: var(--ml-leading-compact); font-weight: var(--ml-weight-semibold); letter-spacing: var(--ml-tracking-tight); overflow-wrap: anywhere; }
+ml-drawer .ml-drawer-header :is(h1, h2, h3) { margin: 0; font: inherit; font-size: var(--ml-size-heading); line-height: var(--ml-leading-compact); font-weight: var(--ml-weight-semibold); letter-spacing: var(--ml-tracking-title); overflow-wrap: anywhere; }
 ml-drawer .ml-drawer-dismiss {
   display: grid; place-items: center; flex: none; inline-size: 2.25rem; block-size: 2.25rem; padding: 0;
   border: var(--ml-border-width) solid transparent; border-radius: 50%; background: color-mix(in srgb, currentColor 8%, transparent);
   color: var(--ml-muted); cursor: pointer; touch-action: manipulation;
-  transition: background-color var(--ml-tone), scale var(--ml-travel) var(--ml-ease);
+  --ml-native-transition: background-color scale; transition: background-color var(--ml-tone), scale var(--ml-travel) var(--ml-ease);
 }
 ml-drawer .ml-drawer-dismiss::before { content: ''; inline-size: 1rem; block-size: 1rem; background: currentColor; mask: var(--ml-drawer-icon-close) center/contain no-repeat; }
 ml-drawer .ml-drawer-dismiss:hover { background-color: color-mix(in srgb, currentColor 14%, transparent); }
@@ -884,7 +958,7 @@ ml-drawer .ml-drawer-footer {
   border-block-start: var(--ml-border-width) solid var(--ml-color-separator);
 }
 @media (any-pointer: coarse) { ml-drawer .ml-drawer-dismiss { inline-size: 44px; block-size: 44px; } }
-@media (prefers-reduced-motion: reduce) { ml-drawer .ml-drawer-dismiss { transition: none; scale: none; } }
+@media (prefers-reduced-motion: reduce) { ml-drawer .ml-drawer-dismiss { --ml-native-transition: none; transition: none; scale: none; } }
 @media (forced-colors: active) {
   ml-drawer > ml-dialog > dialog { background: Canvas; }
   ml-drawer .ml-drawer-dismiss { border-color: ButtonText; }
