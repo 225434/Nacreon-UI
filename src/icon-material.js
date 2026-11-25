@@ -1,4 +1,4 @@
-function createIconMaterial(art, motion) {
+function createIconMaterial(art) {
   const palettes = {
     light: { light: '#f4faff', shade: '#23384f', pane: .20, lens: .27, alloy: .49 },
     warm: { light: '#fff0d6', shade: '#493628', pane: .23, lens: .30, alloy: .51 },
@@ -26,7 +26,7 @@ function createIconMaterial(art, motion) {
     return element;
   }
   // Illuminate the existing ink. Compositing atop SourceGraphic preserves stroke coverage and transparency.
-  function inkLight(svg, drawing, tier, theme, reference) {
+  function inkLight(svg, drawing, tier, theme, reference, strength) {
     const id = prefix + ++serial;
     const defs = node(svg, 'defs', { 'data-ml-icon-light': tier, 'aria-hidden': 'true' });
     const filter = node(defs, 'filter', { id, filterUnits: 'userSpaceOnUse',
@@ -36,7 +36,7 @@ function createIconMaterial(art, motion) {
     node(filter, 'feColorMatrix', { values: '0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1.8 0 0 0 -.8', result: 'intensity' });
     const tint = theme === 'warm' ? '#ebbe88' : theme === 'dark' ? '#a9d2f4' : '#93bde3';
     const [heightFactor, opacity] = { base: [.34, .37], low: [.54, .43], medium: [.85, .51] }[tier];
-    node(filter, 'feFlood', { 'flood-color': tint, 'flood-opacity': opacity });
+    const tintLayer = node(filter, 'feFlood', { 'flood-color': tint, 'flood-opacity': opacity * strength });
     node(filter, 'feComposite', { in2: 'intensity', operator: 'in' });
     node(filter, 'feComposite', { in2: 'SourceGraphic', operator: 'atop' });
     const original = drawing.getAttribute('filter');
@@ -44,6 +44,7 @@ function createIconMaterial(art, motion) {
     if (reference) defs.setAttribute('data-ml-icon-reference', original ?? '');
     drawing.setAttribute('filter', applied);
     let previous;
+    let lightWeight = 1;
     return {
       light(x, y, width = 24, height = 24, left = 0, top = 0) {
         const position = [left + x * width, top + y * height, Math.min(width, height) * heightFactor];
@@ -54,6 +55,11 @@ function createIconMaterial(art, motion) {
         lamp.setAttribute('y', position[1]);
         lamp.setAttribute('z', position[2]);
       },
+      setLightWeight(weight) {
+        if (weight === lightWeight) return;
+        lightWeight = weight;
+        tintLayer.setAttribute('flood-opacity', (opacity * strength * weight).toFixed(3));
+      },
       remove() {
         if (drawing.getAttribute('filter') === applied) {
           if (original === null) drawing.removeAttribute('filter');
@@ -63,7 +69,7 @@ function createIconMaterial(art, motion) {
       },
     };
   }
-  function surface(svg, drawing, name, theme, reference = false) {
+  function surface(svg, drawing, name, theme, reference = false, strength = 1) {
     const colors = Object.hasOwn(palettes, theme) ? palettes[theme] : palettes.light;
     const id = prefix + ++serial;
     const url = key => 'url(#' + id + '-' + key + ')';
@@ -84,20 +90,20 @@ function createIconMaterial(art, motion) {
       if (radial) { paint.setAttribute('r', '.91'); lenses.push(paint); }
       else axes.push(paint);
       for (const [offset, color, opacity = 1] of stops) {
-        node(paint, 'stop', { offset, 'stop-color': color, 'stop-opacity': opacity });
+        node(paint, 'stop', { offset, 'stop-color': color, 'stop-opacity': color === glint ? opacity * strength : opacity });
       }
     }
     // Gradients live with the glyph, so each instance inherits its own CSS color.
     const ink = 'currentColor', glint = colors.light;
     if (!reference) {
-      gradient('ink', [[0, ink], [.36, ink], [.46, ink, .76], [.55, ink], [.86, ink], [1, ink, .90]]);
+      gradient('ink', [[0, ink], [.36, ink], [.46, ink, .84], [.55, ink], [.86, ink], [1, ink, .95]]);
       // A horizontal or vertical stroke has an empty object bounding box. Use the 24-unit glyph space.
       axes[0].setAttribute('gradientUnits', 'userSpaceOnUse');
-      if (faces.has('pane')) gradient('pane', [[0, ink, colors.pane * 1.7], [.29, glint, .42],
+      if (faces.has('pane')) gradient('pane', [[0, ink, colors.pane * 1.7], [.29, glint, .34],
         [.47, ink, colors.pane * .55], [.73, ink, colors.pane], [1, ink, colors.pane * 1.75]]);
       if (faces.has('lens')) gradient('lens', [[0, glint, .96], [.10, glint, .72], [.29, ink, colors.lens],
         [.57, ink, colors.lens * .40], [.81, ink, colors.lens], [1, ink, .66]], true);
-      if (faces.has('alloy')) gradient('alloy', [[0, ink, .72], [.27, ink, colors.alloy], [.43, glint, .80],
+      if (faces.has('alloy')) gradient('alloy', [[0, ink, .72], [.27, ink, colors.alloy], [.43, glint, .72],
         [.54, ink, .24], [.78, ink, colors.alloy], [1, ink, .74]]);
       setAttribute('stroke', url('ink') + ' currentColor');
     }
@@ -113,14 +119,14 @@ function createIconMaterial(art, motion) {
     const blur = node(filter, 'feGaussianBlur', { in: 'SourceAlpha', result: 'height' });
     const back = node(filter, 'feOffset', { in: 'height', result: 'behind' });
     node(filter, 'feComposite', { in: 'SourceAlpha', in2: 'behind', operator: 'out', result: 'lip' });
-    node(filter, 'feFlood', { 'flood-color': glint, 'flood-opacity': '.68', result: 'frost' });
+    node(filter, 'feFlood', { 'flood-color': glint, 'flood-opacity': .52 * strength, result: 'frost' });
     node(filter, 'feComposite', { in: 'frost', in2: 'lip', operator: 'in', result: 'rim' });
     const front = node(filter, 'feOffset', { in: 'height', result: 'ahead' });
     node(filter, 'feComposite', { in: 'SourceAlpha', in2: 'ahead', operator: 'out', result: 'backEdge' });
-    node(filter, 'feFlood', { 'flood-color': colors.shade, 'flood-opacity': '.58', result: 'shadow' });
+    node(filter, 'feFlood', { 'flood-color': colors.shade, 'flood-opacity': .66 * strength, result: 'shadow' });
     node(filter, 'feComposite', { in: 'shadow', in2: 'backEdge', operator: 'in', result: 'depth' });
-    const shine = node(filter, 'feSpecularLighting', { in: 'height', specularConstant: '.63',
-      specularExponent: '16', 'lighting-color': glint, result: 'reflection' });
+    const shine = node(filter, 'feSpecularLighting', { in: 'height', specularConstant: .7 * strength,
+      specularExponent: '26', 'lighting-color': glint, result: 'reflection' });
     const lamp = node(shine, 'fePointLight', {});
     node(filter, 'feComposite', { in: 'reflection', in2: 'SourceAlpha', operator: 'in', result: 'gloss' });
     const merge = node(filter, 'feMerge', {});
@@ -178,14 +184,22 @@ function createIconMaterial(art, motion) {
   }
 
   function forExport(svg, name, options) {
+    const raw = Number(options.lightIntensity ?? 1);
+    const strength = options.lightSource === 'none' ? 0 : Number.isFinite(raw) ? Math.max(0, Math.min(1, raw)) : 1;
     if (options.material !== 'high') {
       svg.querySelectorAll('[data-ml-glass-face]').forEach(shape => shape.remove());
       svg.querySelectorAll(faceSelector).forEach(shape => shape.removeAttribute('fill'));
+      if (options.lightSource === 'fixed' && strength && ['base', 'low', 'medium'].includes(options.material)) {
+        const drawing = node(svg, 'g', {});
+        drawing.append(...[...svg.children].filter(child => child !== drawing));
+        inkLight(svg, drawing, options.material, options.theme, false, strength).light(.21, .12);
+        svg.querySelector('defs').removeAttribute('data-ml-icon-light');
+      }
       return svg;
     }
     const drawing = node(svg, 'g', {});
     drawing.append(...[...svg.children].filter(child => child !== drawing));
-    const glass = surface(svg, drawing, name, options.theme);
+    const glass = surface(svg, drawing, name, options.theme, false, strength);
     // Write actual SVG paints into the exported paths so the file is independent of the component.
     for (const shape of drawing.querySelectorAll(faceSelector)) {
       shape.setAttribute('fill', glass.url(faceOf(shape)));
@@ -197,63 +211,91 @@ function createIconMaterial(art, motion) {
   }
 
   const contexts = new WeakMap(), entries = new WeakMap(), watched = new WeakSet(), shadowOf = new WeakMap();
-  const { GlassScene } = globalThis[Symbol.for('material-lib.glass.v1')];
+  const { GlassScene, GlassSurface } = globalThis[Symbol.for('material-lib.glass.v1')];
+  const motionFrames = globalThis[Symbol.for('material-lib.motion-frames.v1')];
   function context(doc) {
     let ctx = contexts.get(doc);
     if (ctx) return ctx;
     const scene = GlassScene.forDocument(doc);
     const forced = doc.defaultView.matchMedia('(forced-colors: active)');
-    ctx = { scene, forced, items: new Set(), dirty: true };
+    ctx = { scene, forced, items: new Set(), views: new WeakMap(), dirty: true };
     ctx.wake = () => { ctx.dirty = true; scene.wake(); };
     ctx.resize = new ResizeObserver(() => scene.wake());
-    ctx.paint = pointer => {
+    // Prepare icons just outside the viewport before they scroll into view.
+    const Observer = doc.defaultView.IntersectionObserver;
+    if (Observer) ctx.viewport = new Observer(records => {
+      let entered = false;
+      for (const record of records) {
+        const view = ctx.views.get(record.target);
+        if (!view) continue;
+        entered ||= !view.visible && record.isIntersecting;
+        view.visible = record.isIntersecting;
+      }
+      if (entered) scene.wake();
+    }, { rootMargin: '96px', scrollMargin: '96px' });
+    ctx.paint = (pointer, now) => {
       const refresh = ctx.dirty;
       ctx.dirty = false;
       let follows = false;
       for (const item of ctx.items) {
-        if (refresh || item.dirty) {
+        const refreshItem = refresh || item.dirty;
+        if (refreshItem) {
           item.dirty = false;
-          let level, theme;
+          let level, theme, source, motion, disabled = false;
+          const style = getComputedStyle(item.owner);
           for (let node = item.owner; node; node = iconParent(node)) {
             if (node.assignedSlot) watch(node.assignedSlot.getRootNode());
             level ??= node.getAttribute('data-ml-material');
             theme ??= node.getAttribute('data-ml-theme');
+            source ??= node.getAttribute('data-ml-light-source');
+            motion ??= node.getAttribute('data-ml-motion');
+            disabled ||= node.matches(':disabled, [inert], [aria-disabled="true"], [aria-busy="true"]');
           }
           if (!level) {
-            const style = getComputedStyle(item.owner);
             level = style.getPropertyValue('--ml-material-level').trim()
               || (style.getPropertyValue('--ml-optics').trim() === 'block' ? 'high' : 'base');
           }
-          item.follows = !forced.matches && motion.allowed(item.owner);
-          const tier = !forced.matches && (level === 'high' || (item.follows && ['base', 'low', 'medium'].includes(level))) ? level : null;
-          if (item.glass && (tier !== item.tier || theme !== item.theme)) {
+          const light = GlassSurface.lighting(style, scene.media.matches, !disabled, source);
+          item.mediumMotion = !scene.media.matches && (style.getPropertyValue('--ml-motion-level').trim() || motion) === 'medium';
+          item.follows = light.mode === 'pointer' && !forced.matches;
+          const tier = !forced.matches && (level === 'high' || (light.mode !== 'none' && ['base', 'low', 'medium'].includes(level))) ? level : null;
+          if (item.glass && (tier !== item.tier || theme !== item.theme || light.strength !== item.strength)) {
             item.glass.remove(); item.glass = null;
           }
           item.tier = tier;
           item.theme = theme;
+          item.strength = light.strength;
         }
-        if (!item.tier) continue;
+        if (!item.tier || (!item.view.visible && !refreshItem)) continue;
+        if (!motionFrames.due(item, item.mediumMotion, now, scene)) {
+          follows ||= item.follows;
+          continue;
+        }
         const box = item.svg.getBoundingClientRect();
         if (!box.width || !box.height) continue;
         follows ||= item.follows;
+        const followWeight = item.follows ? pointer?.weight ?? 1 : 1;
         let x = .21, y = .12;
         if (item.tier !== 'high') {
-          if (!pointer || Math.hypot(Math.max(box.left - pointer.x, 0, pointer.x - box.right),
-            Math.max(box.top - pointer.y, 0, pointer.y - box.bottom)) > Math.max(box.width, box.height) * 2) {
+          if (item.follows && (!pointer || Math.hypot(Math.max(box.left - pointer.x, 0, pointer.x - box.right),
+            Math.max(box.top - pointer.y, 0, pointer.y - box.bottom)) > Math.max(box.width, box.height) * 2)) {
             if (item.glass) { item.glass.remove(); item.glass = null; }
             continue;
           }
-          item.glass ??= inkLight(item.svg, item.drawing, item.tier, item.theme, item.reference);
-          x = (pointer.x - box.left) / box.width;
-          y = (pointer.y - box.top) / box.height;
+          item.glass ??= inkLight(item.svg, item.drawing, item.tier, item.theme, item.reference, item.strength);
+          item.glass.setLightWeight(followWeight);
+          if (item.follows) {
+            x = (pointer.x - box.left) / box.width;
+            y = (pointer.y - box.top) / box.height;
+          }
         } else {
-          item.glass ??= surface(item.svg, item.drawing, item.name, item.theme, item.reference);
+          item.glass ??= surface(item.svg, item.drawing, item.name, item.theme, item.reference, item.strength);
         }
         if (item.tier === 'high' && item.follows && pointer) {
           const px = (pointer.x - box.left) / box.width, py = (pointer.y - box.top) / box.height;
           const distance = Math.hypot((px - .5) * box.width, (py - .5) * box.height);
           const reach = Math.max(85, Math.max(box.width, box.height) * 2.6);
-          const near = Math.max(0, Math.min(1, 1.5 - distance / reach));
+          const near = Math.max(0, Math.min(1, 1.5 - distance / reach)) * followWeight;
           x += (Math.max(-.25, Math.min(1.25, px)) - x) * near;
           y += (Math.max(-.25, Math.min(1.25, py)) - y) * near;
         }
@@ -277,7 +319,11 @@ function createIconMaterial(art, motion) {
     if (!item) return;
     const { ctx } = item;
     item.glass?.remove();
-    ctx.resize.unobserve(item.svg);
+    if (--item.view.count === 0) {
+      ctx.resize.unobserve(item.svg);
+      ctx.viewport?.unobserve(item.svg);
+      ctx.views.delete(item.svg);
+    }
     ctx.items.delete(item);
     entries.delete(owner);
     if (!ctx.items.size) {
@@ -286,6 +332,7 @@ function createIconMaterial(art, motion) {
       ctx.scene.media.removeEventListener('change', ctx.wake);
       ctx.scene.doc.removeEventListener('visibilitychange', ctx.wake);
       ctx.resize.disconnect();
+      ctx.viewport?.disconnect();
       contexts.delete(ctx.scene.doc);
     }
   }
@@ -295,10 +342,17 @@ function createIconMaterial(art, motion) {
     detach(owner);
     if (!art.has(name) || !owner.isConnected) return;
     const ctx = context(owner.ownerDocument);
-    const item = { ctx, owner, svg, drawing, name, reference: owner === drawing, dirty: true };
+    let view = ctx.views.get(svg);
+    if (!view) {
+      view = { visible: true, count: 0 };
+      ctx.views.set(svg, view);
+      ctx.resize.observe(svg);
+      ctx.viewport?.observe(svg);
+    }
+    view.count++;
+    const item = { ctx, owner, svg, view, drawing, name, reference: owner === drawing, dirty: true };
     entries.set(owner, item);
     ctx.items.add(item);
-    ctx.resize.observe(svg);
     ctx.scene.wake();
   }
   const useSelector = 'svg > use:only-of-type';
@@ -340,6 +394,7 @@ function createIconMaterial(art, motion) {
   function watch(root) {
     if (watched.has(root)) return;
     watched.add(root);
+    motionFrames.watch(root);
     if (root.host) shadowOf.set(root.host, root);
     const doc = root.ownerDocument ?? root;
     const wake = () => contexts.get(doc)?.wake();
@@ -357,13 +412,15 @@ function createIconMaterial(art, motion) {
           if (record.target.localName === 'svg' && [...record.addedNodes, ...record.removedNodes].some(n => n.localName === 'use')) {
             record.target.querySelectorAll(':scope > use').forEach(use => scan(use, true));
           }
+        } else if (record.attributeName === 'style') {
+          if (/--ml-light-(?:intensity|source)\s*:/.test((record.oldValue || '') + ';' + record.target.style.cssText)) changed = true;
         } else if (record.attributeName === 'href' && record.target.localName === 'use') scan(record.target, true);
         else changed = true;
       }
       if (changed) wake();
     });
-    observer.observe(root, { subtree: true, childList: true, attributes: true,
-      attributeFilter: ['data-ml-material', 'data-ml-motion', 'data-ml-theme', 'disabled', 'aria-disabled', 'aria-busy', 'hidden', 'inert', 'slot', 'name', 'href'] });
+    observer.observe(root, { subtree: true, childList: true, attributes: true, attributeOldValue: true,
+      attributeFilter: ['data-ml-material', 'data-ml-motion', 'data-ml-theme', 'data-ml-light-source', 'style', 'disabled', 'aria-disabled', 'aria-busy', 'hidden', 'inert', 'slot', 'name', 'href'] });
     root.addEventListener('slotchange', wake, true);
     root.addEventListener('load', event => { if (event.target.localName === 'link') wake(); }, true);
     scan(root, true);

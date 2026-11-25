@@ -72,7 +72,7 @@ ml-menu-panel {
   padding: 0;
   overflow: hidden;
   border-radius: var(--ml-menu-radius, var(--ml-radius-lg));
-  background-color: color-mix(in srgb, var(--ml-color-surface) calc(76% + var(--ml-opacity) * .24), transparent);
+  background-color: color-mix(in srgb, var(--ml-color-surface-raised) max(96%, var(--ml-material-content-opacity)), transparent);
   text-align: start;
   font-size: var(--ml-size-body);
 }

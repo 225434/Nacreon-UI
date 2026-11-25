@@ -18,13 +18,13 @@
   --ml-tag-tint: 12%;
 }
 :root, [data-ml-material="high"] {
-  --ml-tag-alpha: 77%;
+  --ml-tag-alpha: var(--ml-control-fill, 77%);
   --ml-tag-coat: initial;
   --ml-tag-shadow: inset 0 1px 1px #fff8, inset 0 -1px 2px #27333e1f,
     0 2px 4px -2px #1b293b35, 0 6px 13px -7px #1c314b4d;
 }
 [data-ml-material="medium"] {
-  --ml-tag-alpha: 87%; --ml-tag-coat: none;
+  --ml-tag-alpha: var(--ml-control-fill, 87%); --ml-tag-coat: none;
   --ml-tag-shadow: initial;
 }
 [data-ml-material="low"] {

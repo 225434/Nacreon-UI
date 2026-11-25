@@ -38,7 +38,7 @@ ml-file-drop {
   border: var(--ml-border-width) dashed color-mix(in srgb, var(--ml-file-ink) 42%, var(--ml-color-separator));
   border-radius: var(--ml-file-radius, var(--ml-radius-lg));
   text-align: center;
-  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-opacity), transparent);
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-material-content-opacity), transparent);
   background-image: var(--ml-skin);
   box-shadow: var(--ml-segment-relief);
   -webkit-backdrop-filter: var(--ml-filter);

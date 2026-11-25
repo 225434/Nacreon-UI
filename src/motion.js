@@ -5,8 +5,8 @@
   const levels = Object.freeze([
     { value: 'base', label: '基础', name: '即时反馈', description: '状态立即到位。' },
     { value: 'low', label: '低', name: '短暂淡变', description: '位置立即到位，明暗短暂过渡。' },
-    { value: 'medium', label: '中', name: '平滑过渡', description: '沿一个方向减速，到达目标即停。' },
-    { value: 'high', label: '高', name: '弹性反馈', description: '位移带回弹，按压后有弹性回馈。' },
+    { value: 'medium', label: '中', name: '平滑过渡', description: '沿一个方向减速，动画更新上限为 90 FPS。' },
+    { value: 'high', label: '高', name: '弹性反馈', description: '位移和按压带回弹，跟随浏览器刷新绘制。' },
   ].map(Object.freeze));
   const active = new Map();
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
@@ -51,6 +51,7 @@
     let animation;
     try { animation = element.animate(frames, { duration: profile.duration, fill: 'both' }); }
     catch { settle?.(); return; }
+    globalThis[Symbol.for('material-lib.motion-frames.v1')].track(animation, element);
     if (!active.size) settings.observe(document.documentElement, { subtree: true, attributes: true,
       attributeFilter: ['data-ml-motion'], childList: true });
     active.set(element, { animation, settle, level: profile.level });
@@ -59,7 +60,7 @@
     };
     // A moving surface crosses the page-space light even when the pointer is still.
     const style = element.matches('ml-material') && getComputedStyle(element);
-    if ((style && (style.getPropertyValue('--ml-optics').trim() === 'block' || style.getPropertyValue('--ml-follow').trim() === '1'))
+    if ((style && (style.getPropertyValue('--ml-optics').trim() === 'block' || style.getPropertyValue('--ml-light-source').trim() === 'pointer'))
       || element.matches('.ml-refractive') || element.querySelector('.ml-optical')) {
       const { GlassScene } = globalThis[Symbol.for('material-lib.glass.v1')];
       GlassScene.forDocument(element.ownerDocument).wake(profile.duration);

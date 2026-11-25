@@ -2,10 +2,10 @@
   /* Icon masks from icons.svg */
 }
 ml-data-table {
-  --ml-cell-y: .66rem; --ml-cell-x: .88rem;
+  --ml-cell-y: var(--ml-row-padding-block); --ml-cell-x: var(--ml-control-padding-inline);
   inline-size: 100%; color: var(--ml-ink);
 }
-ml-data-table[density="compact"] { --ml-cell-y: .34rem; --ml-cell-x: .72rem; }
+ml-data-table[density="compact"] { --ml-cell-y: var(--ml-row-padding-block-compact); --ml-cell-x: var(--ml-space-3); }
 ml-data-table .ml-table-scroll {
   position: relative; overflow-x: auto; max-width: 100%; border-radius: inherit; overscroll-behavior-x: contain;
   scrollbar-width: thin; scrollbar-color: var(--ml-color-separator) transparent;
@@ -26,7 +26,7 @@ ml-data-table :is(thead, tbody, tfoot) > tr > [data-wrap] { white-space: normal;
 ml-data-table :is(thead, tbody, tfoot) > tr > [data-align="end"] { text-align: end; }
 ml-data-table :is(thead, tbody, tfoot) > tr > [data-align="center"] { text-align: center; }
 ml-data-table thead > tr > th {
-  color: var(--ml-muted); background-color: color-mix(in srgb, var(--ml-color-fill) 64%, var(--ml-color-surface));
+  color: var(--ml-muted); background-color: var(--ml-color-surface-inset);
   font-size: var(--ml-size-caption); font-weight: var(--ml-weight-semibold);
 }
 ml-data-table thead > tr > th:has(> .ml-table-sort) { padding: 0; }
@@ -50,7 +50,7 @@ ml-data-table tbody > tr > th { font-weight: var(--ml-weight-semibold); }
 ml-data-table tbody > tr > :is(th, td) > small { display: block; margin-top: .12rem; color: var(--ml-muted); font-size: var(--ml-size-caption); font-weight: var(--ml-weight-regular); }
 ml-data-table tbody > tr[data-ml-page-hidden] { display: none !important; }
 ml-data-table tbody:last-of-type > tr:last-child > :is(th, td) { border-block-end-color: transparent; }
-ml-data-table[selectable] tbody > tr[data-selected] > :is(th, td) { background: color-mix(in srgb, var(--ml-color-action) 12%, transparent); }
+ml-data-table[selectable] tbody > tr[data-selected] > :is(th, td) { background: var(--ml-color-selection); }
 ml-data-table :is(thead, tbody) > tr > .ml-table-check { width: 2.8rem; padding: 0; text-align: center; }
 ml-data-table .ml-table-check label { display: inline-grid; place-items: center; width: 2.7rem; min-height: 2rem; cursor: pointer; }
 ml-data-table .ml-table-check input { margin: 0; width: 1.02rem; height: 1.02rem; accent-color: var(--ml-accent-ink); cursor: inherit; }

@@ -16,8 +16,8 @@ ml-list-group, ml-list-item {
 ml-list-group { display: grid; grid-template-columns: minmax(0, 1fr); }
 ml-list-item { display: block; inline-size: 100%; container: ml-list-item / inline-size; }
 :is(ml-list-item, ml-list-group)[density="compact"] {
-  --ml-list-height: 2.75rem;
-  --ml-list-pad-y: .32rem;
+  --ml-list-height: var(--ml-control-height);
+  --ml-list-pad-y: var(--ml-row-padding-block-compact);
   --ml-list-icon-size: 1.75rem;
 }
 ml-list-group > :is(h1, h2, h3, h4, h5, h6) {
@@ -59,7 +59,7 @@ ml-list-item::before, ml-list-group::before {
   border: var(--ml-border-width) solid var(--ml-color-separator);
   border-radius: inherit;
   background-color: var(--ml-color-surface);
-  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-opacity), transparent);
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-material-content-opacity), transparent);
   background-image: var(--ml-skin);
   box-shadow: var(--ml-segment-relief);
   -webkit-backdrop-filter: var(--ml-filter);
@@ -102,7 +102,7 @@ ml-list-item .ml-list-row {
   min-inline-size: 0;
   min-block-size: max(44px, var(--ml-list-height, 3.5rem));
   margin: 0;
-  padding: var(--ml-list-pad-y, .56rem) var(--ml-list-padding, var(--ml-space-4));
+  padding: var(--ml-list-pad-y, var(--ml-row-padding-block)) var(--ml-list-padding, var(--ml-space-4));
   border: 0;
   border-radius: inherit;
   appearance: none;

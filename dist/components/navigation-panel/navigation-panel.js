@@ -1,0 +1,2169 @@
+/* Generated from src/motion-frames.js and src/glass-shader.js and src/glass.js and src/control-glass.js and src/dialog.js and src/catalog.js by build.mjs. */
+(() => {
+  'use strict';
+  const key = Symbol.for('material-lib.motion-frames.v1');
+  if (globalThis[key]) return;
+
+  const mediumFPS = 90;
+  const watched = new WeakSet(), active = new Map(), entries = new WeakMap(), curves = new Map();
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const nativeRate = typeof Animation !== 'undefined' && 'frameRate' in Animation.prototype;
+  const linearStops = CSS.supports('animation-timing-function', 'linear(0, 1)');
+
+  // Use a shared time grid. Resetting a timer on each draw drops 120 Hz to 60.
+  // A deferred final input gets another display callback even after the pointer stops.
+  function due(item, medium, now, scene) {
+    if (!medium || !Number.isFinite(now)) {
+      item.motionSlot = undefined;
+      return true;
+    }
+    const slot = Math.floor(now * mediumFPS / 1000 + 1e-7);
+    if (item.motionSlot === slot) {
+      if (scene && !scene.frame) scene.wake();
+      return false;
+    }
+    item.motionSlot = slot;
+    return true;
+  }
+
+  // CSS animations keep their own per-keyframe easing. Transitions apply easing to
+  // the entire effect, so hold samples of the authored curve at equal time intervals.
+  function sampledEasing(easing, steps) {
+    if (easing === 'linear' || steps === 1) return 'steps(' + steps + ', end)';
+    const cacheKey = easing + '/' + steps;
+    if (curves.has(cacheKey)) return curves.get(cacheKey);
+    const effect = new KeyframeEffect(null, [], { duration: steps, fill: 'both', easing });
+    const clock = new Animation(effect, null), stops = [];
+    for (let i = 0; i <= steps; i++) {
+      clock.currentTime = i;
+      const value = +effect.getComputedTiming().progress.toFixed(7);
+      const start = 100 * i / steps;
+      stops.push(i === steps ? value + ' 100%' : value + ' ' + start + '% ' + (100 * (i + 1) / steps) + '%');
+    }
+    const curve = 'linear(' + stops.join(',') + ')';
+    if (curves.size >= 64) curves.delete(curves.keys().next().value);
+    curves.set(cacheKey, curve);
+    return curve;
+  }
+
+  function apply(animation, entry) {
+    const level = reduced.matches ? 'base' : getComputedStyle(entry.owner).getPropertyValue('--ml-motion-level').trim()
+      || entry.owner.closest('[data-ml-motion]')?.dataset.mlMotion || 'high';
+    if (nativeRate) {
+      animation.frameRate = level === 'medium' ? mediumFPS : level === 'high' ? 'highest' : 'auto';
+      return;
+    }
+    if (level !== 'medium' && !entry.applied) return;
+    const effect = animation.effect, timing = effect.getTiming();
+    if (timing.easing !== entry.applied) entry.original = timing.easing;
+    const duration = Number(timing.duration);
+    const sample = level === 'medium' && duration > 0 && Number.isFinite(duration);
+    const steps = Math.min(2147483647, Math.max(1, Math.floor(duration * mediumFPS / 1000)));
+    let easing = entry.original;
+    // Library effects with a nonlinear overall curve are two-endpoint transitions.
+    // For long custom durations (or engines without linear stops), apply the curve
+    // between the endpoints and let native steps hold its input. Cost stays constant.
+    const segment = sample && easing !== 'linear' && (!linearStops || steps > 512);
+    if (segment && !entry.keyframes) {
+      const frames = effect.getKeyframes();
+      if (frames.length === 2 && frames[0].easing === 'linear') {
+        entry.keyframes = frames;
+        effect.setKeyframes([{ ...frames[0], easing }, frames[1]]);
+      }
+    } else if (!segment && entry.keyframes) {
+      effect.setKeyframes(entry.keyframes);
+      entry.keyframes = null;
+    }
+    if (sample) {
+      easing = easing === 'linear' || entry.keyframes || !linearStops
+        ? 'steps(' + steps + ', end)' : sampledEasing(easing, Math.min(steps, 512));
+    }
+    if (timing.easing !== easing) effect.updateTiming({ easing });
+    entry.applied = sample ? effect.getTiming().easing : null;
+  }
+
+  function track(animation, owner) {
+    if (!animation?.effect || ['idle', 'finished'].includes(animation.playState)) return;
+    watch(owner.getRootNode());
+    let entry = entries.get(animation);
+    if (!entry) {
+      entry = { owner, applied: null };
+      entries.set(animation, entry);
+    }
+    if (!active.has(animation)) {
+      active.set(animation, entry);
+      const release = () => {
+        active.delete(animation);
+        animation.removeEventListener('finish', release);
+        animation.removeEventListener('cancel', release);
+        animation.removeEventListener('remove', release);
+      };
+      animation.addEventListener('finish', release);
+      animation.addEventListener('cancel', release);
+      animation.addEventListener('remove', release);
+    }
+    apply(animation, entry);
+  }
+
+  function owned(animation) {
+    if (!animation.effect?.target) return false;
+    if ('animationName' in animation) return animation.animationName.startsWith('ml-');
+    const property = animation.transitionProperty;
+    if (!property || ['display', 'overlay', 'visibility', 'content-visibility'].includes(property)) return false;
+    const style = getComputedStyle(animation.effect.target, animation.effect.pseudoElement);
+    const declared = style.getPropertyValue('--ml-native-transition').trim().split(/\s+/);
+    if (declared.includes(property)) return true;
+    // Transition events name physical longhands even when the stylesheet used a shorthand or logical axis.
+    if (/^border-\w+-color$/.test(property)) return declared.includes('border-color');
+    if (/^border-\w+-\w+-radius$/.test(property)) return declared.includes('border-radius');
+    const vertical = style.writingMode !== 'horizontal-tb';
+    if (property === (vertical ? 'height' : 'width')) return declared.includes('inline-size');
+    if (declared.includes('inset-inline-start') || declared.includes('inset-inline-end')) {
+      const reverse = (style.direction === 'rtl') !== (style.writingMode === 'sideways-lr');
+      const [start, end] = vertical ? ['top', 'bottom'] : ['left', 'right'];
+      return (property === (reverse ? end : start) && declared.includes('inset-inline-start'))
+        || (property === (reverse ? start : end) && declared.includes('inset-inline-end'));
+    }
+    return false;
+  }
+
+  function sync() {
+    for (const [animation, entry] of active) if (animation.effect) apply(animation, entry);
+  }
+
+  function watch(root) {
+    if (watched.has(root) || !root.getAnimations) return;
+    watched.add(root);
+    if (root.host) watch(root.host.getRootNode());
+    const start = event => {
+      if (event.type === 'animationstart' && !event.animationName.startsWith('ml-')) return;
+      const target = event.target, pseudo = event.pseudoElement || null;
+      // Pseudo-element effects are included only in a subtree query.
+      for (const animation of target.getAnimations({ subtree: !!pseudo })) {
+        const effect = animation.effect;
+        if (effect?.target !== target || (effect.pseudoElement || null) !== pseudo) continue;
+        if (event.type === 'animationstart' ? animation.animationName !== event.animationName
+          : animation.transitionProperty !== event.propertyName) continue;
+        if (owned(animation)) track(animation, target);
+      }
+    };
+    root.addEventListener('transitionrun', start, true);
+    root.addEventListener('animationstart', start, true);
+    new MutationObserver(sync).observe(root, { subtree: true, attributes: true, attributeFilter: ['data-ml-motion'] });
+    const scan = () => {
+      for (const animation of root.getAnimations()) if (owned(animation)) track(animation, animation.effect.target);
+    };
+    if (root.readyState === 'loading') root.addEventListener('DOMContentLoaded', scan, { once: true });
+    else scan();
+  }
+  reduced.addEventListener('change', sync);
+  globalThis[key] = Object.freeze({ due, track, watch });
+  watch(document);
+})();
+
+(() => {
+  'use strict';
+
+  const key = Symbol.for('material-lib.glass-shader.v1');
+  if (globalThis[key]?.version >= 8) return;
+
+  // Distances are in units of the optical radius. The native displacement map
+  // uses the same profile, refractive index and rear interface as the shader.
+  const optics = Object.freeze({ maxRadius: 68, rim: .64, normalBlend: .60, base: .42, crown: .60,
+    chord: 1.25, clearance: .14, index: 1.48, mapRange: 1 });
+
+  const vertex = `
+    attribute vec2 position;
+    varying vec2 uv;
+    void main() {
+      uv = vec2(position.x * .5 + .5, .5 - position.y * .5);
+      gl_Position = vec4(position, 0., 1.);
+    }`;
+
+  const fragment = `
+    precision highp float;
+    varying vec2 uv;
+    uniform vec2 size, contact, raster;
+    uniform vec4 lamp, lightColor;
+    uniform vec3 bodyTint;
+    uniform vec4 radiusX, radiusY;
+    uniform float progress, lens, hasImage, density, lampStrength, imageTransmission;
+    uniform vec4 imageRect;
+    uniform sampler2D backdrop;
+
+    float bell(float x) { return exp(-x * x); }
+
+    void cutCorner(vec2 p, vec2 halfSize, vec2 side, vec2 axes, inout float distance, inout vec2 outward) {
+      vec2 q = axes - halfSize + side * p;
+      if (min(q.x, q.y) <= 0. || min(axes.x, axes.y) <= 0.) return;
+      vec2 unit = q / axes;
+      float radial = length(unit);
+      vec2 gradient = unit / axes;
+      float magnitude = length(gradient);
+      float arcDistance = (radial - 1.) * radial / magnitude;
+      if (arcDistance > distance) {
+        distance = arcDistance;
+        outward = side * gradient / magnitude;
+      }
+    }
+
+    vec2 bevelDirection(vec2 p, vec2 q, float depth, float bevel, float arcOffset, vec2 outward) {
+      float gap = arcOffset > 0. ? arcOffset : abs(q.x - q.y);
+      float blend = min(${optics.normalBlend} * depth, bevel);
+      if (gap >= blend) return outward;
+      // An asymmetric ellipse can extend past the center of the box.
+      vec2 side = arcOffset > 0. ? outward : p;
+      vec4 radii = min(radiusX, radiusY);
+      float radius = side.y < 0. ? (side.x < 0. ? radii.x : radii.y) : (side.x < 0. ? radii.w : radii.z);
+      blend = min(blend, bevel - radius);
+      if (gap >= blend) return outward;
+      float wx = clamp(.5 + .5 * (q.x - q.y) / blend, 0., 1.);
+      vec2 faces = sign(p) * vec2(wx, 1. - wx);
+      vec2 direction = mix(faces, outward, smoothstep(0., blend, arcOffset));
+      return direction * inversesqrt(max(dot(direction, direction), 1.e-8));
+    }
+
+    // One wavelength of light followed through the glass body and out the flat back.
+    vec2 refractTravel(vec3 normal, float frontHeight, float opticalRadius, float arc, float ior) {
+      vec3 ray = refract(vec3(0., 0., -1.), normal, 1. / ior);
+      float path = ${optics.chord} * frontHeight / -ray.z;
+      float exitCos2 = 1. - ior * ior * dot(ray.xy, ray.xy);
+      float escape = smoothstep(0., .16, exitCos2);
+      vec2 exitSlope = ray.xy * ior * inversesqrt(max(.16, exitCos2));
+      return ray.xy * path + exitSlope * (escape * ${optics.clearance} * opticalRadius * arc);
+    }
+
+    void main() {
+      float pixel = raster.x;
+      vec2 halfSize = size * .5;
+      vec2 p = (uv - .5) * size;
+      vec2 q = abs(p) - halfSize;
+      float boxDistance = max(q.x, q.y), distance = boxDistance;
+      vec2 outward = q.x > q.y ? vec2(sign(p.x), 0.) : vec2(0., sign(p.y));
+      cutCorner(p, halfSize, vec2(-1., -1.), vec2(radiusX.x, radiusY.x), distance, outward);
+      cutCorner(p, halfSize, vec2( 1., -1.), vec2(radiusX.y, radiusY.y), distance, outward);
+      cutCorner(p, halfSize, vec2( 1.,  1.), vec2(radiusX.z, radiusY.z), distance, outward);
+      cutCorner(p, halfSize, vec2(-1.,  1.), vec2(radiusX.w, radiusY.w), distance, outward);
+      float coverage = 1. - smoothstep(-pixel, pixel, distance);
+      float opticalRadius = min(min(halfSize.x, halfSize.y), ${optics.maxRadius}.0);
+      float depth = max(-distance, 0.);
+      float bevel = opticalRadius * ${optics.rim};
+      // Inside a corner the nearest straight edge changes on its diagonal. Blend the
+      // two face directions across the bevel, keeping the exact silhouette and outer arc.
+      outward = bevelDirection(p, q, depth, bevel, distance - boxDistance, outward);
+      float slope = clamp(1. - depth / bevel, 0., 1.);
+      float arc = sqrt(max(0., 1. - slope * slope));
+      vec2 local = p / halfSize;
+      vec2 arch = max(vec2(0.), 1. - local * local);
+      float crown = ${optics.base} + ${optics.crown} * arch.x * arch.y;
+      float wave = 0.;
+      float wobble = 0.;
+      if (progress < 1.) {
+        float reach = length(max(contact, size - contact));
+        float front = reach * (1. - (1. - progress) * (1. - progress));
+        float along = length(size * uv - contact);
+        float offset = (along - front) / max(1.4, bevel * .23);
+        wave = exp(-offset * offset) * (1. - progress);
+        // A weaker crest chases the first so a press reads as liquid.
+        float trail = (along - front * .52) / max(1.4, bevel * .34);
+        wave += .55 * exp(-trail * trail) * (1. - progress) * (1. - progress);
+        wobble = sin(progress * 12.5663706) * (1. - progress) * (1. - progress);
+      }
+      float frontHeight = opticalRadius * arc * crown * (1. + .26 * wobble);
+      vec2 gradient = 2. * ${optics.crown} * opticalRadius * arc * local * arch.yx / halfSize
+        + outward * (crown / ${optics.rim}) * slope / max(.15, arc);
+      vec2 ripple = (size * uv - contact) / max(1., length(size * uv - contact));
+      vec3 normal = normalize(vec3(gradient + .26 * wave * ripple, 1.));
+      // Follow the mean ray through the whole chord, then out through the flat back.
+      // Near the critical angle the escaping ray gives way to an internal reflection.
+      const float ior = ${optics.index};
+      vec3 ray = refract(vec3(0., 0., -1.), normal, 1. / ior);
+      float path = ${optics.chord} * frontHeight / -ray.z;
+      float exitCos2 = 1. - ior * ior * dot(ray.xy, ray.xy);
+      float escape = smoothstep(0., .16, exitCos2);
+      vec2 toLight = lamp.xy - size * uv;
+      float z2 = lamp.z * lamp.z;
+      float lampHeight = lamp.z + opticalRadius * (${optics.base} + ${optics.crown}) - frontHeight;
+      vec3 incident = vec3(toLight, lampHeight);
+      float irradiance = lampStrength * z2 / dot(incident, incident);
+      vec3 light = normalize(incident);
+      vec3 halfLight = normalize(light + vec3(0., 0., 1.));
+      float nDotH = max(dot(normal, halfLight), 0.);
+      float fresnel = .038 + .962 * pow(clamp(1. - normal.z, 0., 1.), 5.);
+      float lipWidth = max(.65 * pixel, clamp(bevel * .075, .60, 1.95));
+      float lip = bell((depth - lipWidth * .82) / lipWidth);
+      float shoulder = bell((depth - bevel * .23) / max(pixel, bevel * .17));
+
+      // Distance to each point on the perimeter localizes the highlight along long straight edges.
+      // A bearing taken about the lens stays continuous as the pointer crosses its silhouette.
+      vec2 fromCenter = lamp.xy - halfSize;
+      float bearing = dot(outward, fromCenter) / length(vec3(fromCenter, lamp.z * .60));
+      vec2 toRim = toLight - outward * min(depth, bevel);
+      float rimLight = z2 / (z2 + dot(toRim, toRim));
+      float key = lampStrength * rimLight * (.28 + .72 * smoothstep(-.27, .73, bearing));
+      float sky = max(dot(outward, vec2(-.50, -.866)), 0.);
+      vec3 reflected = reflect(vec3(0., 0., -1.), normal);
+      float skylight = bell((reflected.y + .69 - .20 * reflected.x) / .31)
+        * smoothstep(-.42, .34, reflected.z) * (.74 - .24 * reflected.x);
+      float ambient = .15 * fresnel + .018 * lip + lampStrength * (.045 * sky * sky * lip + .17 * skylight);
+      // Three lobes: a broad sheen, the lamp's own arc and a tight wet glint.
+      float sheen = pow(nDotH, 8.);
+      float glintLobe = pow(nDotH, 240.);
+      float face = irradiance * (.44 * sheen + .46 * pow(nDotH, 42.) + .58 * glintLobe)
+        * mix(lightColor.a * .86, .30, slope) * mix(.78, 1., lens);
+      face += (.04 + .28 * lightColor.a) * irradiance * sheen * smoothstep(.16, .78, length(local));
+      // The lit rim reflects once more just inside the glass where rays nearly turn back.
+      float echo = bell((depth - bevel * .86) / max(pixel, bevel * .13)) * (1. - escape);
+      float reflection = key * (.85 * lip + .38 * shoulder + .11 * slope + .12 * (1. - escape) + .17 * echo);
+      // Light leaving the curved body concentrates on the far shoulder.
+      vec2 exitPoint = halfSize - .76 * fromCenter / max(1., length(fromCenter / halfSize));
+      vec2 toExit = (size * uv - exitPoint) / (vec2(.55, .48) * lamp.z + .20 * halfSize);
+      float exit2 = dot(toExit, toExit);
+      // The focus carries a hot core so the far-side light reads as a caustic.
+      float focus = exp(-exit2) * (1. + .6 * exp(-exit2 * 3.2));
+      float farSide = smoothstep(.02, .60, -dot(local, fromCenter) / length(vec3(fromCenter, lamp.z * .72)));
+      float caustic = lamp.w * focus * (.22 * farSide * arc + .17 * smoothstep(.02, .78, -bearing)
+        * bell((depth - bevel * .66) / max(pixel, bevel * .35)));
+      float shine = 1. - (1. - ambient) * (1. - min(.94, reflection)) * (1. - face)
+        * (1. - caustic) * (1. - .30 * wave);
+      // The silhouette darkens just inside its edge, so thickness reads without a glow outline.
+      float edgeDark = bell((depth - bevel * .05) / max(pixel, bevel * .13));
+      float shade = slope * (.045 + .09 * lamp.w * max(-bearing, 0.)) * (1. - .59 * key)
+        + edgeDark * (.13 + .12 * (1. - key));
+      vec3 glint = mix(lightColor.rgb, vec3(1.), clamp(.42 * key * lip + .30 * glintLobe * irradiance, 0., 1.));
+      // A longer light path reveals more of the theme's body colour. Dispersion is in the refracted rays.
+      float transmission = exp(-.245 * density * path / opticalRadius);
+      float bodyLight = .95 - .05 * slope + .07 * irradiance * max(dot(normal, light), 0.);
+      vec3 body = bodyTint * bodyLight * (1. - transmission);
+      float throughFace = (1. - shine) * (1. - shade);
+      float alpha = 1. - throughFace * transmission;
+      vec3 color = glint * shine + bodyTint * .68 * shade * (1. - shine) + throughFace * body;
+      if (hasImage > .5) {
+        // Dispersion only contributes when sampling a supplied background image.
+        const float spread = .055;
+        vec2 exitSlope = ray.xy * ior * inversesqrt(max(.16, exitCos2));
+        vec2 travel = ray.xy * path + exitSlope * (escape * ${optics.clearance} * opticalRadius * arc);
+        vec2 travelR = refractTravel(normal, frontHeight, opticalRadius, arc, ior * (1. - spread));
+        vec2 travelB = refractTravel(normal, frontHeight, opticalRadius, arc, ior * (1. + spread));
+        travel /= 1. + length(travel) / (opticalRadius * 1.35);
+        travelR /= 1. + length(travelR) / (opticalRadius * 1.35);
+        travelB /= 1. + length(travelB) / (opticalRadius * 1.35);
+        vec2 offset = travel / size * imageRect.zw;
+        vec2 at = imageRect.xy + uv * imageRect.zw;
+        // A small aperture average diffuses busy backgrounds so overlaid ink stays readable.
+        vec2 soft = (.9 + 1.2 * density) * pixel / size * imageRect.zw;
+        vec3 through = texture2D(backdrop, at + offset + soft).rgb
+          + texture2D(backdrop, at + offset + vec2(-soft.x, soft.y)).rgb
+          + texture2D(backdrop, at + offset + vec2(soft.x, -soft.y)).rgb
+          + texture2D(backdrop, at + offset - soft).rgb;
+        vec4 mean = texture2D(backdrop, at + offset);
+        vec3 dispersed = vec3(texture2D(backdrop, at + travelR / size * imageRect.zw).r,
+          mean.g, texture2D(backdrop, at + travelB / size * imageRect.zw).b);
+        dispersed = mix(dispersed, (through + mean.rgb) * .2, .34);
+        float transmittedAlpha = imageTransmission * mean.a * (1. - alpha);
+        color += dispersed * transmittedAlpha;
+        alpha += transmittedAlpha;
+      }
+      vec4 glass = vec4(color, alpha) * coverage;
+      // A fixed, neutral sub-code offset breaks up 8-bit terraces on dark glass.
+      // Apply it before RGB quantization and keep transparent pixels premultiplied.
+      float dark = raster.y * (1. - smoothstep(.20, .45, dot(bodyTint, vec3(.2126, .7152, .0722))));
+      if (dark > 0.) {
+        float noise = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))) - .5;
+        glass.rgb = clamp(glass.rgb + dark * noise / 255., vec3(0.), vec3(glass.a));
+      }
+      gl_FragColor = glass;
+    }`;
+
+  const renderers = new WeakMap();
+
+  function compile(gl, type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) return shader;
+    const reason = gl.getShaderInfoLog(shader);
+    gl.deleteShader(shader);
+    throw new Error(reason || 'Glass shader compilation failed');
+  }
+
+  // One context and program per document. Only the finished frame is copied to each DOM surface.
+  class GlassRenderer {
+    static get version() { return 8; }
+    static get optics() { return optics; }
+    static forDocument(doc, invalidate) {
+      if (!renderers.has(doc)) renderers.set(doc, new GlassRenderer(doc, invalidate));
+      return renderers.get(doc);
+    }
+
+    constructor(doc, invalidate) {
+      this.canvas = doc.createElement('canvas');
+      this.canvas.width = this.canvas.height = 1;
+      this.generation = 0;
+      try {
+        this.gl = this.canvas.getContext('webgl', {
+          alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false,
+        });
+      } catch { return; }
+      if (!this.gl) return;
+      this.canvas.addEventListener('webglcontextlost', event => {
+        event.preventDefault();
+        this.program = null;
+        this.generation++;
+        invalidate();
+      });
+      this.canvas.addEventListener('webglcontextrestored', () => {
+        this.setup();
+        this.generation++;
+        invalidate();
+      });
+      this.setup();
+    }
+
+    setup() {
+      const gl = this.gl;
+      const program = gl.createProgram();
+      const shaders = [];
+      try {
+        shaders.push(compile(gl, gl.VERTEX_SHADER, vertex));
+        shaders.push(compile(gl, gl.FRAGMENT_SHADER, fragment));
+        for (const shader of shaders) gl.attachShader(program, shader);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+        gl.useProgram(program);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+        const position = gl.getAttribLocation(program, 'position');
+        gl.enableVertexAttribArray(position);
+        gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+        this.uniform = {};
+        for (const name of ['size','lamp','lightColor','bodyTint','contact','radiusX','radiusY','progress','lens','raster','imageRect','hasImage','density','lampStrength','imageTransmission','backdrop']) {
+          this.uniform[name] = gl.getUniformLocation(program, name);
+        }
+        gl.uniform1i(this.uniform.backdrop, 0);
+        this.textures = new WeakMap();
+        this.emptyTexture = this.createTexture();
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+        this.maxSide = Math.min(4096, gl.getParameter(gl.MAX_RENDERBUFFER_SIZE), ...gl.getParameter(gl.MAX_VIEWPORT_DIMS));
+        this.maxTexture = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+        this.program = program;
+      } catch (error) {
+        gl.deleteProgram(program);
+        this.program = null;
+        if (!gl.isContextLost()) console.warn('Nacreon UI · WebGL', error.message);
+      } finally {
+        for (const shader of shaders) gl.deleteShader(shader);
+      }
+    }
+
+    createTexture() {
+      const gl = this.gl, target = gl.TEXTURE_2D;
+      const texture = gl.createTexture();
+      gl.bindTexture(target, texture);
+      gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      return texture;
+    }
+
+    bindBackdrop(sample) {
+      const gl = this.gl;
+      if (sample && sample.canvas.width <= this.maxTexture && sample.canvas.height <= this.maxTexture) {
+        let entry = this.textures.get(sample.canvas);
+        if (!entry) {
+          entry = { texture: this.createTexture() };
+          this.textures.set(sample.canvas, entry);
+        }
+        gl.bindTexture(gl.TEXTURE_2D, entry.texture);
+        if (entry.version !== sample.version) {
+          entry.version = sample.version;
+          try {
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sample.canvas);
+            entry.ready = true;
+          } catch {
+            entry.ready = false; // A cross-origin canvas can still use native backdrop optics.
+          }
+        }
+        if (entry.ready) return true;
+      }
+      gl.bindTexture(gl.TEXTURE_2D, this.emptyTexture);
+      return false;
+    }
+
+    draw(output, frame) {
+      const gl = this.gl;
+      if (!this.program || gl.isContextLost()) return false;
+      const {width, height, dpr, corners, x, y, cx, cy, fraction, lens, sample} = frame;
+      // Previous standalone components can share this renderer when only one bundle is upgraded.
+      const { elevation = Math.max(30, Math.min(116, Math.min(width, height) * .76)), energy = 1,
+        tint = [.95, .975, 1.], bodyTint = [.92, .96, .97], faceGain = .135, density = 1 } = frame;
+      const scale = Math.min(dpr, this.maxSide / Math.max(width, height));
+      const w = Math.max(1, Math.round(width * scale)), h = Math.max(1, Math.round(height * scale));
+      if (this.canvas.width < w) this.canvas.width = w;
+      if (this.canvas.height < h) this.canvas.height = h;
+      if (output.width !== w) output.width = w;
+      if (output.height !== h) output.height = h;
+      const context = output.getContext('2d');
+      if (!context) return false;
+      const u = this.uniform;
+      const textured = this.bindBackdrop(sample);
+      gl.viewport(0, 0, w, h);
+      gl.uniform2f(u.size, width, height);
+      gl.uniform4f(u.lamp, x, y, elevation, energy);
+      gl.uniform1f(u.lampStrength, frame.strength ?? 1);
+      gl.uniform1f(u.imageTransmission, frame.transmission ?? 1);
+      gl.uniform4f(u.lightColor, tint[0], tint[1], tint[2], faceGain);
+      gl.uniform3fv(u.bodyTint, bodyTint);
+      gl.uniform2f(u.contact, cx, cy);
+      if (corners) {
+        gl.uniform4fv(u.radiusX, corners.x);
+        gl.uniform4fv(u.radiusY, corners.y);
+      } else {
+        const r = frame.radius ?? 0;
+        gl.uniform4f(u.radiusX, r, r, r, r);
+        gl.uniform4f(u.radiusY, r, r, r, r);
+      }
+      gl.uniform1f(u.progress, fraction);
+      gl.uniform1f(u.lens, lens ? 1 : 0);
+      // Avoid magnifying a pixel-scale dither pattern on size-limited backing canvases.
+      gl.uniform2f(u.raster, 1 / scale, Math.max(0, 2 * scale / dpr - 1));
+      gl.uniform1f(u.hasImage, textured ? 1 : 0);
+      gl.uniform1f(u.density, density);
+      if (textured) gl.uniform4fv(u.imageRect, sample.rect);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      if (gl.isContextLost()) return false;
+      context.globalCompositeOperation = 'copy';
+      context.drawImage(this.canvas, 0, this.canvas.height - h, w, h, 0, 0, w, h);
+      return true;
+    }
+  }
+
+  globalThis[key] = GlassRenderer;
+})();
+
+(() => {
+  'use strict';
+
+  const key = Symbol.for('material-lib.glass.v1');
+  if (globalThis[key]?.version >= 15) return;
+  const previousScene = globalThis[key]?.GlassScene;
+  const motionFrames = globalThis[Symbol.for('material-lib.motion-frames.v1')];
+  const { optics } = globalThis[Symbol.for('material-lib.glass-shader.v1')];
+
+  const waveDuration = 620;
+  const lightReturnDuration = 240;
+  const defaultLight = Object.freeze({ mode: 'pointer', strength: 1 });
+  let nextGlassId = 0;
+  const mapStores = new WeakMap();
+
+  // Physical corners in clockwise order. CSS scales all radii together when adjacent arcs overlap.
+  function fitCorners(x, y, width, height) {
+    const fit = (side, sum) => sum > 0 ? side / sum : 1;
+    const scale = Math.min(1, fit(width, x[0] + x[1]), fit(width, x[3] + x[2]),
+      fit(height, y[0] + y[3]), fit(height, y[1] + y[2]));
+    return { x: x.map((r, i) => y[i] > 0 ? r * scale : 0), y: y.map((r, i) => x[i] > 0 ? r * scale : 0) };
+  }
+
+  function usedCorners(layer, values, width, height) {
+    const x = [], y = [];
+    let measure;
+    for (const value of values) {
+      const simple = /^(\d*\.?\d+)(px|%)(?: (\d*\.?\d+)(px|%))?$/.exec(value);
+      if (simple) {
+        x.push(Number(simple[1]) * (simple[2] === '%' ? width / 100 : 1));
+        y.push(Number(simple[3] ?? simple[1]) * ((simple[4] ?? simple[2]) === '%' ? height / 100 : 1));
+      } else {
+        // Let layout resolve mixed expressions such as calc(10% + 2px) against each axis.
+        if (!measure) {
+          measure = layer.ownerDocument.createElement('span');
+          measure.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;margin:0;border:0;padding:0;min-width:0;min-height:0;max-width:none;max-height:none';
+          layer.append(measure);
+        }
+        let depth = 0, split = 0;
+        for (; split < value.length; split++) {
+          if (value[split] === '(') depth++;
+          else if (value[split] === ')') depth--;
+          else if (value[split] === ' ' && !depth) break;
+        }
+        measure.style.width = value.slice(0, split);
+        measure.style.height = value.slice(split).trim() || measure.style.width;
+        const used = layer.ownerDocument.defaultView.getComputedStyle(measure);
+        x.push(parseFloat(used.width)); y.push(parseFloat(used.height));
+      }
+    }
+    measure?.remove();
+    return fitCorners(x, y, width, height);
+  }
+
+  function outlinePath(width, height, corners, inset = 0) {
+    const start = Math.min(inset, width / 2, height / 2), right = width - start, bottom = height - start;
+    const inner = r => Math.max(0, r - start);
+    const {x, y} = start ? fitCorners(corners.x.map(inner), corners.y.map(inner), right - start, bottom - start) : corners;
+    const arc = (i, endX, endY) => `A${x[i]} ${y[i]} 0 0 1 ${endX} ${endY}`;
+    return [`M${start + x[0]} ${start}`,
+      `H${right - x[1]}`, arc(1, right, start + y[1]),
+      `V${bottom - y[2]}`, arc(2, right - x[2], bottom),
+      `H${start + x[3]}`, arc(3, start, bottom - y[3]),
+      `V${start + y[0]}`, arc(0, start + x[0], start), 'Z'].join(' ');
+  }
+
+  // Start with the rectangle, then cut its four quarter ellipses. This also handles
+  // a single large corner extending past the center. The shader uses the same contours.
+  function outlineAt(dx, dy, halfW, halfH, corners, out, bevel = 0) {
+    const qx = Math.abs(dx) - halfW, qy = Math.abs(dy) - halfH;
+    const ox = Math.max(qx, 0), oy = Math.max(qy, 0), outside = Math.hypot(ox, oy);
+    const boxDistance = Math.max(qx, qy);
+    out.distance = outside + Math.min(boxDistance, 0);
+    out.nx = Math.sign(dx) * (outside ? ox / outside : Number(qx > qy));
+    out.ny = Math.sign(dy) * (outside ? oy / outside : Number(qy >= qx));
+    for (let i = 0; i < 4; i++) {
+      const sx = i === 1 || i === 2 ? 1 : -1, sy = i < 2 ? -1 : 1;
+      const rx = corners.x[i], ry = corners.y[i];
+      const a = rx - halfW + sx * dx, b = ry - halfH + sy * dy;
+      if (a <= 0 || b <= 0 || !rx || !ry) continue;
+      const u = a / rx, v = b / ry, radial = Math.hypot(u, v);
+      const gx = u / rx, gy = v / ry, length = Math.hypot(gx, gy);
+      const distance = (radial - 1) * radial / length;
+      if (distance > out.distance) {
+        out.distance = distance;
+        out.nx = sx * gx / length; out.ny = sy * gy / length;
+      }
+    }
+    // Match the shader's interior bevel when baking the native backdrop displacement.
+    const arcOffset = out.distance - boxDistance;
+    const gap = arcOffset > 0 ? arcOffset : Math.abs(qx - qy);
+    const reach = Math.min(-optics.normalBlend * out.distance, bevel);
+    if (gap >= reach) return out;
+    const sx = arcOffset > 0 ? out.nx : dx, sy = arcOffset > 0 ? out.ny : dy;
+    const corner = sy < 0 ? (sx < 0 ? 0 : 1) : (sx < 0 ? 3 : 2);
+    const blend = Math.min(reach, bevel - Math.min(corners.x[corner], corners.y[corner]));
+    if (gap < blend) {
+      const wx = Math.max(0, Math.min(1, .5 + .5 * (qx - qy) / blend));
+      const t = Math.max(0, arcOffset / blend), arcWeight = t * t * (3 - 2 * t);
+      const nx = (1 - arcWeight) * Math.sign(dx) * wx + arcWeight * out.nx;
+      const ny = (1 - arcWeight) * Math.sign(dy) * (1 - wx) + arcWeight * out.ny;
+      const length = Math.sqrt(Math.max(nx * nx + ny * ny, 1e-8));
+      out.nx = nx / length;
+      out.ny = ny / length;
+    }
+    return out;
+  }
+
+  // R/G carry the entire ray displacement; blue carries the front surface height.
+  // Work in optical radii so similar-sized controls can share a map at each resolution.
+  function normalMapShape(width, height, corners, dpr) {
+    const shortSide = Math.min(width, height);
+    const aspectX = Math.round(width / shortSide * 16) / 16;
+    const aspectY = Math.round(height / shortSide * 16) / 16;
+    const relative = r => Math.round(r / shortSide * 32) / 32;
+    const roundX = corners.x.map(relative), roundY = corners.y.map(relative);
+    const relativeRadius = Math.max(.001, Math.round(Math.min(1, 2 * optics.maxRadius / shortSide) * 1000) / 1000);
+    const resolution = Math.max(64, Math.min(512, 2 ** Math.ceil(Math.log2(shortSide * dpr))));
+    const key = [aspectX, aspectY, roundX, roundY, relativeRadius, resolution].join('/');
+    const w = Math.min(1536, Math.round(resolution * aspectX));
+    const h = Math.min(1536, Math.round(resolution * aspectY));
+    return { key, w, h, aspectX, aspectY, relativeRadius, roundX, roundY };
+  }
+
+  function drawNormalMap(canvas, shape) {
+    const { w, h, aspectX, aspectY, relativeRadius, roundX, roundY } = shape;
+    canvas.width = w;
+    canvas.height = h;
+    const context = canvas.getContext('2d');
+    const pixels = context.createImageData(w, h), data = pixels.data;
+    const halfW = aspectX / relativeRadius, halfH = aspectY / relativeRadius;
+    const mapRadius = r => 2 * r / relativeRadius;
+    const mapCorners = { x: roundX.map(mapRadius), y: roundY.map(mapRadius) };
+    const sample = {}, eta = 1 / optics.index;
+    // Outside the corner boxes the outline is rectangular. Two bevel widths also
+    // cover the normal blend wherever its slope contributes to the displacement.
+    const cornerBandX = Math.max(2 * optics.rim, ...mapCorners.x);
+    const cornerBandY = Math.max(2 * optics.rim, ...mapCorners.y);
+    // The short axis has a power-of-two resolution, so opposite texel centers
+    // are exact negatives. Only reflect when the two corner pairs also match.
+    const shortX = w <= h;
+    const symmetric = [roundX, roundY].every(r => shortX
+      ? r[0] === r[1] && r[3] === r[2] : r[0] === r[3] && r[1] === r[2]);
+    const mirrorX = symmetric && shortX;
+    const rows = symmetric && !shortX ? h / 2 : h;
+    const cols = mirrorX ? w / 2 : w;
+    const columns = Array.from({ length: cols }, (_, x) => {
+      const u = 2 * (x + .5) / w - 1, dx = u * halfW;
+      return { u, dx, archX: 1 - u * u, insetX: halfW - Math.abs(dx) };
+    });
+    for (let y = 0; y < rows; y++) {
+      const v = 2 * (y + .5) / h - 1, dy = v * halfH, archY = 1 - v * v;
+      const insetY = halfH - Math.abs(dy);
+      let opposite = 4 * (mirrorX ? (y + 1) * w - 1 : (h - 1 - y) * w);
+      for (let x = 0, i = y * w * 4; x < cols; x++, i += 4) {
+        const { u, dx, archX, insetX } = columns[x];
+        let depth = Math.min(insetX, insetY);
+        let nx = insetX < insetY ? Math.sign(dx) : 0, ny = insetY <= insetX ? Math.sign(dy) : 0;
+        if (insetX < cornerBandX && insetY < cornerBandY) {
+          outlineAt(dx, dy, halfW, halfH, mapCorners, sample, optics.rim);
+          depth = Math.max(0, -sample.distance);
+          nx = sample.nx; ny = sample.ny;
+        }
+        const edge = Math.max(0, 1 - depth / optics.rim);
+        const arc = Math.sqrt(1 - edge * edge);
+        const crown = optics.base + optics.crown * archX * archY;
+        const frontHeight = arc * crown;
+        const rimSlope = crown / optics.rim * edge / Math.max(.15, arc);
+        const gx = 2 * optics.crown * arc * u * archY / halfW + nx * rimSlope;
+        const gy = 2 * optics.crown * arc * v * archX / halfH + ny * rimSlope;
+        // Snell refraction of a perpendicular viewing ray, followed by the flat rear interface.
+        const nz = 1 / Math.sqrt(1 + gx * gx + gy * gy);
+        const bend = (eta * nz - Math.sqrt(1 - eta * eta * (1 - nz * nz))) * nz;
+        const rayX = bend * gx, rayY = bend * gy;
+        const rayLength2 = rayX * rayX + rayY * rayY;
+        const exitCos2 = 1 - optics.index ** 2 * rayLength2;
+        const t = Math.max(0, Math.min(1, exitCos2 / .16));
+        const escape = t * t * (3 - 2 * t);
+        let travel = optics.chord * frontHeight / (eta - bend)
+          + optics.index * optics.clearance * arc * escape / Math.sqrt(Math.max(.16, exitCos2));
+        // Ease the rays near the rim so the lens magnifies evenly instead of smearing.
+        travel /= 1 + Math.sqrt(rayLength2) * travel / 1.35;
+        const shiftX = rayX * travel / optics.mapRange, shiftY = rayY * travel / optics.mapRange;
+        data[i] = 255 * (.5 + shiftX);
+        data[i + 1] = 255 * (.5 + shiftY);
+        data[i + 2] = 255 * frontHeight / (optics.base + optics.crown);
+        data[i + 3] = 255;
+        if (symmetric) {
+          // Reverse the ray before 8-bit rounding, including at zero displacement.
+          data[opposite] = mirrorX ? 255 * (.5 - shiftX) : data[i];
+          data[opposite + 1] = mirrorX ? data[i + 1] : 255 * (.5 - shiftY);
+          data[opposite + 2] = data[i + 2];
+          data[opposite + 3] = 255;
+          opposite += mirrorX ? -4 : 4;
+        }
+      }
+    }
+    context.putImageData(pixels, 0, 0);
+  }
+
+  // Embedded with standalone components so an offline page needs no extra URL.
+  function normalMapWorker() {
+    self.onmessage = async ({ data }) => {
+      try {
+        const canvas = new OffscreenCanvas(1, 1);
+        drawNormalMap(canvas, data.shape);
+        const png = await canvas.convertToBlob({ type: 'image/png' });
+        self.postMessage(new FileReaderSync().readAsDataURL(png));
+      } catch {
+        self.postMessage(null);
+      }
+    };
+  }
+
+  class NormalMaps {
+    static forDocument(doc) {
+      if (!mapStores.has(doc)) mapStores.set(doc, new NormalMaps(doc));
+      return mapStores.get(doc);
+    }
+
+    constructor(doc) {
+      this.doc = doc;
+      this.cache = new Map();
+      this.pending = new Map();
+      this.workers = [];
+      const win = doc.defaultView;
+      this.disabled = !win.Worker || !win.OffscreenCanvas?.prototype.convertToBlob;
+      this.limit = win.navigator.hardwareConcurrency > 2 ? 2 : 1;
+    }
+
+    remember(key, url) {
+      if (!this.cache.has(key) && this.cache.size >= 96) this.cache.delete(this.cache.keys().next().value);
+      this.cache.set(key, url);
+      return url;
+    }
+
+    bake(shape) {
+      const canvas = this.doc.createElement('canvas');
+      drawNormalMap(canvas, shape);
+      return this.remember(shape.key, canvas.toDataURL());
+    }
+
+    get(shape, ready) {
+      const cached = this.cache.get(shape.key);
+      if (cached) return cached;
+      if (!ready || this.disabled || shape.w * shape.h < 262144) return this.bake(shape);
+      let task = this.pending.get(shape.key);
+      if (!task) {
+        task = { shape, listeners: new Set(), running: false };
+        this.pending.set(shape.key, task);
+      }
+      task.listeners.add(ready);
+      this.dispatch();
+      return () => {
+        task.listeners.delete(ready);
+        if (!task.running && !task.listeners.size && this.pending.get(shape.key) === task) this.pending.delete(shape.key);
+      };
+    }
+
+    makeWorker() {
+      const win = this.doc.defaultView;
+      if (!this.workerURL) {
+        const source = ['const optics = ' + JSON.stringify(optics) + ';', outlineAt, drawNormalMap,
+          '(' + normalMapWorker + ')()'].join('\n');
+        this.workerURL = win.URL.createObjectURL(new win.Blob([source], { type: 'text/javascript' }));
+      }
+      const slot = { worker: new win.Worker(this.workerURL), task: null };
+      slot.worker.onmessage = ({ data }) => {
+        if (!slot.task) return;
+        if (typeof data !== 'string') { this.fallback(); return; }
+        const { shape, listeners } = slot.task;
+        slot.task = null;
+        this.pending.delete(shape.key);
+        this.remember(shape.key, data);
+        for (const ready of listeners) ready(data);
+        listeners.clear();
+        this.dispatch();
+      };
+      slot.worker.onerror = event => { event.preventDefault(); this.fallback(); };
+      slot.worker.onmessageerror = () => this.fallback();
+      this.workers.push(slot);
+      return slot;
+    }
+
+    dispatch() {
+      const win = this.doc.defaultView;
+      win.clearTimeout(this.idle);
+      try {
+        for (const task of this.pending.values()) {
+          if (task.running) continue;
+          let slot = this.workers.find(worker => !worker.task);
+          if (!slot && this.workers.length < this.limit) slot = this.makeWorker();
+          if (!slot) return;
+          slot.task = task;
+          task.running = true;
+          slot.worker.postMessage({ type: 'nacreon-normal-map', shape: task.shape });
+        }
+      } catch { this.fallback(); return; }
+      if (!this.pending.size) this.idle = win.setTimeout(() => this.close(), 30000);
+    }
+
+    close() {
+      const win = this.doc.defaultView;
+      win.clearTimeout(this.idle);
+      for (const slot of this.workers) {
+        slot.task = null;
+        slot.worker.onmessage = slot.worker.onerror = slot.worker.onmessageerror = null;
+        slot.worker.terminate();
+      }
+      this.workers.length = 0;
+      if (this.workerURL) win.URL.revokeObjectURL(this.workerURL);
+      this.workerURL = null;
+    }
+
+    fallback() {
+      this.close();
+      this.disabled = true;
+      for (const { shape, listeners } of this.pending.values()) {
+        if (!listeners.size) continue;
+        const url = this.cache.get(shape.key) || this.bake(shape);
+        for (const ready of listeners) ready(url);
+        listeners.clear();
+      }
+      this.pending.clear();
+    }
+  }
+
+  function normalizedRgb(value, fallback) {
+    // color-mix(in srgb, ...) serializes in 0–1 units. Legacy lamp tokens use 0–255 channels.
+    const srgb = value.startsWith('color(srgb ');
+    const components = srgb ? value.slice(11, -1) : value.replace(/^rgba?\(|\)$/g, '');
+    const channels = components.split('/')[0].trim().split(/[\s,]+/).slice(0, 3).map(Number);
+    const maximum = srgb ? 1 : 255;
+    return channels.length === 3 && channels.every(Number.isFinite)
+      ? channels.map(channel => Math.max(0, Math.min(maximum, channel)) / maximum) : fallback;
+  }
+
+  class PointerLightSurface {
+    constructor(surface, tier) {
+      this.tier = tier;
+      this.light = defaultLight;
+      this.layer = surface.ownerDocument.createElement('span');
+      this.layer.className = 'ml-optical';
+      this.layer.dataset.mlRenderer = 'css';
+      this.layer.dataset.mlLight = tier;
+      this.layer.setAttribute('aria-hidden', 'true');
+      surface.prepend(this.layer);
+    }
+
+    remove() { this.layer.remove(); }
+
+    #unlight() {
+      if (!this.state) return;
+      this.state = null;
+      this.layer.removeAttribute('data-ml-lit');
+    }
+
+    paint(pointer, pulse, now) {
+      const el = this.layer;
+      const fixed = this.light.mode === 'fixed';
+      if (!fixed && !pointer) return this.#unlight();
+      if (!motionFrames.due(this, this.light.mediumMotion, now, this.scene)) return;
+      const box = el.getBoundingClientRect(), win = el.ownerDocument.defaultView;
+      if (!box.width || !box.height || box.right <= 0 || box.bottom <= 0 || box.left >= win.innerWidth || box.top >= win.innerHeight) {
+        return this.#unlight();
+      }
+      const width = el.clientWidth, height = el.clientHeight;
+      const x = fixed ? width * .24 : (pointer.x - box.left) * width / box.width;
+      const y = fixed ? height * .12 : (pointer.y - box.top) * height / box.height;
+      const dx = x - width / 2, dy = y - height / 2;
+      const reach = Math.max(32, Math.min(150, Math.min(width, height) * 1.1));
+      const outside = Math.hypot(Math.max(0, Math.abs(dx) - width / 2), Math.max(0, Math.abs(dy) - height / 2));
+      const falloff = 1 - outside / (reach * 1.75);
+      if (falloff <= 0) return this.#unlight();
+      const strength = this.light.strength * (fixed ? 1 : pointer.weight ?? 1);
+      const state = [width, height, x.toFixed(1), y.toFixed(1), strength].join('/');
+      if (state === this.state) return;
+      this.state = state;
+      el.style.filter = strength < 1 ? 'opacity(' + strength + ')' : '';
+      el.style.setProperty('--ml-light-x', x.toFixed(1) + 'px');
+      el.style.setProperty('--ml-light-y', y.toFixed(1) + 'px');
+      el.style.setProperty('--ml-light-reach', reach.toFixed(1) + 'px');
+      if (this.tier === 'medium') {
+        const power = falloff * falloff * (3 - 2 * falloff);
+        const cast = reach * .055 * power / Math.hypot(dx, dy, reach * .7);
+        el.style.setProperty('--ml-light-cast-x', (-dx * cast).toFixed(2) + 'px');
+        el.style.setProperty('--ml-light-cast-y', (-dy * cast).toFixed(2) + 'px');
+        el.style.setProperty('--ml-light-shadow-alpha', (.19 * power).toFixed(3));
+      }
+      if (!el.hasAttribute('data-ml-lit')) el.setAttribute('data-ml-lit', '');
+    }
+  }
+
+  class GlassSurface {
+    static lighting(style, reduced, enabled = true, source = '') {
+      const mode = source || style.getPropertyValue('--ml-light-source').trim() || 'pointer';
+      const mediumMotion = !reduced && style.getPropertyValue('--ml-motion-level').trim() === 'medium';
+      const raw = parseFloat(style.getPropertyValue('--ml-light-intensity'));
+      const strength = Number.isFinite(raw) ? Math.max(0, Math.min(1, raw)) : 1;
+      if (!enabled || !strength || mode === 'none') return { mode: 'none', strength: 0, mediumMotion };
+      return { mode: mode === 'pointer' && !reduced ? 'pointer' : 'fixed', strength, mediumMotion };
+    }
+
+    static lightingTier(style, light) {
+      const level = style.getPropertyValue('--ml-material-level').trim();
+      if (level === 'none') return null;
+      if (style.getPropertyValue('--ml-optics').trim() === 'block') return 'high';
+      // Older standalone components pass their pointer-following flag here.
+      const lit = typeof light === 'boolean' ? light : light.mode !== 'none';
+      return lit && ['base', 'low', 'medium'].includes(level) ? level : null;
+    }
+
+    static forTier(current, surface, lens, tier, light = defaultLight) {
+      if (current?.tier !== tier || current.layer.parentElement !== surface) {
+        current?.remove();
+        motionFrames.watch(surface.getRootNode());
+        current = tier === 'high' ? new GlassSurface(surface, lens) : new PointerLightSurface(surface, tier);
+        current.scene = (previousScene || GlassScene).forDocument(surface.ownerDocument);
+      }
+      current.light = light;
+      return current;
+    }
+
+    constructor(surface, lens) {
+      this.tier = 'high';
+      this.light = defaultLight;
+      this.surface = surface;
+      this.lens = lens;
+      const id = 'ml-glass-v15-' + ++nextGlassId;
+      this.layer = document.createElement('span');
+      this.layer.className = 'ml-optical';
+      this.layer.setAttribute('aria-hidden', 'true');
+      this.layer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" focusable="false" style="color:rgb(var(--ml-glass-lamp-rgb, 243 249 255))">
+        <defs>
+          <filter id="${id}-bend" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+            <feImage preserveAspectRatio="none" result="normals"/>
+            <feDisplacementMap in="SourceGraphic" in2="normals" xChannelSelector="R" yChannelSelector="G"/>
+          </filter>
+          <filter id="${id}-light" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+            <feImage preserveAspectRatio="none" result="surface"/>
+            <feColorMatrix in="surface" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 1 0 0" result="height"/>
+            <feGaussianBlur in="height" result="dome"/>
+            <feDiffuseLighting in="dome" lighting-color="white" result="illumination"><fePointLight/></feDiffuseLighting>
+            <feComponentTransfer in="height" result="density"><feFuncA type="table" tableValues="0 .085 .16 .235 .31"/></feComponentTransfer>
+            <feFlood flood-color="var(--ml-optical-body, rgb(var(--ml-glass-body-rgb, 138 192 217)))" result="bodyTint"/>
+            <feComposite in="bodyTint" in2="density" operator="in" result="body"/>
+            <feComposite in="body" in2="illumination" operator="arithmetic" k1=".10" k2=".90" result="litBody"/>
+            <feSpecularLighting in="dome" specularExponent="30" lighting-color="currentColor" result="shine">
+              <fePointLight/>
+            </feSpecularLighting>
+            <feGaussianBlur in="shine" result="polished"/>
+            <feMerge result="illuminated"><feMergeNode in="litBody"/><feMergeNode in="polished"/></feMerge>
+            <feComposite in="body" in2="SourceAlpha" operator="in"/>
+          </filter>
+          <radialGradient id="${id}-glint" gradientUnits="userSpaceOnUse">
+            <stop stop-color="currentColor"/><stop offset=".40" stop-color="currentColor" stop-opacity=".62"/>
+            <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="${id}-caustic" gradientUnits="userSpaceOnUse">
+            <stop stop-color="currentColor"/><stop offset=".32" stop-color="currentColor" stop-opacity=".74"/>
+            <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <path fill="url(#${id}-glint)"/>
+        <path filter="url(#${id}-light)"/>
+        <g filter="url(#${id}-bend)">
+          <path fill="none" stroke="url(#${id}-caustic)"/>
+          <circle fill="none" stroke="#fff" opacity="0"/>
+        </g>
+        <path fill="url(#${id}-caustic)"/>
+        <path fill="none" stroke="var(--ml-color-control-border, #788595)"/>
+        <path fill="none" stroke="url(#${id}-glint)"/>
+      </svg>`;
+      const svg = this.layer.firstElementChild;
+      this.maps = svg.querySelectorAll('feImage');
+      this.displacement = svg.querySelector('feDisplacementMap');
+      [this.blur, this.polish] = svg.querySelectorAll('feGaussianBlur');
+      this.reflection = svg.querySelector('feSpecularLighting');
+      this.diffuse = svg.querySelector('feDiffuseLighting');
+      this.lamps = svg.querySelectorAll('fePointLight');
+      [this.glint, this.caustic] = svg.querySelectorAll('radialGradient');
+      [this.face, this.dome, this.causticFace, this.interiorLight, this.darkRim, this.litRim] = svg.querySelectorAll('path');
+      this.bodyDensity = svg.querySelector('feFuncA');
+      this.bodyComposite = svg.querySelector('filter[id$="-light"] > feComposite:last-child');
+      this.wave = svg.querySelector('circle');
+      this.surface.style.setProperty('--ml-bend', 'url("#' + id + '-bend")');
+      this.surface.classList.add('ml-refractive');
+      this.surface.prepend(this.layer);
+    }
+
+    remove() {
+      this.cancelMap?.();
+      this.layer.remove();
+      this.surface.classList.remove('ml-refractive');
+      this.surface.style.removeProperty('--ml-bend');
+    }
+
+    paint(pointer, pulse, now, backdrop = null, version = 0, deferMap = false) {
+      if (!motionFrames.due(this, this.light.mediumMotion, now, this.scene)) return;
+      const box = this.layer.getBoundingClientRect();
+      const doc = this.surface.ownerDocument;
+      const win = doc.defaultView;
+      if (!box.width || !box.height || box.right <= 0 || box.bottom <= 0
+        || box.left >= win.innerWidth || box.top >= win.innerHeight) return;
+      // SVG coordinates are local CSS pixels, including under a transformed host.
+      const width = this.layer.clientWidth, height = this.layer.clientHeight;
+      if (!width || !height) return;
+      const sx = width / box.width, sy = height / box.height;
+      const opticalStyle = win.getComputedStyle(this.layer);
+      const radiusStyles = [opticalStyle.borderTopLeftRadius, opticalStyle.borderTopRightRadius,
+        opticalStyle.borderBottomRightRadius, opticalStyle.borderBottomLeftRadius];
+      const thickness = Math.min(width, height);
+      const lampRGB = opticalStyle.getPropertyValue('--ml-glass-lamp-rgb').trim() || '243 249 255';
+      const bodyRGB = opticalStyle.getPropertyValue('--ml-optical-body') ? opticalStyle.color
+        : opticalStyle.getPropertyValue('--ml-glass-body-rgb').trim() || '234 244 248';
+      if (lampRGB !== this.lampRGB) {
+        this.lampRGB = lampRGB;
+        this.tint = normalizedRgb(lampRGB, [243 / 255, 249 / 255, 1]);
+      }
+      if (bodyRGB !== this.bodyRGB) {
+        this.bodyRGB = bodyRGB;
+        this.bodyTint = normalizedRgb(bodyRGB, [234 / 255, 244 / 255, 248 / 255]);
+      }
+      const gain = parseFloat(opticalStyle.getPropertyValue('--ml-glass-face-gain'));
+      const faceGain = Number.isFinite(gain) ? Math.max(0, Math.min(1, gain)) : .135;
+      const densityReading = parseFloat(opticalStyle.getPropertyValue('--ml-glass-density'));
+      const density = Number.isFinite(densityReading) ? Math.max(0, Math.min(2.5, densityReading)) : 1;
+      const transmissionReading = parseFloat(opticalStyle.getPropertyValue('--ml-material-transparency'));
+      const transmission = Number.isFinite(transmissionReading) ? Math.max(0, Math.min(1, transmissionReading / 100)) : 1;
+      const strength = this.light.strength;
+      if (this.light.mode !== 'pointer') pointer = null;
+      const dpr = win.devicePixelRatio || 1;
+      const opticalRadius = Math.min(thickness / 2, optics.maxRadius);
+      const renderer = globalThis[Symbol.for('material-lib.glass-shader.v1')].forDocument(doc, () => {
+        // An older standalone component can already own the document's scene.
+        const scene = previousScene ? previousScene.forDocument(doc) : scenes.get(doc);
+        if (scene?.painters.size) scene.wake();
+        else scene?.remove();
+      });
+      const shape = [width, height, radiusStyles, dpr].join('/');
+      if (shape !== this.shape) {
+        this.cancelMap?.();
+        this.cancelMap = null;
+        this.shape = shape;
+        this.corners = usedCorners(this.layer, radiusStyles, width, height);
+        const install = url => {
+          this.mapPending = false;
+          if (this.maps[0].getAttribute('href') !== url) {
+            for (const map of this.maps) map.setAttribute('href', url);
+          }
+        };
+        this.mapPending = true;
+        const store = NormalMaps.forDocument(doc);
+        const result = store.get(normalMapShape(width, height, this.corners, dpr), deferMap && this.scene && renderer.program ? url => {
+          if (this.shape !== shape || !this.layer.parentNode) return;
+          install(url);
+          this.cancelMap = null;
+          this.state = null;
+          this.scene.wake();
+        } : null);
+        if (typeof result === 'string') install(result);
+        else if (this.mapPending) {
+          this.cancelMap = result;
+          // A resize can leave the previous shape's PNG installed during the new bake.
+          for (const map of this.maps) map.removeAttribute('href');
+        }
+        const outline = outlinePath(width, height, this.corners);
+        for (const face of [this.face, this.dome, this.interiorLight]) face.setAttribute('d', outline);
+        const rimWidth = Math.max(1.15, Math.min(2.6, thickness * .032));
+        this.litRim.setAttribute('d', outlinePath(width, height, this.corners, rimWidth / 2));
+        this.litRim.setAttribute('stroke-width', rimWidth);
+        this.darkRim.setAttribute('d', outlinePath(width, height, this.corners, rimWidth * .9));
+        this.darkRim.setAttribute('stroke-width', rimWidth * 1.9);
+        const inset = Math.max(1.5, Math.min(17, thickness * (this.lens ? .116 : .109)));
+        const causticFace = this.causticFace;
+        causticFace.setAttribute('d', outlinePath(width, height, this.corners, inset));
+        causticFace.setAttribute('stroke-width', Math.max(.85, height * .017));
+        this.blur.setAttribute('stdDeviation', Math.max(.7, height * .016));
+        this.polish.setAttribute('stdDeviation', Math.max(.6, height * .018));
+        this.layer.style.setProperty('--ml-rim', Math.max(1, Math.min(2.6, height * .023)) + 'px');
+        this.wave.setAttribute('stroke-width', Math.max(1.3, height * .03));
+      }
+      const elevation = Math.max(30, Math.min(116, thickness * .76));
+      const restX = Math.min(width * .24, this.corners.x[0] + elevation * .6);
+      const restY = -Math.min(height * .28, elevation * .55);
+      const weight = pointer?.weight ?? 1;
+      const x = pointer ? restX + ((pointer.x - box.left) * sx - restX) * weight : restX;
+      const y = pointer ? restY + ((pointer.y - box.top) * sy - restY) * weight : restY;
+      const fraction = pulse ? Math.min(1, Math.max(0, (now - pulse.start) / waveDuration)) : 1;
+      let sample = null;
+      if (renderer.program && backdrop?.width && backdrop.height) {
+        const b = backdrop.getBoundingClientRect();
+        if (b.width && b.height) sample = { canvas: backdrop, version, rect: [
+          (box.left - b.left) / b.width, (box.top - b.top) / b.height, box.width / b.width, box.height / b.height,
+        ] };
+      }
+      // The last active frame must stay distinct from the exact resting state.
+      const state = [shape, x.toFixed(1), y.toFixed(1), fraction, renderer.generation,
+        lampRGB, bodyRGB, faceGain, density, strength, transmission, version, sample?.rect.map(n => n.toFixed(5))].join('/');
+      if (state === this.state && this.lastBackdrop === backdrop) return;
+      this.state = state;
+      this.lastBackdrop = backdrop;
+      const dx = x - width / 2, dy = y - height / 2;
+      // For a long surface, the pointer can be close to a corner but far from the center.
+      const outside = Math.max(0, outlineAt(dx, dy, width / 2, height / 2, this.corners, {}).distance);
+      const energy = strength / (1 + (outside / (elevation * 1.5)) ** 2);
+      const span = Math.hypot(dx, dy, elevation);
+      const style = this.layer.style;
+      const cast = Math.min(120, thickness) * (this.lens ? .09 : .055) * energy;
+      style.setProperty('--ml-cast-x', (-dx / span * cast).toFixed(2) + 'px');
+      style.setProperty('--ml-cast-y', (-dy / span * cast).toFixed(2) + 'px');
+      style.setProperty('--ml-penumbra', Math.max(1.5, Math.min(120, thickness) * (.04 + .04 * energy)).toFixed(2) + 'px');
+      style.setProperty('--ml-cast-opacity', (.04 + .15 * energy).toFixed(3));
+      const depth = fraction < 1 ? Math.sin(fraction * Math.PI * 4) * (1 - fraction) ** 2 : 0;
+      const scale = this.maps[0].hasAttribute('href') ? String(opticalRadius * optics.mapRange * (1 + depth * .26)) : '0';
+      if (this.displacement.getAttribute('scale') !== scale) this.displacement.setAttribute('scale', scale);
+      const cx = pulse ? (pulse.x - box.left) * sx : width / 2;
+      const cy = pulse ? (pulse.y - box.top) * sy : height / 2;
+      if (renderer.program) {
+        if (!this.output) {
+          this.output = doc.createElement('canvas');
+          this.layer.append(this.output);
+        }
+        if (renderer.draw(this.output, {width, height, corners: this.corners, x, y, elevation, energy, tint: this.tint,
+          bodyTint: this.bodyTint, faceGain, density, strength, transmission, cx, cy, fraction, lens: this.lens, dpr, sample})) {
+          if (this.layer.dataset.mlRenderer !== 'webgl') this.layer.dataset.mlRenderer = 'webgl';
+          return;
+        }
+      }
+      if (this.layer.dataset.mlRenderer !== 'svg') this.layer.dataset.mlRenderer = 'svg';
+      const peakHeight = opticalRadius * (optics.base + optics.crown);
+      for (const lamp of this.lamps) {
+        lamp.setAttribute('x', x);
+        lamp.setAttribute('y', y);
+        lamp.setAttribute('z', elevation + peakHeight);
+      }
+      const specular = Number((.04 * strength + energy * faceGain * (this.lens ? 1.45 : 1.05)).toFixed(3));
+      this.reflection.setAttribute('specularConstant', specular);
+      // A zero-strength SVG specular primitive can paint opaque black. Use the unlit body directly.
+      this.bodyComposite.setAttribute('in', specular > 0 ? 'illuminated' : 'body');
+      this.diffuse.setAttribute('diffuseConstant', strength);
+      this.reflection.setAttribute('surfaceScale', peakHeight * (1 + depth * .26));
+      this.diffuse.setAttribute('surfaceScale', peakHeight);
+      this.glint.setAttribute('cx', x);
+      this.glint.setAttribute('cy', y);
+      this.glint.setAttribute('r', elevation * 1.85);
+      this.litRim.setAttribute('opacity', (.92 * energy).toFixed(3));
+      this.darkRim.setAttribute('opacity', (.13 + .12 * (1 - energy)).toFixed(3));
+      this.bodyDensity.setAttribute('tableValues', [0, .085, .16, .235, .31].map(value => (value * density).toFixed(3)).join(' '));
+      this.face.setAttribute('opacity', (faceGain * (.5 * strength + .44 * energy)).toFixed(3));
+      const projection = Math.max(1, Math.hypot(dx / (width / 2), dy / (height / 2)));
+      this.caustic.setAttribute('cx', width / 2 - .76 * dx / projection);
+      this.caustic.setAttribute('cy', height / 2 - .76 * dy / projection);
+      this.caustic.setAttribute('r', elevation * .8);
+      const transmitted = energy * Math.hypot(dx, dy) / span;
+      this.causticFace.setAttribute('opacity', (.37 * transmitted).toFixed(3));
+      this.interiorLight.setAttribute('opacity', (.21 * transmitted).toFixed(3));
+      if (fraction < 1) {
+        this.wave.setAttribute('cx', cx);
+        this.wave.setAttribute('cy', cy);
+        const extent = Math.hypot(Math.max(cx, width - cx), Math.max(cy, height - cy));
+        this.wave.setAttribute('r', 1 + extent * (1 - (1 - fraction) ** 2));
+        this.wave.setAttribute('opacity', (.9 * (1 - fraction) ** 1.4).toFixed(3));
+      } else {
+        this.wave.setAttribute('opacity', 0);
+      }
+    }
+  }
+
+  const scenes = new WeakMap();
+
+  // Every visible piece of glass in a document samples the same viewport-space lamp.
+  // A stationary pointer also lights a moving lens during its finite settling time.
+  class GlassScene {
+    #paintedPointer = null;
+    #returnStarted = null;
+
+    static forDocument(doc) {
+      if (!scenes.has(doc)) scenes.set(doc, new GlassScene(doc));
+      return scenes.get(doc);
+    }
+
+    constructor(doc) {
+      this.doc = doc;
+      this.win = doc.defaultView;
+      this.painters = new Set();
+      this.until = 0;
+      this.frame = 0;
+      this.pointer = null;
+      this.tracksPointer = false;
+      this.media = this.win.matchMedia('(prefers-reduced-motion: reduce)');
+      this.events = new AbortController();
+      const listen = (target, type) => target.addEventListener(type, this, {
+        capture: true, passive: true, signal: this.events.signal,
+      });
+      for (const type of ['pointermove', 'pointerdown', 'pointerup', 'pointerout', 'pointercancel',
+        'scroll', 'visibilitychange']) listen(doc, type);
+      for (const type of ['resize', 'blur']) listen(this.win, type);
+      listen(this.media, 'change');
+      listen(this.win.matchMedia('(forced-colors: active)'), 'change');
+      this.settings = new MutationObserver(records => {
+        const changed = records.some(({ attributeName, target, oldValue }) => {
+          if (attributeName !== 'style' && attributeName !== 'class') return true;
+          if (attributeName === 'style' && /--ml-(?:light-intensity|light-source|material-transparency)\s*:/.test((oldValue || '') + ';' + target.style.cssText)) return true;
+          // A token on a surface or ancestor can reshape stationary glass without resizing it.
+          // Ignore frames written by the renderer itself.
+          return !target.closest('.ml-optical') && (target.matches('.ml-refractive') || target.querySelector('.ml-refractive'));
+        });
+        if (changed) this.wake();
+      });
+      this.settings.observe(doc.documentElement, { attributes: true, attributeOldValue: true, subtree: true,
+        attributeFilter: ['data-ml-material', 'data-ml-motion', 'data-ml-theme', 'data-ml-light-source', 'placement', 'dir', 'class', 'style',
+          'hidden', 'disabled', 'aria-disabled', 'aria-busy', 'inert'] });
+    }
+
+    handleEvent(event) {
+      switch (event.type) {
+        case 'pointermove':
+        case 'pointerdown':
+          if (!event.isPrimary || (event.pointerType === 'touch' && !event.buttons)) return;
+          this.pointer = { x: event.clientX, y: event.clientY };
+          this.#returnStarted = null;
+          if (!this.tracksPointer) return;
+          break;
+        case 'pointerout':
+        case 'pointerup':
+        case 'pointercancel':
+          if (!event.isPrimary || (event.type === 'pointerout' && event.relatedTarget)
+            || (event.type === 'pointerup' && event.pointerType === 'mouse')) return;
+          this.#returnPointer();
+          return;
+        case 'blur':
+          if (event.target === this.win) this.#returnPointer();
+          return;
+        case 'visibilitychange':
+          // A hidden tab has no visible transition. Discard the old pointer before it is shown again.
+          this.pointer = null;
+          this.#paintedPointer = null;
+          this.#returnStarted = null;
+          break;
+      }
+      this.wake();
+    }
+
+    #returnPointer() {
+      if (!this.pointer || this.#returnStarted !== null) return;
+      this.pointer = this.tracksPointer && !this.media.matches ? this.#paintedPointer : null;
+      if (this.pointer) this.#returnStarted = this.win.performance.now();
+      if (this.tracksPointer) this.wake();
+    }
+
+    wake(duration = 0) {
+      this.until = Math.max(this.until, this.win.performance.now() + duration);
+      if (!this.frame) this.frame = this.win.requestAnimationFrame(this.draw);
+    }
+
+    draw = now => {
+      this.frame = 0;
+      let pointer = this.pointer;
+      if (this.#returnStarted !== null) {
+        const progress = Math.max(0, (now - this.#returnStarted) / lightReturnDuration);
+        if (progress >= 1 || this.media.matches) {
+          pointer = this.pointer = null;
+          this.#returnStarted = null;
+        } else {
+          // Ease from the last pointer position to each surface's own resting light.
+          const weight = (pointer.weight ?? 1) * (1 - progress * progress * (3 - 2 * progress));
+          pointer = { ...pointer, weight };
+        }
+      }
+      this.#paintedPointer = pointer;
+      this.tracksPointer = false;
+      for (const paint of this.painters) {
+        if (paint(pointer, now)) this.tracksPointer = true;
+      }
+      if (!this.frame && (now < this.until || (this.tracksPointer && this.#returnStarted !== null))) {
+        this.frame = this.win.requestAnimationFrame(this.draw);
+      }
+    };
+
+    remove(paint) {
+      this.painters.delete(paint);
+      if (this.painters.size) return;
+      this.events.abort();
+      this.settings.disconnect();
+      this.win.cancelAnimationFrame(this.frame);
+      scenes.delete(this.doc);
+    }
+  }
+
+  globalThis[key] = Object.freeze({ version: 15, GlassSurface, GlassScene: previousScene || GlassScene, waveDuration });
+})();
+
+(() => {
+  'use strict';
+
+  const key = Symbol.for('material-lib.glass-control.v1');
+  if (globalThis[key]?.version >= 10) return;
+  const { GlassScene, GlassSurface, waveDuration } = globalThis[Symbol.for('material-lib.glass.v1')];
+  const events = ['pointerdown', 'click', 'transitionrun', 'transitionend', 'transitioncancel'];
+
+  // Optical treatment for a compact surface. Its content owns semantics and focus.
+  class GlassControl extends HTMLElement {
+    static get version() { return 10; }
+    #scene;
+    #glass;
+    #pulse;
+    #size = new ResizeObserver(() => this.#scene?.wake());
+    #children = new MutationObserver(() => this.#scene?.wake());
+
+    get glassContent() { return this.querySelector(':scope > button'); }
+
+    connectedCallback() {
+      globalThis[Symbol.for('material-lib.motion-frames.v1')].watch(this.getRootNode());
+      for (const copy of this.querySelectorAll(':scope > .ml-optical')) copy.remove();
+      this.classList.remove('ml-refractive');
+      this.style.removeProperty('--ml-bend');
+      this.#scene = GlassScene.forDocument(this.ownerDocument);
+      this.#scene.painters.add(this.#paint);
+      this.#size.observe(this);
+      this.#children.observe(this, { childList: true });
+      for (const event of events) this.addEventListener(event, this);
+      this.#scene.wake();
+    }
+
+    disconnectedCallback() {
+      for (const event of events) this.removeEventListener(event, this);
+      this.#size.disconnect();
+      this.#children.disconnect();
+      this.#scene.remove(this.#paint);
+      this.#scene = null;
+      this.#clear();
+    }
+
+    #clear() {
+      if (this.#glass) this.updateGlassViewport?.(null);
+      this.#glass?.remove();
+      this.#glass = null;
+      this.#pulse = null;
+    }
+
+    // A surface with no press target of its own can still rebound like liquid.
+    pulse(x, y) {
+      const content = this.glassContent;
+      const style = getComputedStyle(this);
+      if (!this.#scene || !content || style.getPropertyValue('--ml-optics').trim() !== 'block'
+        || !this.#enabled(content) || style.getPropertyValue('--ml-follow').trim() !== '1') return false;
+      this.#pulse = { x, y, start: this.#scene.win.performance.now() };
+      this.#scene.wake(waveDuration + 35);
+      return true;
+    }
+
+    #enabled(content) {
+      return content && !content.matches(':disabled, [disabled]')
+        && !content.closest('[inert], [aria-disabled="true"], [aria-busy="true"]');
+    }
+
+    #paint = (pointer, now) => {
+      const content = this.glassContent;
+      const style = getComputedStyle(this);
+      const enabled = this.#enabled(content);
+      const dynamic = enabled && style.getPropertyValue('--ml-follow').trim() === '1';
+      const light = GlassSurface.lighting(style, this.#scene.media.matches, enabled);
+      const tier = content && GlassSurface.lightingTier(style, light);
+      if (!tier) {
+        if (this.#glass) this.#clear();
+        return;
+      }
+      if (!this.getClientRects().length) return;
+      this.#glass = GlassSurface.forTier(this.#glass, this, true, tier, light);
+      if (tier !== 'high' || !dynamic || (this.#pulse && now - this.#pulse.start >= waveDuration)) this.#pulse = null;
+      this.#glass.paint(pointer, this.#pulse, now, this.glassBackdrop, this.glassBackdropVersion, true);
+      this.updateGlassViewport?.(this.#glass.mapPending ? null : this.#glass);
+      if (light.mode === 'pointer' && this.getAnimations().some(a => a.transitionProperty && a.playState === 'running')) this.#scene.wake();
+      return light.mode === 'pointer';
+    };
+
+    handleEvent(event) {
+      if (event.type.startsWith('transition')) {
+        if (event.target === this) this.#scene.wake();
+        return;
+      }
+      const action = event.target.closest?.('button, select, input[type="checkbox"], input[type="radio"]');
+      if (action?.parentElement !== this || event.defaultPrevented) return;
+      const style = getComputedStyle(this);
+      if (style.getPropertyValue('--ml-optics').trim() !== 'block' || !this.#enabled(action) || style.getPropertyValue('--ml-follow').trim() !== '1') return;
+      let x = event.clientX, y = event.clientY;
+      if (event.type === 'pointerdown') {
+        if (!event.isPrimary || event.button !== 0) return;
+      } else {
+        if (event.detail !== 0) return;
+        const rect = action.getBoundingClientRect();
+        x = rect.left + rect.width / 2;
+        y = rect.top + rect.height / 2;
+      }
+      this.#pulse = { x, y, start: this.#scene.win.performance.now() };
+      this.#scene.wake(waveDuration + 35);
+    }
+  }
+
+  globalThis[key] = GlassControl;
+})();
+
+(() => {
+  'use strict';
+
+  if (customElements.get('ml-dialog')) return;
+  const { GlassScene, GlassSurface, waveDuration } = globalThis[Symbol.for('material-lib.glass.v1')];
+  const events = ['pointerdown', 'pointercancel', 'click', 'keydown', 'transitionrun', 'transitionend', 'transitioncancel'];
+
+  function onBackdrop(event, dialog) {
+    if (event.target !== dialog || !dialog.matches(':modal')) return false;
+    const box = dialog.getBoundingClientRect();
+    return event.clientX < box.left || event.clientX >= box.right
+      || event.clientY < box.top || event.clientY >= box.bottom;
+  }
+
+  // Native modality keeps the page inert. Wrap the two keyboard boundaries too,
+  // so a single-button alert stays focused when the user presses Tab.
+  function wrapTab(event, dialog) {
+    if (event.key !== 'Tab' || event.ctrlKey || event.altKey || event.metaKey || !dialog.matches(':modal')) return;
+    if (event.target.closest('dialog') !== dialog || event.composedPath()[0] !== event.target) return;
+    const candidates = dialog.querySelectorAll('button, input, select, textarea, a[href], area[href], summary, iframe, audio[controls], video[controls], [contenteditable], [tabindex]');
+    const visible = [...candidates].filter(el =>
+      (el.tabIndex >= 0 || (el.isContentEditable && !el.hasAttribute('tabindex'))) &&
+      !el.matches(':disabled') && !el.closest('[inert]') && el.getClientRects().length &&
+      getComputedStyle(el).visibility === 'visible');
+    const stops = visible.filter(el => {
+      if (el.type !== 'radio' || !el.name) return true;
+      const group = visible.filter(other => other.type === 'radio' && other.name === el.name && other.form === el.form);
+      return el === (group.find(radio => radio.checked) ?? group[0]);
+    });
+    const order = el => el.tabIndex > 0 ? el.tabIndex : Number.MAX_SAFE_INTEGER;
+    stops.sort((a, b) => order(a) - order(b));
+    const first = stops[0] ?? dialog;
+    const last = stops.at(-1) ?? dialog;
+    if (event.target === (event.shiftKey ? first : last) || event.target === dialog) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    }
+  }
+
+  // Keep the native dialog in its original form and DOM tree. showModal() supplies
+  // the top layer, inert background, initial focus and restoration on dismissal.
+  class MaterialDialog extends HTMLElement {
+    #native;
+    #scene;
+    #glass;
+    #pulse;
+    #outsidePress = false;
+    #size = new ResizeObserver(() => this.#scene?.wake());
+    #watch = new MutationObserver(() => { this.#bind(); this.#scene?.wake(); });
+
+    get dialog() { return this.querySelector(':scope > dialog'); }
+    get open() { return Boolean(this.dialog?.open); }
+    get returnValue() { return this.dialog?.returnValue ?? ''; }
+
+    showModal(trigger) {
+      const dialog = this.#bind();
+      if (!dialog || dialog.matches(':modal')) return;
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+      // The browser preserves returnValue across openings, including an Escape dismissal.
+      dialog.returnValue = '';
+      dialog.showModal();
+      this.#scene?.wake();
+    }
+
+    close(value = '') { this.dialog?.close(String(value)); }
+
+    connectedCallback() {
+      globalThis[Symbol.for('material-lib.motion-frames.v1')].watch(this.getRootNode());
+      this.#scene = GlassScene.forDocument(this.ownerDocument);
+      this.#scene.painters.add(this.#paint);
+      this.#bind();
+      this.#watch.observe(this, { subtree: true, childList: true, attributes: true, attributeFilter: ['open'] });
+      for (const type of events) this.addEventListener(type, this);
+      this.#scene.wake();
+    }
+
+    disconnectedCallback() {
+      for (const type of events) this.removeEventListener(type, this);
+      this.#watch.disconnect();
+      this.#size.disconnect();
+      this.#scene?.remove(this.#paint);
+      this.#scene = null;
+      this.#clear();
+      this.#native = null;
+    }
+
+    #bind() {
+      const dialog = this.dialog;
+      if (this.#native === dialog) return dialog;
+      this.#clear();
+      this.#size.disconnect();
+      this.#native = dialog;
+      this.#outsidePress = false;
+      if (dialog) {
+        // Cloning a live specimen also copies its generated filter IDs.
+        for (const copy of dialog.querySelectorAll(':scope > .ml-optical')) copy.remove();
+        dialog.classList.remove('ml-refractive');
+        dialog.style.removeProperty('--ml-bend');
+        this.#size.observe(dialog);
+      }
+      return dialog;
+    }
+
+    #clear() {
+      this.#glass?.remove();
+      this.#glass = null;
+      this.#pulse = null;
+    }
+
+    #paint = (pointer, now) => {
+      const dialog = this.#native;
+      if (!dialog) return;
+      const style = getComputedStyle(dialog);
+      const dynamic = style.getPropertyValue('--ml-follow').trim() === '1';
+      const light = GlassSurface.lighting(style, this.#scene.media.matches);
+      const tier = GlassSurface.lightingTier(style, light);
+      if (!tier || !dialog.getClientRects().length) {
+        if (this.#glass) this.#clear();
+        return;
+      }
+      if (!dialog.open) {
+        // The glass reflection fades with the closing dialog. Pointer feedback ends on dismissal.
+        if (this.#glass && (tier !== 'high' || this.#glass.tier !== tier)) this.#clear();
+        return;
+      }
+      this.#glass = GlassSurface.forTier(this.#glass, dialog, false, tier, light);
+      if (tier !== 'high' || !dynamic || (this.#pulse && now - this.#pulse.start >= waveDuration)) this.#pulse = null;
+      this.#glass.paint(pointer, this.#pulse, now);
+      if (light.mode === 'pointer' && dialog.getAnimations().some(a => a.playState === 'running')) this.#scene.wake();
+      return light.mode === 'pointer';
+    };
+
+    handleEvent(event) {
+      const dialog = this.#native;
+      if (!dialog || event.target.closest?.('ml-dialog') !== this) return;
+      if (event.type.startsWith('transition')) {
+        if (event.target === dialog) this.#scene?.wake();
+        return;
+      }
+      if (!dialog.open || event.defaultPrevented) return;
+      if (event.type === 'keydown') { wrapTab(event, dialog); return; }
+      if (event.type === 'pointercancel') { this.#outsidePress = false; return; }
+      if (event.type === 'pointerdown') {
+        if (!event.isPrimary || event.button !== 0) return;
+        this.#outsidePress = onBackdrop(event, dialog);
+        const style = getComputedStyle(dialog);
+        if (!this.#outsidePress && this.#glass?.tier === 'high' && style.getPropertyValue('--ml-follow').trim() === '1') {
+          this.#pulse = { x: event.clientX, y: event.clientY, start: this.#scene.win.performance.now() };
+          this.#scene.wake(waveDuration + 35);
+        }
+        return;
+      }
+      const outside = this.#outsidePress && onBackdrop(event, dialog);
+      this.#outsidePress = false;
+      const cancel = event.target.closest?.('button[data-ml-dialog-close]');
+      if (cancel && !cancel.matches(':disabled')) {
+        event.preventDefault();
+        this.close(cancel.value || 'cancel');
+      } else if (outside && this.hasAttribute('dismiss-on-backdrop')) {
+        // Backdrop dismissal is opt-in. Give listeners the same veto as Escape,
+        // including on subsequent attempts after a listener rejected the first.
+        if (dialog.dispatchEvent(new Event('cancel', { cancelable: true }))) this.close('cancel');
+      }
+    }
+  }
+
+  customElements.define('ml-dialog', MaterialDialog);
+})();
+
+(() => {
+  'use strict';
+  if (customElements.get('ml-navigation-panel')) return;
+
+  let sequence = 0;
+  const normalize = value => (value || '').normalize('NFKC').toLowerCase().replace(/[\s/_-]+/g, '');
+  const template = document.createElement('template');
+  template.innerHTML = `
+    <div class="ml-catalog-panel">
+      <header class="ml-catalog-head">
+        <button class="ml-catalog-back" type="button" hidden><span></span></button>
+        <h2 class="ml-catalog-title" tabindex="-1"></h2>
+        <button class="ml-catalog-find" type="button" aria-label="搜索全部条目" title="搜索全部条目" hidden></button>
+        <button class="ml-catalog-dismiss" type="button" data-ml-dialog-close aria-label="关闭导航面板" title="关闭导航面板" hidden></button>
+        <div class="ml-catalog-search">
+          <span class="ml-catalog-glyph" aria-hidden="true"></span>
+          <input type="search" aria-description="搜索所有层级，按上下方向键浏览结果。" autocomplete="off" spellcheck="false" enterkeyhint="go">
+          <button class="ml-catalog-clear" type="button" aria-label="清除搜索" hidden></button>
+        </div>
+      </header>
+      <div class="ml-catalog-viewport">
+        <div class="ml-catalog-results">
+          <span class="ml-catalog-count" role="status" aria-atomic="true"></span>
+          <div class="ml-catalog-empty" hidden><p></p><button type="button">清除搜索</button></div>
+        </div>
+      </div>
+    </div>`;
+  const groupTemplate = document.createElement('template');
+  groupTemplate.innerHTML = '<button class="ml-catalog-group" type="button"><span class="ml-catalog-name"></span><span class="ml-catalog-quantity" aria-hidden="true"></span></button>';
+
+  function rank(fields, words) {
+    const names = fields.slice(0, 3);
+    const matches = values => words.every(word => values.some(value => value.includes(word)));
+    if (names.includes(words.join(''))) return 0;
+    if (matches(names)) return 1;
+    if (matches(fields.slice(0, 5))) return 2;
+    return matches(fields) ? 3 : Infinity;
+  }
+
+  // Sort the real rows so reading order, keyboard order and native link actions agree.
+  function order(group, items) {
+    let cursor = group.button ? group.button.nextElementSibling : group.element.firstElementChild;
+    for (const { element } of items) {
+      if (element.parentElement !== group.element) continue;
+      if (cursor !== element) group.element.insertBefore(element, cursor);
+      cursor = element.nextElementSibling;
+    }
+  }
+
+  function restoreOrder(group) {
+    order(group, group.items);
+    for (const item of group.items) if (item.items) restoreOrder(item);
+  }
+
+  function mark(row, icon) {
+    let glyph = row.querySelector(':scope > .ml-catalog-mark');
+    if (!/^[a-z][a-z0-9-]*$/.test(icon || '')) { glyph?.remove(); return; }
+    if (!glyph) {
+      glyph = document.createElement('span');
+      glyph.className = 'ml-catalog-mark';
+      glyph.setAttribute('aria-hidden', 'true');
+      row.prepend(glyph);
+    }
+    glyph.style.setProperty('--ml-entry-icon', 'var(--ml-catalog-icon-' + icon + ', var(--ml-catalog-icon-page))');
+  }
+
+  function readLeaf(element, path) {
+    let copy = element.querySelector(':scope > .ml-catalog-copy');
+    if (!copy) {
+      copy = document.createElement('span');
+      copy.className = 'ml-catalog-copy';
+      const detail = element.querySelector(':scope > small');
+      const name = document.createElement('span');
+      name.className = 'ml-catalog-name';
+      name.append(...[...element.childNodes].filter(node => node !== detail));
+      copy.append(name);
+      if (detail) copy.append(detail);
+      element.append(copy);
+    }
+    const title = copy.querySelector('.ml-catalog-name').textContent.trim();
+    let alias = copy.querySelector('.ml-catalog-alias');
+    if (element.dataset.en) {
+      if (!alias) {
+        alias = document.createElement('span');
+        alias.className = 'ml-catalog-alias'; alias.lang = 'en';
+        alias.setAttribute('aria-hidden', 'true');
+        copy.append(alias);
+      }
+      alias.textContent = element.dataset.en;
+    } else alias?.remove();
+    let context = copy.querySelector('.ml-catalog-context');
+    if (!context) {
+      context = document.createElement('span');
+      context.className = 'ml-catalog-context';
+      copy.append(context);
+    }
+    context.textContent = path.join(' › ');
+    const link = element.matches('a[href]') ? element : null;
+    if (!link) element.tabIndex = -1;
+    const slug = link?.hash.slice(1) || link?.pathname.split('/').filter(Boolean).at(-1);
+    const detail = copy.querySelector('small');
+    const fields = [title, element.dataset.en, slug, path.join(' '), element.dataset.keywords,
+      element.dataset.lead, detail?.textContent].map(normalize);
+    mark(element, element.dataset.icon);
+    element.classList.add('ml-catalog-leaf');
+    return { element, title, fields, link, hasDetail: !!(detail || element.dataset.en) };
+  }
+
+  // Copy only the painted parts of a row. The departing page has no live controls or links.
+  function snapshotRow(source) {
+    const doc = source.ownerDocument;
+    const row = doc.createElement(source.matches('a') ? 'a' : 'div');
+    row.className = source.className;
+    for (const name of ['data-icon', 'dir', 'aria-current']) {
+      if (source.hasAttribute(name)) row.setAttribute(name, source.getAttribute(name));
+    }
+    for (const child of source.querySelectorAll(':scope > :is(.ml-catalog-mark, .ml-catalog-copy, .ml-catalog-name, .ml-catalog-quantity)')) {
+      const copy = doc.createElement('span');
+      copy.className = child.className;
+      if (child.matches('.ml-catalog-mark')) copy.style.cssText = child.style.cssText;
+      if (child.matches('.ml-catalog-copy')) {
+        for (const field of child.children) {
+          const text = doc.createElement(field.localName === 'small' ? 'small' : 'span');
+          text.className = field.className;
+          text.textContent = field.textContent;
+          copy.append(text);
+        }
+      } else copy.textContent = child.textContent;
+      row.append(copy);
+    }
+    return row;
+  }
+
+  const GlassControl = globalThis[Symbol.for('material-lib.glass-control.v1')];
+  class MaterialNavigationPanel extends GlassControl {
+    #nav;
+    #panel;
+    #title;
+    #back;
+    #find;
+    #query;
+    #results;
+    #empty;
+    #status;
+    #trigger;
+    #tree;
+    #groups = new Map();
+    #leaves = [];
+    #trail = [];
+    #searchOpen = false;
+    #searchScroll = null;
+    #ranked = false;
+    #ownsSurface = false;
+    #slide;
+    #observer = new MutationObserver(records => { if (this.#dataChanged(records)) this.refresh(); });
+
+    get glassContent() { return this.#panel; }
+    get #dialog() { return this.parentElement?.matches('ml-dialog > dialog') ? this.parentElement : null; }
+    get #level() { return this.#groups.get(this.#trail.at(-1)?.section) || this.#tree; }
+    get entries() {
+      if (this.#dataChanged(this.#observer.takeRecords())) this.refresh();
+      return this.#leaves.filter(item => item.link).map(({ link, title }) => ({ link, title }));
+    }
+
+    connectedCallback() {
+      this.refresh();
+      this.#ownsSurface = !this.#dialog;
+      if (this.#ownsSurface) super.connectedCallback();
+      for (const type of ['click', 'input', 'keydown']) this.addEventListener(type, this.#onEvent);
+    }
+
+    disconnectedCallback() {
+      this.#observer.disconnect();
+      this.#finishSlide();
+      this.#releaseTrigger();
+      for (const type of ['click', 'input', 'keydown']) this.removeEventListener(type, this.#onEvent);
+      if (this.#ownsSurface) super.disconnectedCallback();
+    }
+
+    #releaseTrigger() {
+      this.#trigger?.setAttribute('aria-expanded', 'false');
+      this.#trigger = null;
+    }
+
+    showModal(trigger, { focusSearch = !matchMedia('(pointer: coarse)').matches } = {}) {
+      const dialog = this.#dialog;
+      if (!dialog || dialog.open || !this.#panel) return;
+      this.#releaseTrigger();
+      this.#trigger = trigger;
+      this.reset();
+      const dismiss = this.#panel.querySelector('.ml-catalog-dismiss');
+      this.#query.autofocus = focusSearch;
+      dismiss.autofocus = !focusSearch;
+      dialog.parentElement.showModal(trigger);
+      this.#query.autofocus = dismiss.autofocus = false;
+      trigger?.setAttribute('aria-expanded', 'true');
+      dialog.addEventListener('close', () => {
+        if (dialog.open) return;
+        this.#finishSlide();
+        this.#releaseTrigger();
+      }, { once: true });
+      if (focusSearch) this.focusSearch();
+    }
+
+    #observe() {
+      if (!this.isConnected) return;
+      this.#observer.observe(this, { childList: true, attributes: true, attributeFilter: ['label', 'search-label'] });
+      if (this.#nav) this.#observer.observe(this.#nav, { subtree: true, childList: true, characterData: true,
+        attributes: true, attributeFilter: ['href', 'data-en', 'data-lead', 'data-keywords', 'data-icon'] });
+    }
+
+    #dataChanged(records) {
+      return records.some(record => record.target !== this || record.type === 'attributes' ||
+        [...record.addedNodes].some(node => node.localName === 'nav') || [...record.removedNodes].includes(this.#panel));
+    }
+
+    #mount(nav) {
+      this.#panel = template.content.firstElementChild.cloneNode(true);
+      this.#title = this.#panel.querySelector('.ml-catalog-title');
+      this.#back = this.#panel.querySelector('.ml-catalog-back');
+      this.#find = this.#panel.querySelector('.ml-catalog-find');
+      this.#results = this.#panel.querySelector('.ml-catalog-results');
+      this.#query = this.#panel.querySelector('input');
+      this.#empty = this.#panel.querySelector('.ml-catalog-empty');
+      this.#status = this.#panel.querySelector('[role="status"]');
+      this.append(this.#panel);
+      this.#empty.before(nav);
+    }
+
+    #readGroup(element, title, path, button = null) {
+      const group = { element, title, button, items: [], count: 0 };
+      this.#groups.set(element, group);
+      for (const child of element.querySelectorAll(':scope > :is(section, a[href], p)')) {
+        if (child.localName !== 'section') {
+          const leaf = readLeaf(child, path);
+          group.items.push(leaf);
+          this.#leaves.push(leaf);
+          group.count++;
+          continue;
+        }
+        const heading = child.querySelector(':scope > :is(h2, h3, h4, h5, h6)');
+        if (!heading) { child.hidden = true; continue; }
+        const name = heading.textContent.trim();
+        heading.hidden = true;
+        let row = child.querySelector(':scope > .ml-catalog-group');
+        if (!row) { row = groupTemplate.content.firstElementChild.cloneNode(true); heading.after(row); }
+        const icon = child.dataset.icon || heading.querySelector('use')?.getAttribute('href')?.match(/^#i-([\w-]+)$/)?.[1] || 'folder';
+        row.dataset.icon = icon;
+        mark(row, icon);
+        row.querySelector('.ml-catalog-name').textContent = name;
+        row.setAttribute('aria-controls', this.#nav.id);
+        const section = this.#readGroup(child, name, [...path, name], row);
+        row.querySelector('.ml-catalog-quantity').textContent = section.count;
+        row.setAttribute('aria-description', section.count + ' 个条目');
+        group.items.push(section);
+        group.count += section.count;
+      }
+      return group;
+    }
+
+    refresh() {
+      this.#finishSlide();
+      this.#observer.disconnect();
+      if (this.#panel?.parentElement !== this) {
+        const previous = this.querySelector(':scope > .ml-catalog-panel');
+        const source = previous?.querySelector('.ml-catalog-results > nav');
+        if (source) { source.removeAttribute('id'); previous.replaceWith(source); }
+        this.#panel = this.#nav = null;
+      }
+      const next = this.querySelector(':scope > nav');
+      if (next) {
+        if (this.#panel) this.#nav.replaceWith(next);
+        else this.#mount(next);
+        this.#nav = next;
+        if (!next.id || this.ownerDocument.getElementById(next.id) !== next) {
+          let id;
+          do { id = 'ml-catalog-links-' + ++sequence; } while (this.ownerDocument.getElementById(id));
+          next.id = id;
+        }
+        this.#query.setAttribute('aria-controls', next.id);
+        this.#trail = []; this.#searchOpen = false; this.#searchScroll = null;
+        this.#query.value = ''; this.#ranked = false;
+      }
+      this.#groups.clear();
+      this.#leaves = [];
+      if (!this.#nav) { this.#tree = null; this.#observe(); return; }
+      if (this.#ranked) restoreOrder(this.#tree);
+      this.#tree = this.#readGroup(this.#nav, this.getAttribute('label') || '导航面板', []);
+      let rows = 1;
+      for (const group of this.#groups.values()) {
+        let units = 0;
+        for (const item of group.items) {
+          if (item.items) units += Number(item.count > 0);
+          else units += item.hasDetail ? 1.25 : 1;
+        }
+        rows = Math.max(rows, units);
+      }
+      this.#panel.style.setProperty('--ml-nav-row-count', rows);
+      const lost = this.#trail.findIndex(frame => !this.#groups.get(frame.section)?.count ||
+        frame.section.parentElement !== frame.parent);
+      if (lost >= 0) this.#trail.length = lost;
+      if (!this.#trail.length) this.#searchOpen = false;
+      this.#panel.querySelector('.ml-catalog-dismiss').hidden = !this.#dialog;
+      const prompt = this.getAttribute('search-label') || '搜索全部条目';
+      this.#query.placeholder = prompt;
+      this.#query.setAttribute('aria-label', prompt);
+      this.#find.setAttribute('aria-label', prompt);
+      this.#find.title = prompt;
+      this.#render();
+    }
+
+    #render() {
+      if (this.#dataChanged(this.#observer.takeRecords())) { this.refresh(); return; }
+      this.#observer.disconnect();
+      const level = this.#level;
+      const path = new Set(this.#trail.map(frame => frame.section));
+      const words = this.#query.value.trim().split(/\s+/).map(normalize).filter(Boolean);
+      const searching = words.length > 0;
+      let matches = 0;
+      if (!searching && this.#ranked) restoreOrder(this.#tree);
+      const visit = group => {
+        const scores = [];
+        let best = Infinity;
+        for (const item of group.items) {
+          let score = Infinity;
+          if (item.items) {
+            score = visit(item);
+            const row = !searching && group === level && item.count > 0;
+            item.button.hidden = !row;
+            item.element.hidden = searching ? !Number.isFinite(score) : !row && !path.has(item.element);
+          } else {
+            if (searching) score = rank(item.fields, words);
+            item.element.hidden = searching ? !Number.isFinite(score) : group !== level;
+            if (searching && !item.element.hidden) matches++;
+          }
+          if (searching) { scores.push({ element: item.element, score }); best = Math.min(best, score); }
+        }
+        if (searching) order(group, scores.sort((a, b) => a.score - b.score));
+        return best;
+      };
+      visit(this.#tree);
+      this.#ranked = searching;
+      const nested = level !== this.#tree;
+      this.#panel.toggleAttribute('data-nested', nested);
+      this.#panel.toggleAttribute('data-search-open', nested && this.#searchOpen);
+      this.#panel.toggleAttribute('data-searching', searching);
+      this.#title.textContent = level.title;
+      this.#back.hidden = !nested;
+      if (nested) {
+        const parent = this.#searchOpen ? level : this.#groups.get(level.element.parentElement);
+        this.#back.firstElementChild.textContent = parent.title;
+        this.#back.setAttribute('aria-label', '返回' + parent.title);
+      }
+      this.#find.hidden = !nested || this.#searchOpen;
+      this.#query.parentElement.hidden = nested && !this.#searchOpen;
+      this.#panel.querySelector('.ml-catalog-clear').hidden = !this.#query.value;
+      const empty = searching ? matches === 0 : level.count === 0;
+      this.#nav.hidden = empty;
+      this.#empty.hidden = !empty;
+      this.#empty.querySelector('p').textContent = searching ? '没有找到匹配项' : '暂无导航条目';
+      this.#empty.querySelector('button').hidden = !searching;
+      const status = searching ? '找到 ' + matches + ' 项' : level.title + '，' + level.count + ' 个条目';
+      if (this.#status.textContent !== status) this.#status.textContent = status;
+      this.#observe();
+    }
+
+    #finishSlide() {
+      if (!this.#slide) return;
+      const { previous, animations } = this.#slide;
+      this.#slide = null;
+      const viewport = previous.parentElement;
+      previous.remove();
+      viewport?.removeAttribute('data-step');
+      for (const animation of animations) animation.cancel();
+    }
+
+    #captureSlide(forward) {
+      const height = this.getAttribute('density') === 'compact' ? this.#panel.offsetHeight : 0;
+      const listHeight = this.#results.clientHeight;
+      this.#finishSlide();
+      const win = this.ownerDocument.defaultView;
+      const style = win.getComputedStyle(this.#panel);
+      const travel = style.getPropertyValue('--ml-travel').trim();
+      const duration = Math.min(240, parseFloat(travel) * (travel.endsWith('ms') ? 1 : 1000));
+      if (!(duration > 0) || !this.#results.animate || !listHeight ||
+          win.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+      const previous = this.ownerDocument.createElement('div');
+      previous.className = 'ml-catalog-results ml-catalog-outgoing';
+      if (height) previous.style.blockSize = listHeight + 'px';
+      previous.inert = true;
+      previous.setAttribute('aria-hidden', 'true');
+      const list = this.ownerDocument.createElement('div');
+      list.className = 'ml-catalog-list';
+      for (const item of this.#level.items) {
+        const row = item.button || item.element;
+        if (!row.hidden) list.append(snapshotRow(row));
+      }
+      previous.append(list);
+      return { previous, forward, height, duration, easing: style.getPropertyValue('--ml-front-ease').trim() || 'ease-out',
+        sign: style.direction === 'rtl' ? -1 : 1, scroll: this.#results.scrollTop };
+    }
+
+    #playSlide(slide) {
+      if (!slide) return;
+      const { previous, forward, height, duration, easing, sign, scroll } = slide;
+      const viewport = this.#results.parentElement;
+      viewport.dataset.step = forward ? 'forward' : 'back';
+      viewport.append(previous);
+      previous.scrollTop = scroll;
+      const shift = amount => ({ transform: 'translateX(' + amount * sign + '%)' });
+      const options = { duration, easing };
+      const animations = [
+        this.#results.animate([shift(forward ? 100 : -28), shift(0)], options),
+        previous.animate([shift(0), shift(forward ? -28 : 100)], options),
+      ];
+      if (height) {
+        const target = this.#panel.offsetHeight;
+        if (height !== target) {
+          animations.push(this.#panel.animate([{ blockSize: height + 'px' }, { blockSize: target + 'px' }], options));
+        }
+      }
+      this.#slide = { previous, animations };
+      const frames = globalThis[Symbol.for('material-lib.motion-frames.v1')];
+      for (const animation of animations) frames.track(animation, this);
+      const finish = () => {
+        if (this.#slide?.previous === previous) this.#finishSlide();
+      };
+      animations[0].finished.then(finish, finish);
+    }
+
+    #enter(section) {
+      const slide = this.#captureSlide(true);
+      this.#trail.push({ section, parent: this.#level.element, scroll: this.#results.scrollTop });
+      this.#searchOpen = false; this.#searchScroll = null; this.#query.value = '';
+      this.#render();
+      this.#results.scrollTop = 0;
+      this.#title.focus({ preventScroll: true });
+      this.#playSlide(slide);
+    }
+
+    #clearSearch(collapse) {
+      const scroll = this.#searchScroll ?? 0;
+      this.#query.value = '';
+      if (collapse) this.#searchOpen = false;
+      this.#searchScroll = this.#searchOpen ? scroll : null;
+      this.#finishSlide();
+      this.#render();
+      this.#results.scrollTop = scroll;
+      (this.#query.parentElement.hidden ? this.#find : this.#query).focus({ preventScroll: true });
+    }
+
+    #goBack() {
+      if (this.#query.value || this.#searchOpen) { this.#clearSearch(true); return true; }
+      const frame = this.#trail.at(-1);
+      if (!frame) return false;
+      const slide = this.#captureSlide(false);
+      this.#trail.pop();
+      this.#render();
+      this.#results.scrollTop = frame.scroll;
+      this.#groups.get(frame.section)?.button.focus({ preventScroll: true });
+      this.#playSlide(slide);
+      return true;
+    }
+
+    focusSearch() {
+      if (!this.#nav) return;
+      if (this.#trail.length && !this.#searchOpen) {
+        this.#searchOpen = true;
+        this.#searchScroll = this.#results.scrollTop;
+        this.#finishSlide();
+        this.#render();
+      }
+      this.#query.focus({ preventScroll: true });
+    }
+
+    reset({ reveal = false } = {}) {
+      if (this.#dataChanged(this.#observer.takeRecords())) this.refresh();
+      if (!this.#nav) return;
+      this.#trail = [];
+      this.#query.value = ''; this.#searchOpen = false; this.#searchScroll = null;
+      this.#finishSlide();
+      const link = reveal && this.#leaves.find(item => item.link?.getAttribute('aria-current') === 'page')?.link;
+      for (let section = link?.parentElement; section && section !== this.#nav; section = section.parentElement) {
+        this.#trail.unshift({ section, parent: section.parentElement, scroll: 0 });
+      }
+      this.#render();
+      this.#results.scrollTop = 0;
+      if (link) link.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+    }
+
+    #onEvent = event => {
+      const target = event.target;
+      if (!this.#tree || target.closest('ml-navigation-panel, ml-catalog') !== this) return;
+      if (event.type === 'input') {
+        if (target !== this.#query) return;
+        this.#finishSlide();
+        if (this.#query.value && this.#searchScroll === null) this.#searchScroll = this.#results.scrollTop;
+        this.#render();
+        this.#results.scrollTop = this.#query.value ? 0 : this.#searchScroll ?? 0;
+        if (!this.#query.value && !this.#searchOpen) this.#searchScroll = null;
+        return;
+      }
+      const button = target.closest('button');
+      if (event.type === 'click') {
+        if (event.defaultPrevented) return;
+        if (button === this.#back) this.#goBack();
+        else if (button === this.#find) this.focusSearch();
+        else if (button?.matches('.ml-catalog-group')) this.#enter(button.parentElement);
+        else if (button?.matches('.ml-catalog-clear') || this.#empty.contains(button)) this.#clearSearch(false);
+        const link = target.closest('a[href]');
+        if (link && this.#nav.contains(link) && this.#dialog?.open && event.button === 0 &&
+            !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey &&
+            !link.hasAttribute('download') && (!link.target || link.target.toLowerCase() === '_self')) this.#dialog.close();
+        return;
+      }
+      if (event.defaultPrevented || event.isComposing || event.keyCode === 229 ||
+          event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      const key = event.key, fromSearch = target === this.#query;
+      if (key === 'Escape') {
+        if (this.#goBack()) event.preventDefault();
+        else if (fromSearch && this.#dialog?.open) {
+          event.preventDefault();
+          if (this.#dialog.dispatchEvent(new Event('cancel', { cancelable: true }))) this.#dialog.close('cancel');
+        }
+        return;
+      }
+      if (!fromSearch && (key === 'ArrowLeft' || key === 'ArrowRight')) {
+        const forward = key === (getComputedStyle(this).direction === 'rtl' ? 'ArrowLeft' : 'ArrowRight');
+        if (!forward && this.#goBack()) event.preventDefault();
+        else if (forward && button?.matches('.ml-catalog-group')) { event.preventDefault(); this.#enter(button.parentElement); }
+        return;
+      }
+      if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'Enter'].includes(key) ||
+          (fromSearch && (key === 'Home' || key === 'End')) || (!fromSearch && key === 'Enter')) return;
+      const rows = [...this.#nav.querySelectorAll(':is(.ml-catalog-group, .ml-catalog-leaf):not([hidden])')]
+        .filter(row => !row.closest('[hidden]'));
+      if (key === 'Enter') {
+        event.preventDefault();
+        if (this.#ranked && rows[0]?.matches('a[href]')) rows[0].click();
+        return;
+      }
+      if (!rows.length) return;
+      event.preventDefault();
+      const index = rows.indexOf(target.closest('.ml-catalog-group, .ml-catalog-leaf'));
+      const next = key === 'Home' ? 0 : key === 'End' || (index < 0 && key === 'ArrowUp') ? rows.length - 1
+        : key === 'ArrowDown' ? Math.min(index + 1, rows.length - 1) : index - 1;
+      (next < 0 ? (this.#query.parentElement.hidden ? this.#back : this.#query) : rows[next]).focus();
+    };
+  }
+
+  customElements.define('ml-navigation-panel', MaterialNavigationPanel);
+  if (!customElements.get('ml-catalog')) customElements.define('ml-catalog', class extends MaterialNavigationPanel {});
+})();

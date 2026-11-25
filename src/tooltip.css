@@ -2,8 +2,8 @@ ml-tooltip { display: contents; }
 ml-tooltip[hidden] { display: none !important; }
 
 .ml-tooltip-panel {
-  --ml-tooltip-paper: color-mix(in srgb, var(--ml-color-text) 94%, var(--ml-color-surface));
-  --ml-tooltip-edge: color-mix(in srgb, var(--ml-color-text) 78%, var(--ml-color-surface));
+  --ml-tooltip-paper: var(--ml-color-surface-raised);
+  --ml-tooltip-edge: var(--ml-color-separator);
   --ml-tooltip-tip: 50%;
   --ml-tooltip-x: 0px;
   --ml-tooltip-y: 0px;
@@ -18,7 +18,7 @@ ml-tooltip[hidden] { display: none !important; }
   padding: 0;
   overflow: visible;
   background: transparent;
-  color: var(--ml-color-surface);
+  color: var(--ml-color-text);
   font: var(--ml-weight-medium) var(--ml-size-caption)/var(--ml-leading-compact) var(--ml-type-family, var(--ml-font-sans));
   text-align: start;
   white-space: normal;

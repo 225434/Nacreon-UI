@@ -2,7 +2,7 @@ ml-toolbar { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .2
 ml-toolbar [role="group"] { display: flex; flex-wrap: wrap; align-items: center; gap: .12rem; min-inline-size: 0; max-inline-size: 100%; }
 ml-toolbar [role="group"] + [role="group"] { border-inline-start: var(--ml-border-width) solid var(--ml-color-separator); padding-inline-start: .28rem; }
 ml-toolbar [data-action] { justify-content: center; }
-ml-toolbar [aria-pressed="true"] { color: var(--ml-accent-ink); background-color: color-mix(in srgb, var(--ml-accent-ink) 13%, transparent); }
+ml-toolbar [aria-pressed="true"] { color: var(--ml-accent-ink); background-color: var(--ml-color-selection); }
 ml-toolbar[orientation="vertical"], ml-toolbar[orientation="vertical"] [role="group"] { flex-direction: column; align-items: stretch; }
 ml-toolbar[orientation="vertical"] [data-action] { justify-content: flex-start; }
 ml-toolbar[orientation="vertical"] [role="group"] + [role="group"] { border-inline-start: 0; padding-inline-start: 0; border-block-start: var(--ml-border-width) solid var(--ml-color-separator); padding-block-start: var(--ml-space-1); }

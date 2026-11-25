@@ -33,7 +33,7 @@ ml-empty-state[kind="restricted"] {
 ml-empty-state[variant="panel"] {
   border: var(--ml-border-width) solid color-mix(in srgb, var(--ml-color-separator) var(--ml-material-border-opacity), transparent);
   border-radius: var(--ml-empty-radius, var(--ml-radius-xl));
-  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-opacity), transparent);
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-material-content-opacity), transparent);
   background-image: var(--ml-skin);
   box-shadow: var(--ml-highlight-relief);
   -webkit-backdrop-filter: var(--ml-filter);
@@ -98,7 +98,7 @@ ml-empty-state > .ml-empty-content {
   font-size: var(--ml-empty-title-size, var(--ml-size-heading));
   font-weight: var(--ml-weight-semibold);
   line-height: var(--ml-leading-tight);
-  letter-spacing: var(--ml-tracking-tight);
+  letter-spacing: var(--ml-tracking-title);
   text-wrap: balance;
 }
 .ml-empty-copy > .ml-empty-description {

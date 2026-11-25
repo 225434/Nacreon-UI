@@ -8,11 +8,11 @@
   --ml-hover-well: #24282d; --ml-hover-link: var(--ml-accent-ink); --ml-hover-tint: #263f58;
 }
 :root, [data-ml-material="high"] {
-  --ml-hover-alpha: 89%;
+  --ml-hover-alpha: var(--ml-reading-fill, 89%);
   --ml-hover-shadow: inset 0 1px 1px #ffffff80, inset 0 -1px 1px #303d4a21,
     0 3px 8px -5px #172c463d, 0 15px 32px -13px #17283f69;
 }
-[data-ml-material="medium"] { --ml-hover-alpha: 94%; --ml-hover-shadow: initial; }
+[data-ml-material="medium"] { --ml-hover-alpha: var(--ml-reading-fill, 94%); --ml-hover-shadow: initial; }
 [data-ml-material="low"] { --ml-hover-alpha: 100%; --ml-hover-shadow: 0 2px 6px #1f2b391a; }
 [data-ml-material="base"] { --ml-hover-alpha: 100%; --ml-hover-shadow: none; }
 ml-hover-card { display: inline-grid; justify-items: start; max-inline-size: 100%; vertical-align: middle; color: var(--ml-ink); }
@@ -83,7 +83,7 @@ ml-hover-card .ml-hover-surface {
   max-block-size: min(var(--ml-hover-max-height, 26rem), calc(var(--ml-hover-space-y, 90dvh) - var(--ml-hover-gap)));
   padding: 1.02rem 1.1rem; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin;
   border: var(--ml-border-width) solid var(--ml-hover-line); border-radius: var(--ml-radius-lg); background-color: var(--ml-hover-paper, var(--ml-color-surface));
-  background-color: color-mix(in srgb, var(--ml-hover-paper, var(--ml-color-surface)) var(--ml-hover-alpha), transparent);
+  background-color: color-mix(in srgb, var(--ml-hover-paper, var(--ml-color-surface-raised)) max(var(--ml-hover-alpha), var(--ml-material-content-opacity)), transparent);
   background-image: var(--ml-skin); box-shadow: var(--ml-hover-shadow, var(--ml-shadow-overlay));
   -webkit-backdrop-filter: var(--ml-filter); backdrop-filter: var(--ml-filter);
 }
@@ -96,7 +96,7 @@ ml-hover-card .ml-hover-mark {
   display: inline-grid; place-items: center; flex: none; width: 2.6rem; height: 2.6rem; border-radius: var(--ml-radius-md);
   color: var(--ml-hover-link); background: var(--ml-hover-tint); font-size: 1.32rem;
 }
-ml-hover-card .ml-hover-head h3 { margin: 0; color: var(--ml-ink); font-size: var(--ml-size-heading); font-weight: var(--ml-weight-semibold); line-height: var(--ml-leading-compact); letter-spacing: var(--ml-tracking-tight); }
+ml-hover-card .ml-hover-head h3 { margin: 0; color: var(--ml-ink); font-size: var(--ml-size-heading); font-weight: var(--ml-weight-semibold); line-height: var(--ml-leading-compact); letter-spacing: var(--ml-tracking-title); }
 ml-hover-card .ml-hover-mark-solid { color: var(--ml-on-accent); background: var(--ml-blue); }
 ml-hover-card .ml-hover-head p { margin: .12rem 0 0; color: var(--ml-muted); font-size: var(--ml-size-caption); line-height: var(--ml-leading-compact); }
 ml-hover-card .ml-hover-text { margin: 0; color: var(--ml-ink); font-size: var(--ml-size-body); line-height: var(--ml-leading-body); }

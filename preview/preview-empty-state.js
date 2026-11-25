@@ -127,6 +127,6 @@
       }
       return snippet.join('\n');
     }
-    return { select, readout, code };
+    return { select, show: readout, code };
   };
 })();

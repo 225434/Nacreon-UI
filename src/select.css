@@ -1,34 +1,22 @@
 :root {
   /* Icon masks from icons.svg */
 }
-:root, [data-ml-theme="light"] {
-  --ml-select-line: #bac3cd;
-  --ml-select-search: #f0f3f7;
-  --ml-select-active: #e6f2ff;
-  --ml-select-choice: var(--ml-accent-ink);
-}
-[data-ml-theme="warm"] {
-  --ml-select-line: #ccc1af;
-  --ml-select-search: #f4efe6;
-  --ml-select-active: #e3eff9;
-  --ml-select-choice: var(--ml-accent-ink);
-}
-[data-ml-theme="dark"] {
-  --ml-select-line: #626a75;
-  --ml-select-search: #22262b;
-  --ml-select-active: #243f58;
+:root, [data-ml-theme="light"], [data-ml-theme="warm"], [data-ml-theme="dark"] {
+  --ml-select-line: var(--ml-color-control-border);
+  --ml-select-search: var(--ml-color-surface-inset);
+  --ml-select-active: var(--ml-color-selection);
   --ml-select-choice: var(--ml-accent-ink);
 }
 :root, [data-ml-material="high"] {
-  --ml-select-alpha: 79%;
-  --ml-select-menu-alpha: 88%;
+  --ml-select-alpha: var(--ml-control-fill, 79%);
+  --ml-select-menu-alpha: var(--ml-material-content-opacity);
   --ml-select-coat: initial;
   --ml-select-shadow: inset 0 1px 1px #ffffff8c, inset 0 -1px 2px #25374824,
     0 2px 4px -2px #172d453e, 0 8px 18px -11px #142b465c;
   --ml-select-menu-shadow: inset 0 1px 1px #ffffff7a, 0 3px 8px -4px #15263b3d, 0 14px 30px -10px #162b445e;
 }
 [data-ml-material="medium"] {
-  --ml-select-alpha: 89%; --ml-select-menu-alpha: 94%; --ml-select-coat: none;
+  --ml-select-alpha: var(--ml-control-fill, 89%); --ml-select-menu-alpha: var(--ml-material-content-opacity); --ml-select-coat: none;
   --ml-select-shadow: initial;
   --ml-select-menu-shadow: initial;
 }
@@ -52,6 +40,7 @@ ml-select, ml-select > .ml-select-popup {
 }
 ml-select {
   position: relative; display: inline-grid; vertical-align: middle;
+  border-width: 0;
   inline-size: min(100%, var(--ml-select-width, 15rem)); max-inline-size: 100%; min-inline-size: 0;
   border-radius: var(--ml-select-radius, var(--ml-radius-md)); box-shadow: var(--ml-select-shadow, var(--ml-shadow-raised)); font-size: var(--ml-select-font, var(--ml-size-body));
   transition: var(--ml-static-transition, border-color var(--ml-tone) ease);
@@ -59,9 +48,9 @@ ml-select {
 ml-select[hidden] { display: none; }
 ml-select > select {
   position: relative; box-sizing: border-box; appearance: none; -webkit-appearance: none;
-  inline-size: 100%; min-inline-size: 0; min-block-size: max(44px, var(--ml-select-height, 2.75rem));
-  margin: 0; padding: .55em 2.8em .55em .9em; padding-inline: .9em 2.8em;
-  border: 0; border-radius: inherit; background: transparent; color: inherit;
+  inline-size: 100%; min-inline-size: 0; min-block-size: max(44px, var(--ml-select-height, var(--ml-control-height)));
+  margin: 0; padding: .55em var(--ml-control-padding-inline); padding-inline-end: 2.8em;
+  border: var(--ml-border-width) solid; border-color: inherit; border-radius: inherit; background: transparent; color: inherit;
   font: inherit; font-weight: var(--ml-weight-medium); line-height: var(--ml-leading-compact); text-align: start; text-overflow: ellipsis;
   cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
 }
@@ -90,7 +79,7 @@ ml-select > .ml-select-popup {
   position: fixed; inset: auto; margin: 0; max-inline-size: none;
   max-block-size: min(var(--ml-select-max-height, 19rem), var(--ml-select-room, 90dvh));
   padding: .31rem; overflow: hidden; border-radius: var(--ml-radius-lg); box-shadow: var(--ml-select-menu-shadow, var(--ml-shadow-overlay));
-  background-color: color-mix(in srgb, var(--ml-select-paper, var(--ml-color-surface)) var(--ml-select-menu-alpha), transparent);
+  background-color: color-mix(in srgb, var(--ml-select-paper, var(--ml-color-surface-raised)) var(--ml-select-menu-alpha), transparent);
   font-family: inherit; font-size: var(--ml-select-option-font, var(--ml-size-label)); line-height: var(--ml-leading-compact); text-align: start;
   transform-origin: center top;
   opacity: 0; transform: translateY(calc(-1 * var(--ml-select-shift))) scale(var(--ml-select-scale));
@@ -146,7 +135,7 @@ ml-select .ml-optical::after { box-sizing: border-box; }
   color: var(--ml-ink); border: var(--ml-border-width) solid var(--ml-select-line); background: var(--ml-select-search);
   font: inherit; font-size: var(--ml-size-body); line-height: var(--ml-leading-compact);
 }
-.ml-select-search input:focus { border-color: var(--ml-blue); outline: 1px solid var(--ml-blue); outline-offset: -1px; }
+.ml-select-search input:focus { outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: calc(-1 * var(--ml-focus-width)); }
 .ml-select-search[hidden], .ml-select-empty[hidden] { display: none; }
 @media (pointer: coarse) {
   .ml-select-list [role="option"], .ml-select-search input { min-block-size: 44px; }

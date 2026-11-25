@@ -7,6 +7,12 @@
   const fileKey = file => JSON.stringify([file.name, file.size, file.type, file.lastModified]);
   let nextId = 0;
 
+  function uniqueId(tree) {
+    let id;
+    do { id = 'ml-file-' + ++nextId; } while (['', '-hint', '-message'].some(suffix => tree.getElementById(id + suffix)));
+    return id;
+  }
+
   function limit(value) {
     const number = Number(value);
     return Number.isSafeInteger(number) && number > 0 ? number : Infinity;
@@ -40,12 +46,16 @@
     #dragDepth = 0;
     #changing = false;
     #changes = new MutationObserver(records => {
-      if (records.some(({ target, type }) => target === this.#native || (target === this && type === 'attributes'))) this.refresh();
+      if (records.some(({ target, type }) => target === this ||
+        (type === 'attributes' && target.parentElement === this && target.localName === 'input'))) this.refresh();
     });
 
     get input() { return this.querySelector(':scope > input[type="file"]'); }
-    get files() { return this.#view ? this.#items.map(({ file }) => file) : Array.from(this.input?.files ?? []); }
-    get entries() { return this.#items.map(({ file, state, progress }) => ({ file, state, progress })); }
+    get files() { return Array.from(this.input?.files ?? []); }
+    get entries() {
+      this.#bindInput();
+      return this.#items.map(({ file, state, progress }) => ({ file, state, progress }));
+    }
     get upload() { return this.#upload; }
     set upload(handler) {
       this.#upload = typeof handler === 'function' ? handler : undefined;
@@ -56,21 +66,11 @@
     }
 
     connectedCallback() {
-      const input = this.input;
       for (const copy of this.querySelectorAll(':scope > .ml-file-view')) if (copy !== this.#view) copy.remove();
-      if (!input || typeof this.ownerDocument.defaultView.DataTransfer !== 'function') {
+      if (typeof this.ownerDocument.defaultView.DataTransfer !== 'function') {
         this.removeAttribute('data-ml-file-ready');
         return;
       }
-      if (input !== this.#native) {
-        for (const item of this.#items) this.#abort(item);
-        this.#items = [];
-        this.#native = input;
-        this.#view?.remove();
-        this.#mount();
-        this.#add([...input.files], true, false);
-      }
-      this.toggleAttribute('data-ml-file-ready', true);
       this.#events = new AbortController();
       const signal = this.#events.signal;
       this.addEventListener('input', this.#choose, { capture: true, signal });
@@ -78,15 +78,15 @@
       this.addEventListener('click', this.#click, { signal });
       this.addEventListener('invalid', this.#onInvalid, { capture: true, signal });
       this.getRootNode().addEventListener('reset', this.#reset, { capture: true, signal });
-      const drop = this.#view.querySelector('ml-file-drop');
-      for (const name of ['dragenter', 'dragover', 'dragleave', 'drop', 'dragend']) drop.addEventListener(name, this.#drag, { signal });
-      this.#changes.observe(this, { attributes: true, subtree: true,
-        attributeFilter: ['disabled', 'multiple', 'accept', 'required', 'max-files', 'max-size', 'label', 'upload-label', 'data-ml-form-managed'] });
+      for (const name of ['dragenter', 'dragover', 'dragleave', 'drop', 'dragend']) this.addEventListener(name, this.#drag, { signal });
+      this.#changes.observe(this, { childList: true, attributes: true, subtree: true,
+        attributeFilter: ['type', 'id', 'disabled', 'multiple', 'accept', 'required', 'max-files', 'max-size', 'label', 'upload-label', 'data-ml-form-managed'] });
       this.refresh();
     }
 
     disconnectedCallback() {
       this.#events?.abort();
+      this.#events = null;
       this.#changes.disconnect();
       this.#endDrag();
       queueMicrotask(() => {
@@ -94,10 +94,40 @@
       });
     }
 
+    #bindInput() {
+      if (!this.#events) return;
+      const input = this.input;
+      if (input === this.#native) return;
+      const previous = this.#items;
+      if (this.#native) {
+        const descriptions = (this.#native.getAttribute('aria-describedby') || '').split(/\s+/)
+          .filter(id => id && id !== this.#hintId && id !== this.#messageId);
+        if (descriptions.length) this.#native.setAttribute('aria-describedby', descriptions.join(' '));
+        else this.#native.removeAttribute('aria-describedby');
+      }
+      this.#native = input;
+      this.#items = [];
+      this.#reasons = [];
+      this.#invalid = false;
+      this.#endDrag();
+      this.removeAttribute('data-ml-file-invalid');
+      this.#view?.remove();
+      this.#view = null;
+      this.toggleAttribute('data-ml-file-ready', !!input);
+      if (input) {
+        this.#mount();
+        this.#add([...input.files], { replace: true, announce: false });
+      }
+      const adopted = this.#items;
+      for (const item of previous) this.#abort(item);
+      if (input === this.input && adopted === this.#items && (previous.length || adopted.length)) {
+        this.#emit('ml-files-change', { files: this.files });
+      }
+    }
+
     #mount() {
       const doc = this.ownerDocument, tree = this.getRootNode();
-      let id;
-      do { id = 'ml-file-' + ++nextId; } while (['', '-hint', '-message'].some(suffix => tree.getElementById(id + suffix)));
+      const id = uniqueId(tree);
       const input = this.#native;
       if (!input.id || tree.querySelectorAll('#' + CSS.escape(input.id)).length !== 1) input.id = id;
       this.#hintId = id + '-hint';
@@ -130,10 +160,14 @@
         rules: this.#native.accept.toLowerCase().split(',').map(value => value.trim()).filter(Boolean),
       };
     }
-    #available() { return this.isConnected && this.#native === this.input && !this.#native.matches(':disabled') && !this.closest('[inert]'); }
+    #available() { return this.isConnected && this.#native && this.#native === this.input && !this.#native.matches(':disabled') && !this.closest('[inert]'); }
 
     refresh() {
-      if (!this.#view || this.#native !== this.input) return;
+      this.#bindInput();
+      if (!this.#view || !this.#events) return;
+      if (!this.#native.id) this.#native.id = uniqueId(this.getRootNode());
+      const label = this.#view.querySelector('label');
+      if (label.htmlFor !== this.#native.id) label.htmlFor = this.#native.id;
       const { count, size, rules } = this.#limits();
       const hint = [];
       if (rules.length) hint.push(rules.join('、'));
@@ -147,7 +181,7 @@
       const incoming = [...this.#native.files];
       const same = incoming.length === this.#items.length && incoming.every((file, index) => file === this.#items[index].file);
       if (!same || this.#items.length > count || this.#items.some(item => item.file.size > size || !allowed(item.file, rules))) {
-        this.#add(incoming, true, false);
+        this.#add(incoming, { replace: true });
       }
       for (const item of this.#items) this.#renderRow(item);
       this.#renderMessage();
@@ -155,11 +189,12 @@
     }
 
     addFiles(files) {
+      this.#bindInput();
       if (!this.#view || !this.#available()) return [];
-      return this.#add(Array.from(files ?? []), false, true);
+      return this.#add(Array.from(files ?? []), { nativeEvents: true });
     }
 
-    #add(files, replace, notify) {
+    #add(files, { replace = false, nativeEvents = false, announce = true }) {
       const { count, size, rules } = this.#limits();
       const next = replace || !this.#native.multiple ? [] : [...this.#items];
       const previous = new Map(this.#items.map(item => [fileKey(item.file), item]));
@@ -178,11 +213,11 @@
         accepted.push(file);
       }
       const keep = !replace && !this.#native.multiple && !next.length ? this.#items : next;
-      this.#apply(keep, notify);
+      this.#apply(keep, { nativeEvents, announce });
       return accepted;
     }
 
-    #apply(next, notify) {
+    #apply(next, { nativeEvents, announce = true }) {
       const unchanged = next.length === this.#items.length && next.every((item, index) => item === this.#items[index]);
       const transfer = new this.ownerDocument.defaultView.DataTransfer();
       for (const item of next) transfer.items.add(item.file);
@@ -194,41 +229,47 @@
       this.#renderMessage();
       this.#renderFooter();
       if (unchanged) return;
-      if (notify) {
+      if (nativeEvents) {
         this.#changing = true;
         try {
           this.#native.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
           this.#native.dispatchEvent(new Event('change', { bubbles: true }));
         } finally { this.#changing = false; }
       }
-      this.#emit('ml-files-change', { files: this.files });
+      if (announce) this.#emit('ml-files-change', { files: this.files });
     }
 
     #choose = event => {
-      if (event.target !== this.#native || this.#changing) return;
+      if (event.target !== this.input || this.#changing) return;
+      this.#bindInput();
+      if (!this.#native) return;
       const selected = [...this.#native.files];
       if (selected.length === this.#items.length && selected.every((file, index) => file === this.#items[index].file)) return;
-      this.#add(selected, selected.length === 0, false);
+      this.#add(selected, { replace: selected.length === 0 });
     };
     #onInvalid = event => {
-      if (event.target !== this.#native || event.target.hasAttribute('data-ml-form-managed')) return;
+      if (event.target !== this.input || event.target.hasAttribute('data-ml-form-managed')) return;
+      this.#bindInput();
       event.preventDefault();
       this.#invalid = true;
       this.#renderMessage();
       this.#native.focus();
     };
     #reset = event => {
-      if (event.target !== this.#native.form) return;
-      queueMicrotask(() => { if (!event.defaultPrevented) this.clear(false); });
+      const input = this.input;
+      if (event.target !== input?.form) return;
+      queueMicrotask(() => { if (!event.defaultPrevented && input === this.input) this.clear(false); });
     };
     clear(notify = true) {
+      this.#bindInput();
       if (!this.#view) return;
       this.#reasons = [];
       this.#invalid = false;
-      this.#apply([], notify);
+      this.#apply([], { nativeEvents: notify });
     }
 
     #drag = event => {
+      if (event.target.closest?.('ml-file-drop') !== this.#view?.firstElementChild || !this.#view) return;
       if (event.type === 'dragend') { this.#endDrag(); return; }
       if (!event.dataTransfer?.types.includes('Files')) return;
       event.preventDefault();
@@ -261,35 +302,37 @@
       if (!item) return;
       if (action.dataset.action === 'remove') {
         this.#reasons = [];
-        this.#apply(this.#items.filter(entry => entry !== item), true);
+        this.#apply(this.#items.filter(entry => entry !== item), { nativeEvents: true });
         (this.#items[Math.min(index, this.#items.length - 1)]?.row.querySelector('button:not([hidden]):enabled') ?? this.#native).focus();
       } else if (action.dataset.action === 'cancel') this.#cancel(item);
       else if (action.dataset.action === 'retry') this.#run(item);
     };
 
     start() {
+      this.#bindInput();
       return Promise.all(this.#items.filter(item => item.state === 'ready').map(item => this.#run(item)));
     }
     async #run(item) {
       if (!this.#available() || !this.#upload || item.run) return;
-      const upload = this.#upload;
+      const upload = this.#upload, input = this.#native;
       const run = new AbortController();
+      const current = () => item.run === run && this.isConnected && this.input === input;
       item.run = run;
       item.progress = null;
       this.#setState(item, 'uploading');
-      if (item.run !== run) return;
+      if (!current()) return;
       try {
         await upload.call(this, item.file, { signal: run.signal, onProgress: (loaded, total = item.file.size) => {
-          if (item.run !== run || !Number.isFinite(loaded) || !Number.isFinite(total) || total <= 0) return;
+          if (!current() || !Number.isFinite(loaded) || !Number.isFinite(total) || total <= 0) return;
           item.progress = Math.min(100, Math.max(0, 100 * loaded / total));
           this.#renderRow(item);
         } });
-        if (item.run !== run) return;
+        if (!current()) return;
         item.run = null;
         item.progress = 100;
         this.#setState(item, 'complete');
       } catch {
-        if (item.run !== run) return;
+        if (!current()) return;
         item.run = null;
         this.#setState(item, 'error');
       }

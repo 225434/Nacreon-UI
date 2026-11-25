@@ -1,3 +1,4 @@
+import { launchBrowser } from './helpers/browser.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, rmdir, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,11 +7,74 @@ import { pathToFileURL } from 'node:url';
 import { chromium, firefox } from 'playwright';
 
 const engine = process.argv[2] === 'firefox' ? firefox : chromium;
-const browser = await engine.launch({ executablePath: engine.executablePath() });
+const browser = await launchBrowser(engine);
 const root = new URL('../', import.meta.url);
 const temp = await mkdtemp(join(tmpdir(), 'ml-media-viewer-'));
 const file = join(temp, 'example.html');
 const errors = [];
+
+async function checkDarkGlass(surface) {
+  const png = (await surface.screenshot({ animations: 'disabled' })).toString('base64');
+  const result = await surface.evaluate(async (el, png) => {
+    const image = new Image();
+    image.src = 'data:image/png;base64,' + png;
+    await image.decode();
+    const w = image.width, h = image.height, scale = w / el.offsetWidth;
+    const ctx = new OffscreenCanvas(w, h).getContext('2d');
+    ctx.drawImage(image, 0, 0);
+    const rgba = ctx.getImageData(0, 0, w, h).data;
+    const pixels = new Uint32Array(rgba.buffer);
+    const radius = parseFloat(getComputedStyle(el).borderTopRightRadius);
+    function diagonalPeak(data, width, sx, sy, end, channels) {
+      let peak = 0;
+      for (let y = Math.round((radius + 2) * sy); y < Math.round((radius + end) * sy); y++) {
+        const center = width - Math.round(y * sx / sy), reach = Math.round(6 * sx);
+        for (let x = center - reach; x < center + reach - 1; x++) {
+          const i = 4 * (y * width + x);
+          for (let c = 0; c < channels; c++) peak = Math.max(peak, Math.abs(data[i + c] - data[i + c + 4]));
+        }
+      }
+      return peak;
+    }
+    // Cross the visible corner above the expand icon and the matching R/G ray displacement in the native filter.
+    const layer = el.querySelector('.ml-optical'), map = new Image();
+    map.src = layer.querySelector('feImage').getAttribute('href');
+    await map.decode();
+    const mapCtx = new OffscreenCanvas(map.width, map.height).getContext('2d');
+    mapCtx.drawImage(map, 0, 0);
+    const mapData = mapCtx.getImageData(0, 0, map.width, map.height).data;
+    const mapStep = diagonalPeak(mapData, map.width, map.width / layer.clientWidth, map.height / layer.clientHeight, 16, 2);
+    const peakStep = diagonalPeak(rgba, w, scale, scale, 9.5, 3);
+    let highlight = 0;
+    for (let y = Math.round((radius + 2) * scale); y < Math.round((radius + 9.5) * scale); y++) {
+      const center = w - y;
+      const at = x => 4 * (y * w + x);
+      highlight = Math.max(highlight, rgba[at(center - Math.round(24 * scale)) + 1] - rgba[at(center + Math.round(12 * scale)) + 1]);
+    }
+    // Count blank header pixels belonging to an uninterrupted run of 16 identical colours.
+    const left = Math.floor(w * .20), right = Math.floor(w * .79);
+    const top = Math.floor(h * .06), bottom = Math.floor(h * .135);
+    let longRunPixels = 0;
+    for (let y = top; y < bottom; y++) {
+      let run = 0;
+      for (let x = left; x < right; x++) {
+        const i = y * w + x;
+        run = x > left && pixels[i] === pixels[i - 1] ? run + 1 : 1;
+        if (run === 16) longRunPixels += 16;
+        if (run > 16) longRunPixels++;
+      }
+    }
+    return { renderer: layer.dataset.mlRenderer, mapStep, peakStep, highlight,
+      plateaus: longRunPixels / ((bottom - top) * (right - left)) };
+  }, png);
+  assert(result.peakStep <= 4, 'visible diagonal seam: ' + JSON.stringify(result));
+  assert(result.mapStep <= 4, 'discontinuous native refraction: ' + JSON.stringify(result));
+  if (result.renderer === 'webgl') {
+    assert(result.highlight >= 8, 'the corner should retain its highlight');
+    assert(result.plateaus < .14, 'long colour terraces in the dark header: ' + JSON.stringify(result));
+  }
+}
+
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   context.on('page', page => {
@@ -42,6 +106,13 @@ try {
   });
 
   await imageReady();
+  await set('theme', 'dark');
+  await set('material', 'high');
+  await set('light-source', 'fixed');
+  const surface = viewer.locator(':scope > ml-media-surface');
+  await surface.locator('.ml-optical:is([data-ml-renderer="webgl"], [data-ml-renderer="svg"])').waitFor({ state: 'attached' });
+  await checkDarkGlass(surface);
+  await set('light-source', 'pointer');
   await set('motion', 'base');
   assert.equal(await page.locator('#catalog-current').textContent(), '图片与视频预览器');
   assert.equal(await value(), 'lake');
@@ -123,11 +194,13 @@ try {
   await viewer.evaluate(el => el.select('slideshow'));
   await videoReady();
   await clip.evaluate(el => { el.muted = true; return el.play(); });
+  const playingVideo = await clip.elementHandle();
   await page.evaluate(() => { location.hash = 'tree'; });
   await specimen.waitFor({ state: 'hidden' });
-  assert.equal(await clip.evaluate(el => el.paused), true);
+  assert.deepEqual(await playingVideo.evaluate(el => [el.paused, el.isConnected]), [true, false]);
   await page.evaluate(() => { location.hash = 'media-viewer'; });
   await specimen.waitFor();
+  assert(await playingVideo.evaluate(el => el.isConnected && el.paused));
 
   await page.locator('#open-code').click();
   const snippet = await page.locator('#code-sample').textContent();

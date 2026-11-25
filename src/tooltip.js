@@ -55,6 +55,7 @@
     get open() { return Boolean(this.#session); }
 
     connectedCallback() {
+      globalThis[Symbol.for('material-lib.motion-frames.v1')].watch(this.getRootNode());
       const doc = this.ownerDocument;
       // cloneNode can copy a live specimen, including its generated description.
       for (const copy of this.querySelectorAll(':scope > .ml-tooltip-panel')) {
@@ -288,15 +289,16 @@
 
     #paint = (pointer, now) => {
       const style = getComputedStyle(this.#surface);
-      const follows = style.getPropertyValue('--ml-follow').trim() === '1';
-      const tier = GlassSurface.lightingTier(style, follows);
+      const light = GlassSurface.lighting(style, this.#scene.media.matches);
+      const follows = light.mode === 'pointer';
+      const tier = GlassSurface.lightingTier(style, light);
       if (!tier) {
         this.#glass?.remove();
         this.#glass = null;
         return;
       }
-      this.#glass = GlassSurface.forTier(this.#glass, this.#surface, true, tier);
-      this.#glass.paint(follows ? pointer : null, null, now);
+      this.#glass = GlassSurface.forTier(this.#glass, this.#surface, true, tier, light);
+      this.#glass.paint(pointer, null, now);
       if (follows && this.#panel.getAnimations().some(animation => animation.playState === 'running')) this.#scene.wake();
       return follows;
     };

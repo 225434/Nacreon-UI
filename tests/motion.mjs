@@ -1,7 +1,8 @@
+import { launchBrowser } from './helpers/browser.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
-const browser = await chromium.launch({ executablePath: chromium.executablePath() });
+const browser = await launchBrowser(chromium);
 try {
   const page = await browser.newPage({ viewport: { width: 1200, height: 900 }, reducedMotion: 'no-preference' });
   await page.goto(new URL('../index.html#motion', import.meta.url).href);

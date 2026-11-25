@@ -65,6 +65,7 @@
     close(value = '') { this.dialog?.close(String(value)); }
 
     connectedCallback() {
+      globalThis[Symbol.for('material-lib.motion-frames.v1')].watch(this.getRootNode());
       this.#scene = GlassScene.forDocument(this.ownerDocument);
       this.#scene.painters.add(this.#paint);
       this.#bind();
@@ -111,7 +112,8 @@
       if (!dialog) return;
       const style = getComputedStyle(dialog);
       const dynamic = style.getPropertyValue('--ml-follow').trim() === '1';
-      const tier = GlassSurface.lightingTier(style, dynamic);
+      const light = GlassSurface.lighting(style, this.#scene.media.matches);
+      const tier = GlassSurface.lightingTier(style, light);
       if (!tier || !dialog.getClientRects().length) {
         if (this.#glass) this.#clear();
         return;
@@ -121,11 +123,11 @@
         if (this.#glass && (tier !== 'high' || this.#glass.tier !== tier)) this.#clear();
         return;
       }
-      this.#glass = GlassSurface.forTier(this.#glass, dialog, false, tier);
+      this.#glass = GlassSurface.forTier(this.#glass, dialog, false, tier, light);
       if (tier !== 'high' || !dynamic || (this.#pulse && now - this.#pulse.start >= waveDuration)) this.#pulse = null;
-      this.#glass.paint(dynamic ? pointer : null, this.#pulse, now);
-      if (dynamic && dialog.getAnimations().some(a => a.playState === 'running')) this.#scene.wake();
-      return dynamic;
+      this.#glass.paint(pointer, this.#pulse, now);
+      if (light.mode === 'pointer' && dialog.getAnimations().some(a => a.playState === 'running')) this.#scene.wake();
+      return light.mode === 'pointer';
     };
 
     handleEvent(event) {

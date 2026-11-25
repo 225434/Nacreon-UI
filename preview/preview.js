@@ -23,10 +23,10 @@
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const forcedColors = matchMedia('(forced-colors: active)');
   const iconReplay = document.querySelector('#replay-icon-motion');
-  const defaults = { theme: 'light', material: 'high', motion: 'high' };
-  const motionPreview = window.createMotionPreview(value => applyAppearance('motion', value, true));
+  const defaults = { theme: 'light', material: 'high', motion: 'high', 'light-source': 'pointer' };
   const materialLevels = customElements.get('ml-material').levels;
   const materialHero = document.querySelector('#material-specimen');
+  const materialSurfaces = document.querySelector('#material-surfaces');
   const materialComparison = document.querySelector('#materials-examples');
   const materialHistory = document.querySelector('#material-history');
   const materialSamples = [];
@@ -177,12 +177,15 @@
       ['cyan', '青蓝', '适合与深色背景搭配的图形。'], ['brown', '棕色', '用于区域、材质等类别标记。'],
     ],
     semantic: [
-      ['action', '交互', '主要按钮、选中项和焦点轮廓。'], ['info', '信息', '提示文字、进行中状态和说明图标。'],
+      ['action', '交互', '主要按钮和交互图形的底色。'], ['on-action', '强调面文字', '主要按钮上的文字和图标。'],
+      ['focus', '键盘焦点', '标记当前可操作控件的焦点环。'], ['info', '信息', '提示文字、进行中状态和说明图标。'],
       ['success', '成功', '已完成、已保存和正常结果。'], ['warning', '警告', '待复核或需要注意的状态。'],
       ['danger', '危险', '异常、错误和高风险操作说明。'], ['neutral', '中性状态', '草稿、未开始和常规状态。'],
     ],
     interface: [
-      ['background', '页面背景', '整页的底色。'], ['surface', '面板', '设置区、卡片和浮层的底色。'],
+      ['background', '页面背景', '整页的底色。'], ['surface', '面板', '设置区、卡片和表单的底色。'],
+      ['surface-inset', '内嵌表面', '只读字段和内容分组。'], ['surface-raised', '浮层表面', '菜单、对话框和抽屉。'],
+      ['control-border', '控件边界', '输入框和可选择字段的轮廓。'], ['selection', '选中底色', '表格行、列表选项和导航的当前项。'],
       ['fill', '填充', '控件底槽和分组容器。'], ['separator', '分隔线', '区分相邻内容的细线。'],
       ['text', '主要文字', '标题和正文。'], ['text-secondary', '次要文字', '说明、摘要和字段名称。'],
       ['text-tertiary', '辅助文字', '时间、单位和其他补充信息。'],
@@ -190,7 +193,7 @@
   };
   const palettePicker = document.querySelector('#palette-groups');
   const foundations = window.createFoundationPreview({
-    appearance, paletteGroups, applyTheme: value => applyAppearance('theme', value, true), copyContents, stylesheet, scriptTag,
+    appearance, paletteGroups, applyTheme: value => applyAppearance('theme', value, true), copyContents, stylesheet, scriptTag, lightAttributes,
   });
   const paletteSpecimen = document.querySelector('#palette-specimen');
   const paletteStrip = document.querySelector('#palette-strip');
@@ -210,18 +213,17 @@
   const valueDemos = new Map();
   const recordTypes = ['data-table', 'pagination'];
   const navigation = window.MaterialNavigationPreview;
-  const emptyState = window.createEmptyStatePreview();
-  const loadingPreview = window.createLoadingPreview();
-  const tabsPreview = window.createTabsPreview(inlineSampleIcons);
-  const breadcrumbPreview = window.createBreadcrumbPreview();
-  const stepsPreview = window.createStepsPreview(bundleTags);
-  const treePreview = window.createTreePreview();
-  const mediaViewerPreview = window.createMediaViewerPreview();
-  const tooltipPreview = window.createTooltipPreview();
-  const accordionPreview = window.createAccordionPreview(inlineSampleIcons);
-  const multiSelectPreview = window.createMultiSelectPreview();
-  const fileUploadPreview = window.createFileUploadPreview();
-  const formPreview = window.createFormPreview(bundleTags);
+  const previews = window.createPreviewPages({
+    motion: () => window.createMotionPreview(value => applyAppearance('motion', value, true)),
+    'empty-state': window.createEmptyStatePreview, loading: window.createLoadingPreview,
+    'navigation-panel': window.createCatalogPreview,
+    tabs: () => window.createTabsPreview(inlineSampleIcons), breadcrumb: window.createBreadcrumbPreview,
+    steps: () => window.createStepsPreview(bundleTags), tree: window.createTreePreview,
+    'media-viewer': window.createMediaViewerPreview, tooltip: window.createTooltipPreview,
+    accordion: () => window.createAccordionPreview(inlineSampleIcons), 'multi-select': window.createMultiSelectPreview,
+    'file-upload': window.createFileUploadPreview, form: () => window.createFormPreview(bundleTags),
+  });
+  let currentPreview;
   const recordSource = document.querySelector('#record-table-source').content.firstElementChild;
   const recordTable = recordSource.cloneNode(true);
   document.querySelector('#data-table-specimen').append(recordTable);
@@ -229,174 +231,30 @@
   const recordStates = document.querySelector('#records-state');
   const emptyRecords = { 'data-table': false, pagination: false };
   const catalog = document.querySelector('#gallery-catalog');
-  const catalogTrigger = document.querySelector('#open-catalog');
-  const catalogNav = catalog.querySelector('.component-nav');
-  const catalogQuery = catalog.querySelector('#catalog-query');
-  const catalogClear = catalog.querySelector('#catalog-clear');
-  const catalogScroll = catalog.querySelector('.catalog-scroll');
-
-  function searchKey(text) {
-    return text.normalize('NFKC').toLowerCase().replace(/[\s/_-]+/g, '');
-  }
-  const categoryBar = catalog.querySelector('.catalog-categories');
-  const catalogEntries = new Map();
-  const categories = new Map();
-  let activeCategory;
+  const directory = catalog.querySelector('ml-navigation-panel');
+  const catalogEntries = new Map(directory.entries.map(({ link, title }) => [
+    link.hash.slice(1), { link, title, en: link.dataset.en, lead: link.dataset.lead },
+  ]));
   let chosenRoute;
-
-  for (const group of catalogNav.querySelectorAll('section')) {
-    const heading = group.querySelector('h3');
-    const category = heading.textContent.trim();
-    const links = [...group.querySelectorAll('a[href]')];
-    if (!links.length) {
-      group.hidden = true;
-      continue;
-    }
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.setAttribute('aria-controls', catalogNav.id);
-    const count = document.createElement('small');
-    count.textContent = links.length;
-    count.setAttribute('aria-hidden', 'true');
-    button.append(heading.querySelector('svg').cloneNode(true), category, count);
-    categoryBar.append(button);
-    const entries = [];
-    categories.set(group, { button, entries });
-    button.addEventListener('click', () => {
-      activeCategory = group;
-      catalogQuery.value = '';
-      filterCatalog();
-    });
-
-    for (const link of links) {
-      const id = link.hash.slice(1);
-      const title = link.textContent.trim();
-      const { en, lead, keywords = '' } = link.dataset;
-      const terms = [title, en, id, category, keywords, lead].map(searchKey);
-      const entry = { link, group, title, en, lead, terms };
-      catalogEntries.set(id, entry);
-      entries.push(entry);
-      const english = document.createElement('span');
-      english.className = 'catalog-en';
-      english.lang = 'en';
-      english.setAttribute('aria-hidden', 'true');
-      english.textContent = en;
-      link.append(english);
-    }
-  }
-
-  function searchRank(fields, words) {
-    const names = fields.slice(0, 3);
-    const matches = values => words.every(word => values.some(value => value.includes(word)));
-    if (names.includes(words.join(''))) return 0;
-    if (matches(names)) return 1;
-    if (matches(fields.slice(0, 5))) return 2;
-    return matches(fields) ? 3 : Infinity;
-  }
-  function orderChildren(parent, children) {
-    children.forEach((child, index) => {
-      if (parent.children[index] !== child) parent.insertBefore(child, parent.children[index] ?? null);
-    });
-  }
-  function filterCatalog() {
-    const terms = catalogQuery.value.trim().split(/\s+/).map(searchKey).filter(Boolean);
-    let count = 0;
-    const groups = [];
-    for (const [group, { button, entries }] of categories) {
-      const ranked = entries.map(({ link, terms: fields }) => {
-        const rank = terms.length ? searchRank(fields, terms) : group === activeCategory ? 0 : Infinity;
-        link.hidden = !Number.isFinite(rank);
-        if (!link.hidden) count++;
-        return { link, rank };
-      }).sort((a, b) => a.rank - b.rank);
-      orderChildren(group.querySelector('.catalog-links'), ranked.map(item => item.link));
-      group.hidden = ranked[0].link.hidden;
-      groups.push({ group, rank: ranked[0].rank });
-      button.setAttribute('aria-pressed', String(!terms.length && activeCategory === group));
-    }
-    if (terms.length) groups.sort((a, b) => a.rank - b.rank);
-    orderChildren(catalogNav, groups.map(item => item.group));
-    catalogClear.hidden = !catalogQuery.value;
-    catalog.querySelector('.catalog-empty').hidden = count !== 0;
-    catalog.querySelector('#catalog-count').textContent = terms.length ? '找到 ' + count + ' 项' : '共 ' + catalogEntries.size + ' 项';
-    catalogScroll.scrollTop = 0;
-  }
-
-  catalogTrigger.addEventListener('click', event => {
-    const current = catalogEntries.get(component);
-    activeCategory = current.group;
-    catalogQuery.value = '';
-    filterCatalog();
-    catalog.showModal(catalogTrigger);
-    catalogTrigger.setAttribute('aria-expanded', 'true');
-    const nearest = { block: 'nearest', inline: 'nearest' };
-    categories.get(activeCategory).button.scrollIntoView(nearest);
-    current.link.scrollIntoView(nearest);
-    if (event.detail === 0 || !matchMedia('(pointer: coarse)').matches) catalogQuery.focus({ preventScroll: true });
+  document.querySelector('#open-catalog').addEventListener('click', event => {
+    directory.showModal(event.currentTarget, { focusSearch: event.detail === 0 || !matchMedia('(pointer: coarse)').matches });
   });
-  catalog.dialog.addEventListener('close', () => catalogTrigger.setAttribute('aria-expanded', String(catalog.open)));
-  catalogQuery.addEventListener('input', filterCatalog);
-  function clearCatalogSearch() {
-    catalogQuery.value = '';
-    filterCatalog();
-    catalogQuery.focus();
-  }
-  catalogClear.addEventListener('click', clearCatalogSearch);
-  catalog.querySelector('#catalog-reset').addEventListener('click', clearCatalogSearch);
 
   function focusCatalogPage() {
     const title = document.querySelector('#component-title');
     title.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }
-  catalogNav.addEventListener('click', event => {
+  catalog.addEventListener('click', event => {
     const link = event.target.closest('a[href]');
     if (!link || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-    catalog.close();
     if (link.hash === location.hash) {
       event.preventDefault();
       focusCatalogPage();
     } else chosenRoute = link.hash;
   });
-  categoryBar.addEventListener('keydown', event => {
-    if (!['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    const buttons = [...categoryBar.children];
-    const at = buttons.indexOf(event.target);
-    if (at < 0) return;
-    event.preventDefault();
-    const columns = getComputedStyle(categoryBar).gridTemplateColumns;
-    const step = event.key === 'ArrowDown' || event.key === 'ArrowUp' ? columns.split(' ').length : 1;
-    const index = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
-      : (at + (['ArrowRight', 'ArrowDown'].includes(event.key) ? step : -step) + buttons.length) % buttons.length;
-    buttons[index].focus();
-    buttons[index].click();
-  });
-  catalog.addEventListener('keydown', event => {
-    if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
-    const fromSearch = event.target === catalogQuery;
-    if (!fromSearch && !catalogNav.contains(event.target)) return;
-    if (fromSearch && event.key === 'Escape') {
-      event.preventDefault();
-      catalog.close('cancel');
-      return;
-    }
-    const directions = fromSearch ? ['ArrowDown', 'ArrowUp'] : ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
-    if (event.key !== 'Enter' && !directions.includes(event.key)) return;
-    const visible = [...catalogNav.querySelectorAll('a:not([hidden])')];
-    if (fromSearch && event.key === 'Enter' && catalogQuery.value.trim() && visible.length) {
-      event.preventDefault();
-      visible[0].click();
-    } else if (directions.includes(event.key) && visible.length) {
-      event.preventDefault();
-      const index = visible.indexOf(event.target);
-      const columns = fromSearch ? 1 : getComputedStyle(event.target.parentElement).gridTemplateColumns.split(' ').length;
-      const offsets = { ArrowDown: columns, ArrowUp: -columns, ArrowRight: 1, ArrowLeft: -1 };
-      let next = event.key === 'Home' ? 0 : event.key === 'End' ? visible.length - 1 : index + offsets[event.key];
-      if (fromSearch && event.key === 'ArrowUp') next = visible.length - 1;
-      (visible[Math.min(next, visible.length - 1)] ?? catalogQuery).focus();
-    }
-  });
   let component = 'switch';
+  let touchShortcut = matchMedia('(pointer: coarse)').matches;
 
   function stored(name) {
     try { return localStorage.getItem(storePrefix + name); }
@@ -413,16 +271,17 @@
       try { localStorage.setItem(storePrefix + name, input.value); }
       catch { /* Preferences still apply to this preview when storage is unavailable. */ }
     }
-    if (name === 'motion' || name === 'material') updateMotionNote();
+    if (name === 'material') syncDensityField();
+    if (name !== 'theme') updateMotionNote();
     refreshFacts(document);
     if (component === 'hover-card' && location.hash === '#hover-card') showHover();
-    if (component === 'tooltip' && location.hash === '#tooltip' && save) tooltipPreview.reveal();
-    if (component === 'icons' && (name === 'material' || name === 'theme')) showIcons();
+    if (component === 'tooltip' && location.hash === '#tooltip' && save) currentPreview.reveal();
+    if (component === 'icons' && name !== 'motion') showIcons();
     if (component === 'materials') showMaterials();
-    if (component === 'motion' && name === 'theme') motionPreview.show();
+    if (component === 'motion' && name === 'theme') currentPreview.show();
     if (name === 'theme' && Object.hasOwn(foundations.titles, component)) foundations.show();
     if (name === 'theme') {
-      sampleColor.textContent = paletteHex(getComputedStyle(sampleColor), 'blue');
+      sampleColor.textContent = paletteHex(getComputedStyle(sampleColor.isConnected ? sampleColor : root), 'blue');
       sampleColorStatus.textContent = sampleColorPrompt;
       if (component === 'colors') showColors();
     }
@@ -437,123 +296,99 @@
     else note.textContent = notes.material[appearance.material] ?? '';
   }
   function pointerLightEnabled() {
-    return appearance.motion === 'high' && !reduceMotion.matches && !forcedColors.matches;
+    return appearance['light-source'] === 'pointer' && appearance['light-intensity'] > 0 && !reduceMotion.matches && !forcedColors.matches;
   }
+
   function updateMotionNote() {
-    const follows = pointerLightEnabled();
     updateMaterialNote();
-    if (Object.hasOwn(foundations.titles, component)) {
-      document.querySelector('#motion-note').textContent = reduceMotion.matches ? '系统已减少动态' : notes.motion[appearance.motion];
-      foundations.show();
-      return;
-    }
-    if (component === 'motion') {
-      document.querySelector('#motion-note').textContent = reduceMotion.matches ? '系统已减少动态'
-        : follows ? '弹性反馈 · 指针光源' : notes.motion[appearance.motion];
-      motionPreview.show();
-      return;
-    }
+    const mode = appearance['light-source'] || defaults['light-source'];
+    document.querySelector('#light-intensity-field').hidden = mode === 'none';
+    document.querySelector('#light-note').textContent = forcedColors.matches ? '系统对比色'
+      : mode === 'none' || appearance['light-intensity'] === 0 ? '已关闭'
+      : mode === 'pointer' && reduceMotion.matches ? '减少动态 · 固定照明' : '';
+    const high = { switch: '液面回弹', button: '弹性按压', dialog: '弹性浮入', select: '弹性展开', input: '聚焦回弹',
+      choice: '选中回弹', list: '展开回弹', slider: '按住抬起，快拖拉伸', stepper: '按压回弹', 'data-table': '排序回弹',
+      tabs: '指示条回弹', drawer: '抽屉滑入', loading: '连续动画', form: '提示弹性浮入', icons: '图标交互动效' };
+    const medium = { switch: '平滑滑动', button: '平滑按压', input: '平滑聚焦', select: '平滑展开', slider: '轻轻抬起，平滑复位',
+      loading: '平滑循环', form: '提示平滑浮入', tabs: '指示条平滑滑动' };
+    const grade = appearance.motion;
+    const note = forcedColors.matches ? '系统对比色' : reduceMotion.matches ? '系统已减少动态'
+      : grade === 'high' ? high[component] || notes.motion.high : grade === 'medium' ? medium[component] || notes.motion.medium : notes.motion[grade];
+    document.querySelector('#motion-note').textContent = note || '';
+    if (Object.hasOwn(foundations.titles, component)) foundations.show();
+    if (component === 'motion') currentPreview.show();
+    if (component === 'icons') updateIconReplay();
     if (component === 'materials') {
-      const selected = materialLevels.find(level => level.value === appearance.material);
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : follows ? '指针光源 · ' + selected.light
-        : appearance.material === 'high' ? '固定光源' : '静态表面';
       for (const level of materialLevels) {
         const caption = materialComparison.querySelector('[data-ml-material="' + level.value + '"] > span:last-child');
-        const description = follows ? level.litDescription : level.description;
-        if (caption && caption.textContent !== description) caption.textContent = description;
+        if (caption) caption.textContent = pointerLightEnabled() ? level.litDescription : level.description;
       }
-
-      return;
     }
-    if (component === 'icons') {
-      updateIconReplay();
-      const note = document.querySelector('#motion-note');
-      if (reduceMotion.matches) note.textContent = '系统已减少动态';
-      else if (appearance.motion !== 'high') note.textContent = '图标保持静止';
-      else note.textContent = follows ? '指针照明 · 图标动效' : '图标交互动效';
-      return;
-    }
-    if (component === 'loading') {
-      const levels = { base: '静止显示', low: '明暗淡变', medium: '平滑循环', high: '连续动画 · 指针光源' };
-      document.querySelector('#motion-note').textContent = reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'file-upload') {
-      const levels = { base: '即时更新', low: '明暗过渡', medium: '进度平滑推进', high: '指针照明 · 进度推进' };
-      document.querySelector('#motion-note').textContent = reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'form') {
-      const levels = { base: '即时提示', low: '提示淡入', medium: '提示平滑浮入', high: '指针照明 · 提示弹性浮入' };
-      document.querySelector('#motion-note').textContent = reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'tooltip') {
-      const levels = { base: '即时显示', low: '轻量淡入', medium: '贴近控件浮入', high: '弹性浮入 · 指针光源' };
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'accordion') {
-      const levels = { base: '即时展开', low: '轻量淡变', medium: '平滑折叠', high: '弹性展开 · 指针光源' };
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (singlePickers.includes(component)) {
-      const levels = { base: '即时打开', low: '轻量淡入', medium: '平滑浮入', high: '弹性浮入 · 指针光源' };
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'breadcrumb') {
-      const levels = { base: '即时展开', low: '淡入展开', medium: '平滑展开', high: '指针照明 · 弹性展开' };
-      document.querySelector('#motion-note').textContent = reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'steps') {
-      const levels = { base: '即时切换', low: '状态淡入', medium: '平滑过渡', high: '指针照明 · 状态回弹' };
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'tree') {
-      const levels = { base: '即时展开', low: '节点淡入', medium: '平滑展开', high: '指针照明 · 节点浮入' };
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    if (component === 'media-viewer') {
-      const levels = { base: '即时缩放', low: '轻量淡入', medium: '平滑缩放', high: '指针照明 · 弹性缩放' };
-      document.querySelector('#motion-note').textContent = forcedColors.matches ? '系统对比色'
-        : reduceMotion.matches ? '系统已减少动态' : levels[appearance.motion];
-      return;
-    }
-    const glassMotion = { input: '指针照明 · 聚焦回弹', choice: '指针照明 · 选中回弹', list: '指针照明 · 展开回弹', 'empty-state': '指针照明 · 弹性浮入', 'multi-select': '指针照明 · 选项浮入', menu: '指针照明 · 菜单浮入', slider: '指针照明 · 滑钮回弹', stepper: '指针照明 · 按压回弹', 'date-range': '指针照明 · 日历浮入' }[component]
-      ?? (appearance.material === 'high' ? '指针照明 · 液面回弹' : '指针照明 · 弹性反馈');
-    const note = document.querySelector('#motion-note');
-    const motion = appearance.motion === 'medium'
-      ? { switch: '平滑滑动', button: '平滑按压', dialog: '平滑浮入', tag: '平滑按压', select: '平滑展开', input: '平滑聚焦', choice: '平滑勾选', list: '平滑展开', menu: '平滑浮入', 'hover-card': '平滑浮入', badge: '平滑更新', info: '平滑展开', progress: '平滑推进', feedback: '平滑浮入', island: '平滑伸展', colors: '平滑按压', icons: '平滑按压' }[component] : notes.motion[appearance.motion];
-    const valueMotion = appearance.motion === 'medium' && { slider: '滑钮过渡', stepper: '按键过渡', 'date-range': '日历浮入', 'data-table': '排序指示过渡', pagination: '页码过渡' }[component];
-    const recordMotion = follows && { 'data-table': '指针照明 · 排序回弹', pagination: '指针照明 · 页码回弹', toolbar: '指针照明 · 按压回弹', sidebar: '指针照明 · 导航反馈', tabs: '指针照明 · 指示条回弹', drawer: '指针照明 · 抽屉滑入' }[component];
-    const navMotion = appearance.motion === 'medium' && { toolbar: '按键过渡', sidebar: '导航项过渡', tabs: '指示条平滑滑动', drawer: '抽屉滑入', 'empty-state': '平滑浮入', 'multi-select': '平滑展开' }[component];
-    note.textContent = reduceMotion.matches && appearance.motion !== 'base' ? '系统已减少动态'
-      : follows ? recordMotion || glassMotion : navMotion || valueMotion || (motion ?? '');
   }
+
+  // The glass tint is a continuous knob for the high tier, between clear and heavy.
+  const densityField = document.querySelector('#glass-density-field');
+  const densityInput = document.querySelector('#glass-density');
+  const densityNote = document.querySelector('#density-note');
+  function applyDensity(value, save = false) {
+    const number = Math.max(.4, Math.min(2, Number(value) || 1));
+    densityInput.value = String(number);
+    densityInput.closest('ml-slider').refresh();
+    root.style.setProperty('--ml-glass-density', String(number));
+    densityNote.textContent = number < .85 ? '清透' : number > 1.25 ? '浓重' : '适中';
+    if (save) {
+      try { localStorage.setItem(storePrefix + 'density', String(number)); }
+      catch { /* Preferences still apply to this preview when storage is unavailable. */ }
+    }
+  }
+  function syncDensityField() {
+    densityField.hidden = appearance.material !== 'high';
+    document.getElementById('transparency-field').hidden = !['medium', 'high'].includes(appearance.material);
+  }
+  const opticalRanges = {
+    'material-transparency': { initial: 60, css: n => n + '%' },
+    'light-intensity': { initial: 100, css: n => String(n / 100) },
+  };
+  function applyOpticalRange(name, value, save = false) {
+    const range = opticalRanges[name], input = document.getElementById(name);
+    const raw = value == null || value === '' ? range.initial : Number(value);
+    const number = Number.isFinite(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : range.initial;
+    input.value = String(number);
+    input.closest('ml-slider').refresh();
+    appearance[name] = number;
+    root.style.setProperty('--ml-' + name, range.css(number));
+    if (name === 'light-intensity') updateMotionNote();
+    if (save) {
+      try { localStorage.setItem(storePrefix + name, String(number)); }
+      catch { /* The setting remains active for this page. */ }
+    }
+  }
+  for (const name of Object.keys(opticalRanges)) {
+    applyOpticalRange(name, stored(name));
+    document.getElementById(name).addEventListener('input', event => applyOpticalRange(name, event.target.value, true));
+  }
+  applyDensity(stored('density'));
+  densityInput.addEventListener('input', () => applyDensity(densityInput.value, true));
 
   for (const name of Object.keys(defaults)) applyAppearance(name, stored(name));
   settings.addEventListener('change', event => {
     if (event.target.matches('input[type="radio"]')) applyAppearance(event.target.name, event.target.value, true);
   });
-  document.querySelector('#reset-appearance').addEventListener('click', () => {
+  function resetAppearance() {
     for (const [name, value] of Object.entries(defaults)) applyAppearance(name, value, true);
-  });
+    for (const name of Object.keys(opticalRanges)) applyOpticalRange(name, null, true);
+    applyDensity(1, true);
+  }
+  document.querySelector('#reset-appearance').addEventListener('click', resetAppearance);
   reduceMotion.addEventListener('change', updateMotionNote);
   forcedColors.addEventListener('change', updateMotionNote);
   window.addEventListener('storage', event => {
     for (const name of Object.keys(defaults)) {
       if (event.key === null || event.key === storePrefix + name) applyAppearance(name, stored(name));
+    }
+    if (event.key === null || event.key === storePrefix + 'density') applyDensity(stored('density'));
+    for (const name of Object.keys(opticalRanges)) {
+      if (event.key === null || event.key === storePrefix + name) applyOpticalRange(name, stored(name));
     }
   });
 
@@ -574,16 +409,18 @@
       for (const panel of document.querySelectorAll('ml-menu-panel[data-ml-menu-shown]')) panel.parentElement.close();
     }
     component = next;
+    currentPreview = previews.select(next);
     const buttons = next === 'button';
     const dialogs = next === 'dialog';
     root.dataset.component = next;
     document.querySelector('#shortcut').removeAttribute('title');
+    document.querySelector('#shortcut kbd').hidden = false;
     const { link, title, en, lead } = catalogEntries.get(next);
     document.title = title + ' · Nacreon UI';
     document.querySelector('#component-title').textContent = title;
     document.querySelector('#component-en').textContent = en;
     document.querySelector('#component-lead').textContent = lead;
-    catalogNav.querySelector('[aria-current="page"]')?.removeAttribute('aria-current');
+    directory.querySelector('[aria-current="page"]')?.removeAttribute('aria-current');
     link.setAttribute('aria-current', 'page');
     document.querySelector('#catalog-current').textContent = title;
     picker.hidden = next !== 'switch';
@@ -601,18 +438,6 @@
     const valuePage = Object.hasOwn(valueTypes, next);
     const recordPage = recordTypes.includes(next);
     navigation.select(next);
-    emptyState.select(next === 'empty-state');
-    loadingPreview.select(next === 'loading');
-    tabsPreview.select(next === 'tabs');
-    breadcrumbPreview.select(next === 'breadcrumb');
-    stepsPreview.select(next === 'steps');
-    treePreview.select(next === 'tree');
-    mediaViewerPreview.select(next === 'media-viewer');
-    tooltipPreview.select(next === 'tooltip');
-    accordionPreview.select(next === 'accordion');
-    multiSelectPreview.select(next === 'multi-select');
-    fileUploadPreview.select(next === 'file-upload');
-    formPreview.select(next === 'form');
     recordStates.hidden = !recordPage;
     for (const type of recordTypes) {
       for (const suffix of ['-kinds', '-specimen', '-examples']) document.getElementById(type + suffix).hidden = type !== next;
@@ -632,23 +457,22 @@
     const colors = next === 'colors';
     palettePicker.hidden = paletteSpecimen.hidden = paletteTools.hidden = paletteExamples.hidden = !colors;
     const materials = next === 'materials';
-    materialHero.hidden = materialComparison.hidden = materialHistory.hidden = !materials;
+    materialSurfaces.hidden = materialHero.hidden = materialComparison.hidden = materialHistory.hidden = !materials;
     if (!materials) materialHistory.open = false;
     const motion = next === 'motion';
-    motionPreview.select(motion);
     const foundationPage = foundations.select(next);
     const icons = next === 'icons';
     for (const id of ['icon-options', 'icon-specimen', 'icon-tools', 'icons-examples']) document.getElementById(id).hidden = !icons;
     document.querySelector('#open-code').disabled = false;
     stage.querySelector('[data-tag-undo]').hidden = true;
-    document.querySelector('#stage-caption').hidden = foundationPage || navigation.types.includes(next) || recordPage || valuePage || dialogs || next === 'select' || next === 'multi-select' || next === 'file-upload' || next === 'form' || next === 'input' || next === 'choice' || next === 'list' || next === 'accordion' || next === 'tabs' || next === 'breadcrumb' || next === 'steps' || next === 'tree' || next === 'media-viewer' || next === 'tooltip' || next === 'empty-state' || next === 'menu' || next === 'hover-card' || next === 'badge' || next === 'info' || next === 'progress' || next === 'loading' || next === 'feedback' || next === 'island' || colors || icons || materials || motion;
+    document.querySelector('#stage-caption').hidden = next === 'navigation-panel' || foundationPage || navigation.types.includes(next) || recordPage || valuePage || dialogs || next === 'select' || next === 'multi-select' || next === 'file-upload' || next === 'form' || next === 'input' || next === 'choice' || next === 'list' || next === 'accordion' || next === 'tabs' || next === 'breadcrumb' || next === 'steps' || next === 'tree' || next === 'media-viewer' || next === 'tooltip' || next === 'empty-state' || next === 'menu' || next === 'hover-card' || next === 'badge' || next === 'info' || next === 'progress' || next === 'loading' || next === 'feedback' || next === 'island' || colors || icons || materials || motion;
     document.querySelector('#switch-examples').hidden = next !== 'switch';
     document.querySelector('#button-examples').hidden = !buttons;
     document.querySelector('#dialog-examples').hidden = !dialogs;
     document.querySelector('#tag-examples').hidden = next !== 'tag';
     document.querySelector('#select-examples').hidden = next !== 'select';
     const examplesLink = document.querySelector('.examples-link');
-    examplesLink.hidden = document.querySelector('#examples').hidden = next === 'breadcrumb' || next === 'tree';
+    examplesLink.hidden = document.querySelector('#examples').hidden = next === 'navigation-panel' || next === 'breadcrumb' || next === 'tree';
     examplesLink.href = next === 'switch' ? '#examples' : '#' + next + '-examples';
     const examplesLabel = foundationPage ? foundations.titles[next] : colors ? '主题对照' : icons ? '图标目录' : materials ? '四档材质对照' : motion ? '四档动效对照' : next === 'media-viewer' ? '示例素材' : '应用示例';
     examplesLink.querySelector('.top-action-label').textContent = examplesLabel;
@@ -732,7 +556,7 @@
     dialog.addEventListener('close', () => {
       const value = dialog.returnValue;
       if (value === 'restore') {
-        for (const [name, setting] of Object.entries(defaults)) applyAppearance(name, setting, true);
+        resetAppearance();
         dialogDemo.status = '已恢复默认外观';
       } else if (value === 'save') {
         dialogDemo.name = dialog.querySelector('input').value.trim();
@@ -1583,9 +1407,9 @@
     ctx.transform(1, 0, -.63, 1, 0, 0);
     for (const [x, width, hue, opacity] of [
       [-212, 2, 'separator', .95], [-197, 2, 'separator', .95], [-182, 2, 'separator', .95],
-      [-131, 8, 'blue', .38], [-111, 62, 'blue', .60], [-49, 37, 'cyan', .42],
-      [-12, 8, 'surface', 1], [-4, 83, 'indigo', .48], [79, 26, 'purple', .33],
-      [105, 7, 'surface', 1], [112, 4, 'indigo', .75], [130, 2, 'indigo', .50],
+      [-131, 8, 'control-border', .62], [-111, 62, 'separator', 1], [-49, 37, 'fill', 1],
+      [-12, 8, 'surface-raised', 1], [-4, 83, 'control-border', .45], [79, 26, 'selection', 1],
+      [105, 7, 'surface-raised', 1], [112, 4, 'text-secondary', .65], [130, 2, 'control-border', .75],
       [174, 2, 'separator', .95], [189, 2, 'separator', .95], [204, 2, 'separator', .95],
     ]) {
       ctx.fillStyle = color(hue);
@@ -1595,6 +1419,7 @@
     ctx.restore();
   }
 
+  materialSurfaces.addEventListener('change', showMaterials);
   materialComparison.addEventListener('change', event => {
     if (event.target.name === 'material-comparison') applyAppearance('material', event.target.value, true);
   });
@@ -1626,6 +1451,11 @@
         card.append(title, caption);
         materialComparison.append(card);
       }
+    }
+    const content = materialSurfaces.querySelector('input:checked').value === 'content';
+    for (const { lens } of materialSamples) {
+      if (content) lens.setAttribute('surface', 'content');
+      else lens.removeAttribute('surface');
     }
     if (chartTheme !== appearance.theme) {
       chartTheme = appearance.theme;
@@ -2020,34 +1850,22 @@
     if (component === 'dialog') { showDialog(); return; }
     if (component === 'tag') { showTags(); return; }
     if (component === 'select') { showSelect(); return; }
-    if (component === 'multi-select') { multiSelectPreview.show(); return; }
-    if (component === 'file-upload') { fileUploadPreview.show(); return; }
-    if (component === 'form') { formPreview.show(); return; }
+    if (currentPreview) { currentPreview.show(); return; }
     if (component === 'input') { showInput(); return; }
     if (Object.hasOwn(valueTypes, component)) { showValue(); return; }
     if (navigation.types.includes(component)) { navigation.readout(); return; }
     if (recordTypes.includes(component)) { showRecords(); return; }
     if (component === 'choice') { showChoices(); return; }
     if (component === 'list') { showList(); return; }
-    if (component === 'tabs') { tabsPreview.show(); return; }
-    if (component === 'breadcrumb') { breadcrumbPreview.show(); return; }
-    if (component === 'steps') { stepsPreview.show(); return; }
-    if (component === 'tree') { treePreview.show(); return; }
-    if (component === 'media-viewer') { mediaViewerPreview.show(); return; }
-    if (component === 'tooltip') { tooltipPreview.show(); return; }
-    if (component === 'accordion') { accordionPreview.show(); return; }
-    if (component === 'empty-state') { emptyState.readout(); return; }
     if (component === 'menu') { showMenu(); return; }
     if (component === 'hover-card') { showHover(); return; }
     if (component === 'info') { showInfo(); return; }
     if (component === 'progress') { showProgress(); return; }
-    if (component === 'loading') { loadingPreview.render(); return; }
     if (component === 'feedback') { showFeedback(); return; }
     if (component === 'island') { showIsland(); return; }
     if (component === 'badge') { showBadges(); return; }
     if (component === 'colors') { showColors(); return; }
     if (component === 'materials') { showMaterials(); return; }
-    if (component === 'motion') { motionPreview.show(); return; }
     if (Object.hasOwn(foundations.titles, component)) { foundations.show(); return; }
     if (component === 'icons') { showIcons(); return; }
     for (const control of document.querySelectorAll('[data-example="hints"]')) control.checked = demo.hints;
@@ -2067,10 +1885,20 @@
     dot.classList.toggle('off', kind === 'toggle' && !demo.hints);
     dot.classList.toggle('on', kind === 'toggle' && demo.hints);
     document.querySelector('#shortcut').hidden = !demo.hints;
-    document.querySelector('#shortcut kbd').textContent = display.key;
-    document.querySelector('#shortcut span').textContent = display.action;
-    document.querySelector('#shortcut').title = '将键盘焦点移到组件后操作';
+    const key = document.querySelector('#shortcut kbd');
+    key.hidden = touchShortcut;
+    key.textContent = display.key;
+    document.querySelector('#shortcut span').textContent = touchShortcut ? '轻点' + display.action : display.action;
+    document.querySelector('#shortcut').title = touchShortcut ? '' : '将键盘焦点移到组件后操作';
   }
+
+  function setShortcutInput(touch) {
+    if (touchShortcut === touch) return;
+    touchShortcut = touch;
+    if (component === 'switch') showDemo();
+  }
+  document.addEventListener('pointerdown', event => setShortcutInput(event.pointerType !== 'mouse'), { passive: true });
+  document.addEventListener('keydown', () => setShortcutInput(false), { capture: true });
 
   picker.addEventListener('change', event => {
     demo.usage = event.target.value;
@@ -2090,7 +1918,8 @@
     if (catalog.open) catalog.close();
     if (codeDialog.open) codeDialog.close();
     const match = /^#page-(overview|specs|keys)$/.exec(location.hash);
-    const route = location.hash.slice(1).replace(/-examples$/, '');
+    const slug = location.hash.slice(1).replace(/-examples$/, '');
+    const route = slug === 'catalog' ? 'navigation-panel' : slug;
     setComponent(location.hash === '#list-record' ? 'list' : catalogEntries.has(route) ? route : 'switch');
     if (match) {
       demo.page = match[1];
@@ -2142,8 +1971,14 @@
       '    tag.querySelector("button").focus();', '    undo.hidden = removed.length === 0;', '  });', '</script>');
   }
 
+  function lightAttributes(extraStyle = '') {
+    const style = '--ml-material-transparency: ' + appearance['material-transparency'] + '%; --ml-light-intensity: '
+      + (appearance['light-intensity'] / 100) + '; --ml-glass-density: ' + densityInput.value + ';' + extraStyle;
+    return 'data-ml-light-source="' + appearance['light-source'] + '" style="' + style + '"';
+  }
   function iconForAppearance(name, options = {}) {
-    return Icon.createSVG(name, { ...options, material: appearance.material, theme: appearance.theme });
+    return Icon.createSVG(name, { ...options, material: appearance.material, theme: appearance.theme,
+      lightSource: appearance['light-source'], lightIntensity: appearance['light-intensity'] / 100 });
   }
   function inlineSampleIcons(sample) {
     for (const icon of sample.querySelectorAll('ml-icon')) {
@@ -2161,7 +1996,7 @@
       for (const [key, value] of Object.entries(iconState)) icon.setAttribute(key, value);
       icon.setAttribute('label', document.querySelector('#icon-title').textContent);
       return [scriptTag('icons'), '', '<div data-ml-theme="' + appearance.theme +
-        '" data-ml-material="' + appearance.material + '" data-ml-motion="' + appearance.motion + '">',
+        '" data-ml-material="' + appearance.material + '" data-ml-motion="' + appearance.motion + '" ' + lightAttributes() + '>',
         '  ' + icon.outerHTML, '</div>'].join('\n');
     }
     if (component === 'colors') {
@@ -2175,21 +2010,12 @@
     }
     const head = [...bundleTags(component), ''];
     const lines = ['<div data-ml-theme="' + appearance.theme + '"', '     data-ml-material="' + appearance.material + '"',
-      '     data-ml-motion="' + appearance.motion + '">'];
-    if (component === 'materials') return head.concat(lines, '  <ml-material>表面样本</ml-material>', '</div>').join('\n');
-    if (component === 'motion') return motionPreview.code(head, lines);
-    if (component === 'empty-state') return emptyState.code(head, lines);
-    if (component === 'loading') return loadingPreview.code(head, lines);
-    if (component === 'tabs') return tabsPreview.code(head, lines);
-    if (component === 'breadcrumb') return breadcrumbPreview.code(head, lines);
-    if (component === 'steps') return stepsPreview.code(head, lines);
-    if (component === 'tree') return treePreview.code(head, lines);
-    if (component === 'media-viewer') return mediaViewerPreview.code(head, lines);
-    if (component === 'tooltip') return tooltipPreview.code(head, lines);
-    if (component === 'accordion') return accordionPreview.code(head, lines);
-    if (component === 'multi-select') return multiSelectPreview.code(head, lines);
-    if (component === 'file-upload') return fileUploadPreview.code(head, lines);
-    if (component === 'form') return formPreview.code(head, lines);
+      '     data-ml-motion="' + appearance.motion + '" ' + lightAttributes() + '>'];
+    if (component === 'materials') {
+      const surface = materialSurfaces.querySelector('input:checked').value === 'content' ? ' surface="content"' : '';
+      return head.concat(lines, '  <ml-material' + surface + '>表面样本</ml-material>', '</div>').join('\n');
+    }
+    if (currentPreview) return currentPreview.code(head, lines);
     if (navigation.types.includes(component)) return navigation.code(component, head, lines, iconForAppearance);
     if (recordTypes.includes(component)) {
       const tableMode = component === 'data-table';
@@ -2291,7 +2117,7 @@
       const custom = heroIsland.style.getPropertyValue('--ml-island-fill');
       const colorStyle = custom ? ' style="--ml-island-fill: ' + custom + '; --ml-island-ink: ' + paletteForeground(custom).color + '"' : '';
       lines[2] = '     data-ml-motion="' + appearance.motion + '" data-ml-island-bounds';
-      lines.push('     style="display: grid; place-items: ' + place + '; min-height: 15rem; padding: .75rem;">',
+      lines.push('     ' + lightAttributes(' display: grid; place-items: ' + place + '; min-height: 15rem; padding: .75rem;') + '>',
         '  <ml-island direction="' + dir + '" tone="' + heroIsland.getAttribute('tone') + '"' +
           (heroIsland.open ? ' open' : '') + colorStyle + '>',
         '    <button type="button">', '      <span class="ml-island-mark" aria-hidden="true">' + iconForAppearance('archive').outerHTML + '</span>',
@@ -2408,8 +2234,10 @@
       } else if (kind === 'confirm') {
         lines.push('  sample.querySelector("dialog").addEventListener("close", event => {',
           '    if (event.target.returnValue !== "restore") return;',
-          '    const appearance = sample.parentElement.dataset;',
-          '    appearance.mlTheme = "light";', '    appearance.mlMaterial = "high";', '    appearance.mlMotion = "high";', '  });');
+          '    const scope = sample.parentElement;',
+          '    Object.assign(scope.dataset, { mlTheme: "light", mlMaterial: "high", mlMotion: "high", mlLightSource: "pointer" });',
+          '    scope.style.setProperty("--ml-material-transparency", "60%");',
+          '    scope.style.setProperty("--ml-light-intensity", "1");', '    scope.style.setProperty("--ml-glass-density", "1");', '  });');
       }
       return head.concat(lines, '</script>').join('\n');
     } else if (component === 'button') {

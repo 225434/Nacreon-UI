@@ -1,0 +1,131 @@
+diff --git a/src/glass.js b/src/glass.js
+--- a/src/glass.js
++++ b/src/glass.js
+@@ -2,7 +2,7 @@
+   'use strict';
+ 
+   const key = Symbol.for('material-lib.glass.v1');
+-  if (globalThis[key]?.version >= 13) return;
++  if (globalThis[key]?.version >= 12) return;
+   const previousScene = globalThis[key]?.GlassScene;
+   const { optics } = globalThis[Symbol.for('material-lib.glass-shader.v1')];
+ 
+@@ -118,75 +118,42 @@
+     const key = [aspectX, aspectY, roundX, roundY, relativeRadius, resolution].join('/');
+     if (normalMaps.has(key)) return normalMaps.get(key);
+     const canvas = document.createElement('canvas');
+-    const w = canvas.width = Math.min(1536, Math.round(resolution * aspectX));
+-    const h = canvas.height = Math.min(1536, Math.round(resolution * aspectY));
++    canvas.width = Math.min(1536, Math.round(resolution * aspectX));
++    canvas.height = Math.min(1536, Math.round(resolution * aspectY));
+     const context = canvas.getContext('2d');
+-    const pixels = context.createImageData(w, h), data = pixels.data;
++    const pixels = context.createImageData(canvas.width, canvas.height);
+     const halfW = aspectX / relativeRadius, halfH = aspectY / relativeRadius;
+     const mapRadius = r => 2 * r / relativeRadius;
+     const mapCorners = { x: roundX.map(mapRadius), y: roundY.map(mapRadius) };
+     const sample = {}, eta = 1 / optics.index;
+-    // Outside the corner boxes the outline is rectangular. Two bevel widths also
+-    // cover the normal blend wherever its slope contributes to the displacement.
+-    const cornerBandX = Math.max(2 * optics.rim, ...mapCorners.x);
+-    const cornerBandY = Math.max(2 * optics.rim, ...mapCorners.y);
+-    // The short axis has a power-of-two resolution, so opposite texel centers
+-    // are exact negatives. Only reflect when the two corner pairs also match.
+-    const shortX = w <= h;
+-    const symmetric = [roundX, roundY].every(r => shortX
+-      ? r[0] === r[1] && r[3] === r[2] : r[0] === r[3] && r[1] === r[2]);
+-    const mirrorX = symmetric && shortX;
+-    const rows = symmetric && !shortX ? h / 2 : h;
+-    const cols = mirrorX ? w / 2 : w;
+-    const columns = Array.from({ length: cols }, (_, x) => {
+-      const u = 2 * (x + .5) / w - 1, dx = u * halfW;
+-      return { u, dx, archX: 1 - u * u, insetX: halfW - Math.abs(dx) };
+-    });
+-    for (let y = 0; y < rows; y++) {
+-      const v = 2 * (y + .5) / h - 1, dy = v * halfH, archY = 1 - v * v;
+-      const insetY = halfH - Math.abs(dy);
+-      let opposite = 4 * (mirrorX ? (y + 1) * w - 1 : (h - 1 - y) * w);
+-      for (let x = 0, i = y * w * 4; x < cols; x++, i += 4) {
+-        const { u, dx, archX, insetX } = columns[x];
+-        let depth = Math.min(insetX, insetY);
+-        let nx = insetX < insetY ? Math.sign(dx) : 0, ny = insetY <= insetX ? Math.sign(dy) : 0;
+-        if (insetX < cornerBandX && insetY < cornerBandY) {
+-          outlineAt(dx, dy, halfW, halfH, mapCorners, sample, optics.rim);
+-          depth = Math.max(0, -sample.distance);
+-          nx = sample.nx; ny = sample.ny;
+-        }
++    for (let y = 0, i = 0; y < canvas.height; y++) {
++      const v = 2 * (y + .5) / canvas.height - 1, dy = v * halfH, archY = 1 - v * v;
++      for (let x = 0; x < canvas.width; x++, i += 4) {
++        const u = 2 * (x + .5) / canvas.width - 1, dx = u * halfW, archX = 1 - u * u;
++        outlineAt(dx, dy, halfW, halfH, mapCorners, sample, optics.rim);
++        const depth = Math.max(0, -sample.distance);
+         const edge = Math.max(0, 1 - depth / optics.rim);
+         const arc = Math.sqrt(1 - edge * edge);
+         const crown = optics.base + optics.crown * archX * archY;
+         const frontHeight = arc * crown;
+         const rimSlope = crown / optics.rim * edge / Math.max(.15, arc);
+-        const gx = 2 * optics.crown * arc * u * archY / halfW + nx * rimSlope;
+-        const gy = 2 * optics.crown * arc * v * archX / halfH + ny * rimSlope;
++        const gx = 2 * optics.crown * arc * u * archY / halfW + sample.nx * rimSlope;
++        const gy = 2 * optics.crown * arc * v * archX / halfH + sample.ny * rimSlope;
+         // Snell refraction of a perpendicular viewing ray, followed by the flat rear interface.
+         const nz = 1 / Math.sqrt(1 + gx * gx + gy * gy);
+         const bend = (eta * nz - Math.sqrt(1 - eta * eta * (1 - nz * nz))) * nz;
+         const rayX = bend * gx, rayY = bend * gy;
+-        const rayLength2 = rayX * rayX + rayY * rayY;
+-        const exitCos2 = 1 - optics.index ** 2 * rayLength2;
++        const exitCos2 = 1 - optics.index ** 2 * (rayX * rayX + rayY * rayY);
+         const t = Math.max(0, Math.min(1, exitCos2 / .16));
+         const escape = t * t * (3 - 2 * t);
+         let travel = optics.chord * frontHeight / (eta - bend)
+           + optics.index * optics.clearance * arc * escape / Math.sqrt(Math.max(.16, exitCos2));
+         // Ease the rays near the rim so the lens magnifies evenly instead of smearing.
+-        travel /= 1 + Math.sqrt(rayLength2) * travel / 1.35;
+-        const shiftX = rayX * travel / optics.mapRange, shiftY = rayY * travel / optics.mapRange;
+-        data[i] = 255 * (.5 + shiftX);
+-        data[i + 1] = 255 * (.5 + shiftY);
+-        data[i + 2] = 255 * frontHeight / (optics.base + optics.crown);
+-        data[i + 3] = 255;
+-        if (symmetric) {
+-          // Reverse the ray before 8-bit rounding, including at zero displacement.
+-          data[opposite] = mirrorX ? 255 * (.5 - shiftX) : data[i];
+-          data[opposite + 1] = mirrorX ? data[i + 1] : 255 * (.5 - shiftY);
+-          data[opposite + 2] = data[i + 2];
+-          data[opposite + 3] = 255;
+-          opposite += mirrorX ? -4 : 4;
+-        }
++        travel /= 1 + Math.hypot(rayX, rayY) * travel / 1.35;
++        pixels.data[i] = 255 * (.5 + rayX * travel / optics.mapRange);
++        pixels.data[i + 1] = 255 * (.5 + rayY * travel / optics.mapRange);
++        pixels.data[i + 2] = 255 * frontHeight / (optics.base + optics.crown);
++        pixels.data[i + 3] = 255;
+       }
+     }
+     context.putImageData(pixels, 0, 0);
+@@ -293,7 +260,7 @@
+       this.light = defaultLight;
+       this.surface = surface;
+       this.lens = lens;
+-      const id = 'ml-glass-v13-' + ++nextGlassId;
++      const id = 'ml-glass-v12-' + ++nextGlassId;
+       this.layer = document.createElement('span');
+       this.layer.className = 'ml-optical';
+       this.layer.setAttribute('aria-hidden', 'true');
+@@ -440,8 +407,7 @@
+           (box.left - b.left) / b.width, (box.top - b.top) / b.height, box.width / b.width, box.height / b.height,
+         ] };
+       }
+-      // The last active frame must stay distinct from the exact resting state.
+-      const state = [shape, x.toFixed(1), y.toFixed(1), fraction, renderer.generation,
++      const state = [shape, x.toFixed(1), y.toFixed(1), fraction.toFixed(3), renderer.generation,
+         lampRGB, bodyRGB, faceGain, density, strength, transmission, version, sample?.rect.map(n => n.toFixed(5))].join('/');
+       if (state === this.state && this.lastBackdrop === backdrop) return;
+       this.state = state;
+@@ -634,5 +600,5 @@
+     }
+   }
+ 
+-  globalThis[key] = Object.freeze({ version: 13, GlassSurface, GlassScene: previousScene || GlassScene, waveDuration });
++  globalThis[key] = Object.freeze({ version: 12, GlassSurface, GlassScene: previousScene || GlassScene, waveDuration });
+ })();

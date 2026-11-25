@@ -1,0 +1,55 @@
+diff --git a/src/appearance.css b/src/appearance.css
+--- a/src/appearance.css
++++ b/src/appearance.css
+@@ -76,13 +76,6 @@
+   position: absolute; inset: 0; display: none; inline-size: 100%; block-size: 100%;
+   border-radius: inherit; pointer-events: none;
+ }
+-/* The outer layer casts the shadow. Its moving offsets do not paint the SVG or canvas. */
+-.ml-optical > :is(svg, canvas) {
+-  --ml-cast-x: initial;
+-  --ml-cast-y: initial;
+-  --ml-penumbra: initial;
+-  --ml-cast-opacity: initial;
+-}
+ .ml-optical[data-ml-renderer="webgl"] > canvas { display: block; }
+ /* Keep the SVG filter definitions available to the native backdrop. */
+ .ml-optical[data-ml-renderer="webgl"] > svg > :not(defs) { display: none; }
+diff --git a/src/glass.js b/src/glass.js
+--- a/src/glass.js
++++ b/src/glass.js
+@@ -2,7 +2,7 @@
+   'use strict';
+ 
+   const key = Symbol.for('material-lib.glass.v1');
+-  if (globalThis[key]?.version >= 11) return;
++  if (globalThis[key]?.version >= 10) return;
+   const previousScene = globalThis[key]?.GlassScene;
+   const { optics } = globalThis[Symbol.for('material-lib.glass-shader.v1')];
+ 
+@@ -242,7 +242,7 @@
+       this.light = defaultLight;
+       this.surface = surface;
+       this.lens = lens;
+-      const id = 'ml-glass-v11-' + ++nextGlassId;
++      const id = 'ml-glass-v10-' + ++nextGlassId;
+       this.layer = document.createElement('span');
+       this.layer.className = 'ml-optical';
+       this.layer.setAttribute('aria-hidden', 'true');
+@@ -406,8 +406,7 @@
+       style.setProperty('--ml-penumbra', Math.max(1.5, Math.min(120, thickness) * (.04 + .04 * energy)).toFixed(2) + 'px');
+       style.setProperty('--ml-cast-opacity', (.04 + .15 * energy).toFixed(3));
+       const depth = fraction < 1 ? Math.sin(fraction * Math.PI * 4) * (1 - fraction) ** 2 : 0;
+-      const scale = String(opticalRadius * optics.mapRange * (1 + depth * .26));
+-      if (this.displacement.getAttribute('scale') !== scale) this.displacement.setAttribute('scale', scale);
++      this.displacement.setAttribute('scale', opticalRadius * optics.mapRange * (1 + depth * .26));
+       const cx = pulse ? (pulse.x - box.left) * sx : width / 2;
+       const cy = pulse ? (pulse.y - box.top) * sy : height / 2;
+       if (renderer.program) {
+@@ -582,5 +581,5 @@
+     }
+   }
+ 
+-  globalThis[key] = Object.freeze({ version: 11, GlassSurface, GlassScene: previousScene || GlassScene, waveDuration });
++  globalThis[key] = Object.freeze({ version: 10, GlassSurface, GlassScene: previousScene || GlassScene, waveDuration });
+ })();

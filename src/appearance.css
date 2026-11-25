@@ -11,32 +11,32 @@
 }
 :root, [data-ml-theme="light"], [data-ml-theme="warm"], [data-ml-theme="dark"] {
   --ml-blue: var(--ml-color-action);
-  --ml-on-accent: #000;
+  --ml-on-accent: var(--ml-color-on-action);
   --ml-accent-ink: var(--ml-color-info);
-  --ml-focus: var(--ml-blue);
+  --ml-focus: var(--ml-color-focus);
   --ml-accent: var(--ml-color-green);
   --ml-ink: var(--ml-color-text);
   --ml-muted: var(--ml-color-text-secondary);
 }
 :root, [data-ml-theme="light"] {
   --ml-off: #8e8e93;
-  --ml-bed: #e2e6ea;
-  --ml-selected: #fff;
-  --ml-pearl: #f8faf9;
+  --ml-bed: var(--ml-color-fill);
+  --ml-selected: var(--ml-color-surface-raised);
+  --ml-pearl: var(--ml-color-surface-raised);
   --ml-edge: #808890;
 }
 [data-ml-theme="warm"] {
   --ml-off: #a49d93;
-  --ml-bed: #e9e2d7;
-  --ml-selected: #fffdf7;
-  --ml-pearl: #fffdf5;
+  --ml-bed: var(--ml-color-fill);
+  --ml-selected: var(--ml-color-surface-raised);
+  --ml-pearl: var(--ml-color-surface);
   --ml-edge: #9c9284;
 }
 [data-ml-theme="dark"] {
-  --ml-off: #636366;
+  --ml-off: var(--ml-color-fill);
   --ml-bed: var(--ml-color-surface);
   --ml-selected: var(--ml-color-fill);
-  --ml-pearl: #f2f5f5;
+  --ml-pearl: color-mix(in srgb, var(--ml-color-surface-raised) 30%, var(--ml-color-text-secondary));
   --ml-edge: #848a93;
 }
 
@@ -62,16 +62,26 @@
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  opacity: .21;
+  opacity: .13;
 }
 
 .ml-optical {
+  /* The renderer reads this resolved sRGB colour. The same paint feeds the SVG fallback. */
+  --ml-optical-body: color-mix(in srgb, var(--ml-color-surface) 82%, rgb(var(--ml-glass-body-rgb, 138 192 217)));
+  color: var(--ml-optical-body);
   box-shadow: var(--ml-cast-x, 0px) var(--ml-cast-y, 1px) var(--ml-penumbra, 3px)
     rgb(var(--ml-glass-shadow-rgb, 23 37 53) / var(--ml-cast-opacity, .14));
 }
 .ml-optical > canvas {
   position: absolute; inset: 0; display: none; inline-size: 100%; block-size: 100%;
   border-radius: inherit; pointer-events: none;
+}
+/* The outer layer casts the shadow. Its moving offsets do not paint the SVG or canvas. */
+.ml-optical > :is(svg, canvas) {
+  --ml-cast-x: initial;
+  --ml-cast-y: initial;
+  --ml-penumbra: initial;
+  --ml-cast-opacity: initial;
 }
 .ml-optical[data-ml-renderer="webgl"] > canvas { display: block; }
 /* Keep the SVG filter definitions available to the native backdrop. */
@@ -96,7 +106,7 @@
 }
 .ml-optical[data-ml-light="base"]::before {
   background: radial-gradient(circle var(--ml-light-reach) var(--ml-light-at),
-    color-mix(in srgb, var(--ml-color-action) 60%, rgb(var(--ml-glass-lamp-rgb))) 14%, transparent 100%);
+    color-mix(in srgb, rgb(var(--ml-pointer-tint-rgb)) 70%, var(--ml-color-control-border)) 14%, transparent 100%);
 }
 .ml-optical[data-ml-light="low"] {
   background: radial-gradient(circle var(--ml-light-reach) var(--ml-light-at),

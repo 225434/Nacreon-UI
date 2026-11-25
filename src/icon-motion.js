@@ -183,7 +183,9 @@ function createIconMotion(art) {
     const animations = [];
     function animate(target, motion, delay = 0) {
       const frames = typeof motion.frames === 'function' ? motion.frames(target) : motion.frames;
-      animations.push(target.animate(frames, { duration: motion.duration, delay }));
+      const animation = target.animate(frames, { duration: motion.duration, delay });
+      globalThis[Symbol.for('material-lib.motion-frames.v1')].track(animation, icon);
+      animations.push(animation);
     }
     if (instance) {
       for (const { selector, motion, stagger } of recipe.parts) {

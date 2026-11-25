@@ -1,3 +1,4 @@
+import { launchBrowser } from './helpers/browser.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, rmdir, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { chromium, firefox } from 'playwright';
 
 const engine = process.argv[2] === 'firefox' ? firefox : chromium;
-const browser = await engine.launch({ executablePath: engine.executablePath() });
+const browser = await launchBrowser(engine);
 const root = new URL('../', import.meta.url);
 const temp = await mkdtemp(join(tmpdir(), 'ml-empty-test-'));
 const file = join(temp, 'example.html');
@@ -37,8 +38,8 @@ try {
 
   await route('switch');
   await page.locator('#open-catalog').click();
-  await page.locator('#catalog-query').fill('无搜索结果');
-  await page.locator('#catalog-query').press('Enter');
+  await page.getByRole('dialog', { name: '导航面板' }).getByRole('searchbox').fill('无搜索结果');
+  await page.getByRole('dialog', { name: '导航面板' }).getByRole('searchbox').press('Enter');
   const sample = page.locator('#empty-state-specimen ml-empty-state');
   const contents = sample.locator('.ml-empty-content');
   const layer = sample.locator(':scope > .ml-optical');
@@ -73,7 +74,7 @@ try {
       for (const motion of grades) {
         await choose('motion', motion);
         await frames();
-        const expected = material === 'high' ? 'glass' : motion === 'high' ? material : '';
+        const expected = material === 'high' ? 'glass' : material;
         assert.equal(await layer.count(), Number(!!expected), [theme, material, motion].join('/'));
         if (expected) {
           const paint = await layer.evaluate(el => ({
@@ -96,7 +97,12 @@ try {
   await page.mouse.move(box.x + 24, box.y + 24);
   await sample.locator(':scope > [data-ml-light="low"][data-ml-lit]').waitFor({ state: 'attached' });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await layer.waitFor({ state: 'detached' });
+  await layer.waitFor({ state: 'attached' });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const fixedX = await layer.evaluate(el => el.style.getPropertyValue('--ml-light-x'));
+  await page.mouse.move(box.x + box.width - 8, box.y + 24);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert.equal(await layer.evaluate(el => el.style.getPropertyValue('--ml-light-x')), fixedX);
   assert.equal(await contents.evaluate(el => getComputedStyle(el).animationName), 'none');
   await choose('material', 'high');
   await layer.waitFor({ state: 'attached' });

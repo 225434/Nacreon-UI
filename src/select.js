@@ -306,13 +306,14 @@
     #paintMenu = (pointer, now) => {
       if (!this.open) return;
       const style = getComputedStyle(this.#panel);
-      const dynamic = style.getPropertyValue('--ml-follow').trim() === '1';
-      const tier = GlassSurface.lightingTier(style, dynamic);
+      const light = GlassSurface.lighting(style, this.#scene.media.matches);
+      const dynamic = light.mode === 'pointer';
+      const tier = GlassSurface.lightingTier(style, light);
       if (!tier) {
         this.#surface?.remove(); this.#surface = null; return;
       }
-      this.#surface = GlassSurface.forTier(this.#surface, this.#panel, false, tier);
-      this.#surface.paint(dynamic ? pointer : null, null, now);
+      this.#surface = GlassSurface.forTier(this.#surface, this.#panel, false, tier, light);
+      this.#surface.paint(pointer, null, now);
       if (dynamic && this.#panel.getAnimations().some(a => a.playState === 'running')) this.#scene.wake();
       return dynamic;
     };

@@ -5,6 +5,7 @@
     static observedAttributes = ['label'];
 
     connectedCallback() {
+      globalThis[Symbol.for('material-lib.motion-frames.v1')].watch(this.getRootNode());
       if (!this.hasAttribute('role')) this.setAttribute('role', 'status');
       if (!this.querySelector(':scope > .ml-spinner-label')) {
         const parts = this.ownerDocument.createElement('template');
@@ -58,6 +59,7 @@
     #view;
 
     connectedCallback() {
+      globalThis[Symbol.for('material-lib.motion-frames.v1')].watch(this.getRootNode());
       this.setAttribute('aria-hidden', 'true');
       this.inert = true;
       this.#view = this.querySelector(':scope > .ml-skeleton-view');

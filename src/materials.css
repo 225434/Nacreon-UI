@@ -10,6 +10,10 @@ ml-material {
   backdrop-filter: var(--ml-filter);
   color: var(--ml-color-text);
 }
+ml-material:where([surface="content"]) {
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-material-content-opacity), transparent);
+}
+ml-material:where([surface="content"]) > .ml-optical { opacity: .35; }
 ml-material.ml-refractive {
   background-image: linear-gradient(to bottom, rgb(var(--ml-glass-lamp-rgb) / .045), transparent 55%);
   box-shadow: 0 1px 2px rgb(var(--ml-glass-shadow-rgb) / .09);

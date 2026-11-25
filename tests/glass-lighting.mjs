@@ -1,8 +1,36 @@
+import { launchBrowser } from './helpers/browser.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const gallery = new URL('../index.html#materials', import.meta.url).href;
-const browser = await chromium.launch({ executablePath: chromium.executablePath() });
+const browser = await launchBrowser(chromium);
+
+async function checkFinalPulseFrame(page) {
+  const scales = await page.evaluate(() => {
+    const { GlassSurface, waveDuration } = window[Symbol.for('material-lib.glass.v1')];
+    const host = document.body.appendChild(document.createElement('div'));
+    host.style.cssText = 'position:fixed;top:0;left:0;width:200px;height:62px';
+    const surface = new GlassSurface(host, false);
+    try {
+      surface.layer.style.cssText = 'display:block;position:absolute;inset:0;border-radius:24px';
+      const pulse = { x: 77, y: 25, start: 0 };
+      const scale = () => surface.displacement.getAttribute('scale');
+      surface.paint(null, null, 0);
+      const rest = scale();
+      surface.paint(null, pulse, waveDuration * .3);
+      const active = scale();
+      // A real frame can land less than half a thousandth of the duration before the end.
+      surface.paint(null, pulse, waveDuration * .9996);
+      surface.paint(null, null, waveDuration);
+      return { rest, active, ended: scale() };
+    } finally {
+      surface.remove();
+      host.remove();
+    }
+  });
+  assert.notEqual(scales.active, scales.rest);
+  assert.equal(scales.ended, scales.rest, 'the last frame must restore the exact resting refraction');
+}
 
 // Recover the backdrop coordinate independently of glass tint and lighting. A black,
 // white and linear ramp exposure at the same pixel leave only the transmission lookup.
@@ -54,6 +82,12 @@ async function exercise(page, engine) {
   await set('material', 'high');
   await set('motion', 'high');
   await set('theme', 'light');
+  const range = async (id, value) => {
+    await page.locator('#' + id).evaluate((input, number) => {
+      input.value = number; input.dispatchEvent(new Event('input', { bubbles: true }));
+    }, String(value));
+    await settle();
+  };
   const sample = page.locator('#material-specimen ml-material');
   const layer = sample.locator('.ml-optical');
   await page.waitForFunction(expected => document.querySelector('#material-specimen .ml-optical')?.dataset.mlRenderer === expected, engine);
@@ -87,7 +121,26 @@ async function exercise(page, engine) {
     });
   }
   const left = box.x + box.height * .22, right = box.x + box.width - box.height * .22;
+  await range('material-transparency', 100);
   await neutralBackdrop();
+  const refraction = await layer.evaluateHandle(el => {
+    const map = el.querySelector('feDisplacementMap');
+    const trace = { map, rest: map.getAttribute('scale'), writes: 0, departed: false };
+    trace.observer = new MutationObserver(records => {
+      trace.writes += records.length;
+      if (map.getAttribute('scale') !== trace.rest) trace.departed = true;
+    });
+    trace.observer.observe(map, { attributes: true, attributeFilter: ['scale'] });
+    return trace;
+  });
+  await lightAt(left);
+  await lightAt(right);
+  assert.equal(await refraction.evaluate(trace => trace.writes), 0, 'moving the light preserves the refraction map');
+  assert(await sample.evaluate((el, { cx, cy }) => el.pulse(cx, cy), { cx, cy }));
+  await page.waitForFunction(trace => trace.departed && trace.map.getAttribute('scale') === trace.rest, refraction);
+  await refraction.evaluate(trace => trace.observer.disconnect());
+  await refraction.dispose();
+  await checkFinalPulseFrame(page);
   const castLeft = await lightAt(left);
   if (engine === 'webgl') {
     const [lit, unlit] = await canvas.evaluate(luminance);
@@ -105,7 +158,7 @@ async function exercise(page, engine) {
     const [, , darkFace] = await canvas.evaluate(luminance);
     assert(darkFace < lightFace - 4 && darkFace < 124, 'dark mode should keep the centered reflection subdued');
   } else {
-    const lip = layer.locator('svg > [stroke]');
+    const lip = layer.locator('svg > [stroke^="url"]');
     const gradient = layer.locator('radialGradient').first();
     const position = () => gradient.evaluate(el => Number(el.getAttribute('cx')));
     const initial = await position();
@@ -121,7 +174,28 @@ async function exercise(page, engine) {
   assert((await lightAt(cx, box.y + box.height + 8))[1] < -1);
 
   await set('motion', 'medium');
+  assert((await lightAt(left))[0] > 0 && (await lightAt(right))[0] < 0);
+  await set('light-source', 'fixed');
   assert.deepEqual(await lightAt(left), await lightAt(right));
+  const fullCast = (await lightAt(left))[2];
+  await range('light-intensity', 30);
+  assert((await lightAt(left))[2] < fullCast);
+  await set('light-source', 'none');
+  const unlit = await lightAt(left);
+  assert.deepEqual(unlit, await lightAt(right));
+  assert.equal(Math.abs(unlit[0]) + Math.abs(unlit[1]), 0);
+  if (engine === 'svg') assert.equal(Number(await layer.locator('feSpecularLighting').getAttribute('specularConstant')), 0);
+  const unlitCoords = await interiorCoordinates(sample, layer, engine, settle);
+  assert(unlitCoords[0] > .39 && unlitCoords[2] < .61);
+  if (engine === 'webgl') {
+    const centerAlpha = () => canvas.evaluate(c => c.getContext('2d').getImageData(c.width / 2, c.height / 2, 1, 1).data[3]);
+    await range('material-transparency', 0);
+    const opaqueBacking = await centerAlpha();
+    await range('material-transparency', 100);
+    assert(await centerAlpha() > opaqueBacking + 60, 'transmission should change the amount of sampled backdrop');
+  }
+  await range('light-intensity', 100);
+  await set('light-source', 'pointer');
   await set('motion', 'high');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   assert.deepEqual(await lightAt(left), await lightAt(right));
@@ -140,6 +214,67 @@ async function exercise(page, engine) {
   return coords;
 }
 
+// Sample the composited surface, including its CSS backing, with the theme inside the material scope.
+async function themeSwatches(page, engine) {
+  await page.emulateMedia({ forcedColors: 'none', reducedMotion: 'reduce' });
+  const grid = page.locator('#theme-swatches');
+  await page.evaluate(() => {
+    const grid = document.createElement('div');
+    grid.id = 'theme-swatches';
+    grid.style.cssText = 'width:300px;display:grid';
+    grid.dataset.mlLightSource = 'none';
+    grid.style.setProperty('--ml-material-transparency', '60%');
+    for (const tier of ['base', 'low', 'medium', 'high']) {
+      const row = document.createElement('div');
+      row.dataset.mlMaterial = tier;
+      row.style.display = 'flex';
+      for (const theme of ['light', 'warm', 'dark']) {
+        const tile = document.createElement('div');
+        tile.dataset.mlTheme = theme;
+        tile.style.cssText = 'width:100px;padding:6px;background:var(--ml-color-background)';
+        const surface = document.createElement('ml-material');
+        surface.style.cssText = 'display:block;width:100%;height:48px';
+        tile.append(surface);
+        row.append(tile);
+      }
+      grid.append(row);
+    }
+    document.body.prepend(grid);
+  });
+  await grid.scrollIntoViewIfNeeded();
+  await page.waitForFunction(expected =>
+    document.querySelectorAll('#theme-swatches .ml-optical[data-ml-renderer="' + expected + '"]').length === 3, engine);
+  const screenshot = (await grid.screenshot()).toString('base64');
+  const rows = await grid.evaluate(async (el, screenshot) => {
+    const img = new Image();
+    img.src = 'data:image/png;base64,' + screenshot;
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const start = el.getBoundingClientRect();
+    return [...el.children].map(row => [...row.children].map(tile => {
+      const box = tile.firstElementChild.getBoundingClientRect();
+      const x = (box.left + box.width / 2 - start.left) * img.width / start.width;
+      const y = (box.top + box.height / 2 - start.top) * img.height / start.height;
+      return [...ctx.getImageData(x, y, 1, 1).data].slice(0, 3);
+    }));
+  }, screenshot);
+  for (const [i, [light, warm, dark]] of rows.entries()) {
+    const detail = engine + ' tier ' + i + ': ' + JSON.stringify([light, warm, dark]);
+    assert(Math.min(...light) > 216 && Math.min(...warm) > 206, detail);
+    assert(Math.min(...dark) > 10 && Math.max(...dark) < 88, detail);
+    assert(warm[0] - warm[2] > light[0] - light[2] + 4, engine + ' retains ivory in the warm theme');
+  }
+  const tile = grid.locator('[data-ml-material="low"] > div').last();
+  const skin = () => tile.locator('ml-material').evaluate(el => getComputedStyle(el).backgroundImage);
+  const darkSkin = await skin();
+  await tile.evaluate(el => el.dataset.mlTheme = 'warm');
+  assert.notEqual(await skin(), darkSkin, 'local mica tint updates without repeating the material attribute');
+}
+
 try {
   const coords = [];
   for (const engine of ['webgl', 'svg']) {
@@ -151,6 +286,7 @@ try {
       };
     });
     coords.push(await exercise(page, engine));
+    await themeSwatches(page, engine);
     await page.close();
   }
   assert(coords[0].every((value, i) => Math.abs(value - coords[1][i]) < .025), 'GPU and native refraction should match');

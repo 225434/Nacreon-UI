@@ -1,3 +1,4 @@
+import { launchBrowser } from './helpers/browser.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, rmdir, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { chromium, firefox } from 'playwright';
 
 const engine = process.argv[2] === 'firefox' ? firefox : chromium;
-const browser = await engine.launch({ executablePath: engine.executablePath() });
+const browser = await launchBrowser(engine);
 const root = new URL('../', import.meta.url);
 const temp = await mkdtemp(join(tmpdir(), 'ml-multi-test-'));
 const file = join(temp, 'sample.html');
@@ -26,8 +27,8 @@ try {
 
   await route('switch');
   await page.locator('#open-catalog').click();
-  await page.locator('#catalog-query').fill('搜索多选');
-  await page.locator('#catalog-query').press('Enter');
+  await page.getByRole('dialog', { name: '导航面板' }).getByRole('searchbox').fill('搜索多选');
+  await page.getByRole('dialog', { name: '导航面板' }).getByRole('searchbox').press('Enter');
   const field = page.locator('#multi-select-specimen ml-multi-select');
   const trigger = field.getByRole('button', { name: '主题相册', exact: true });
   const panel = field.locator('ml-multi-picker');
@@ -78,12 +79,9 @@ try {
       for (const motion of grades) {
         await choose('motion', motion);
         await frames();
-        const painted = material === 'high' || motion === 'high';
-        assert.equal(await surface.count(), Number(painted), [theme, material, motion].join('/'));
-        assert.equal(await popupLight.count(), Number(painted), [theme, material, motion].join('/'));
-        if (painted) {
-          assert(await popupLight.evaluate(el => getComputedStyle(el).borderRadius === getComputedStyle(el.parentElement).borderRadius));
-        }
+        assert.equal(await surface.count(), 1, [theme, material, motion].join('/'));
+        assert.equal(await popupLight.count(), 1, [theme, material, motion].join('/'));
+        assert(await popupLight.evaluate(el => getComputedStyle(el).borderRadius === getComputedStyle(el.parentElement).borderRadius));
       }
     }
   }

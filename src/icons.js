@@ -16,7 +16,8 @@
     }
   }
   Object.freeze(catalog);
-  const weights = new Map([['light', '1.35'], ['regular', '1.75'], ['bold', '2.35']]);
+  const weights = new Map([['light', 1.35], ['regular', 1.75], ['bold', 2.35]]);
+  const smallStroke = Number(template.content.querySelector('svg').dataset.smallStroke);
   function iconParent(node) { return node.assignedSlot ?? node.parentElement ?? node.getRootNode().host; }
   function symbolName(use) {
     const ref = use.getAttribute('href') ?? use.getAttributeNS('http://www.w3.org/1999/xlink', 'href') ?? '';
@@ -29,7 +30,7 @@
   /* ICON_MOTION */
   /* ICON_MATERIAL */
   const motion = createIconMotion(art);
-  const material = createIconMaterial(art, motion);
+  const material = createIconMaterial(art);
 
   class MaterialIcon extends HTMLElement {
     static get observedAttributes() { return ['name', 'size', 'weight', 'label']; }
@@ -45,13 +46,15 @@
       if (!symbol) return null;
       const pixels = Number(options.size);
       const size = Number.isFinite(pixels) && pixels > 0 ? String(pixels) : '1em';
+      const smallSize = Math.max(0, Math.min(1, (24 - (size === '1em' ? 16 : pixels)) / 8));
+      const stroke = (weights.get(options.weight) ?? weights.get('regular')) + smallSize * (smallStroke - weights.get('regular'));
       const svg = doc.createElementNS(ns, 'svg');
       svg.setAttribute('viewBox', symbol.getAttribute('viewBox'));
       svg.setAttribute('width', size);
       svg.setAttribute('height', size);
       svg.setAttribute('fill', 'none');
       svg.setAttribute('stroke', 'currentColor');
-      svg.setAttribute('stroke-width', weights.get(options.weight) ?? weights.get('regular'));
+      svg.setAttribute('stroke-width', String(Number(stroke.toFixed(3))));
       svg.setAttribute('stroke-linecap', 'round');
       svg.setAttribute('stroke-linejoin', 'round');
       svg.setAttribute('focusable', 'false');

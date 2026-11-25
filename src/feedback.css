@@ -2,10 +2,10 @@
   /* Icon masks from icons.svg */
 }
 :root, [data-ml-material="high"] {
-  --ml-feedback-opacity: 91%;
+  --ml-feedback-opacity: var(--ml-reading-fill, 91%);
   --ml-feedback-shadow: inset 0 1px 1px #ffffff80, inset 0 -1px 1px #25384324, 0 8px 19px -10px #11213465;
 }
-[data-ml-material="medium"] { --ml-feedback-opacity: 95%; --ml-feedback-shadow: initial; }
+[data-ml-material="medium"] { --ml-feedback-opacity: var(--ml-reading-fill, 95%); --ml-feedback-shadow: initial; }
 [data-ml-material="low"] { --ml-feedback-opacity: 100%; --ml-feedback-shadow: 0 1px 4px #14233417; }
 [data-ml-material="base"] { --ml-feedback-opacity: 100%; --ml-feedback-shadow: none; }
 :is(ml-toast-surface, ml-banner) {

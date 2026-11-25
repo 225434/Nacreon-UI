@@ -1,3 +1,4 @@
+import { launchBrowser } from './helpers/browser.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, rmdir, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { chromium, firefox } from 'playwright';
 
 const engine = process.argv[2] === 'firefox' ? firefox : chromium;
-const browser = await engine.launch({ executablePath: engine.executablePath() });
+const browser = await launchBrowser(engine);
 const root = new URL('../', import.meta.url);
 const temp = await mkdtemp(join(tmpdir(), 'ml-tabs-test-'));
 const file = join(temp, 'example.html');
@@ -26,8 +27,8 @@ try {
 
   await route('switch');
   await page.locator('#open-catalog').click();
-  await page.locator('#catalog-query').fill('选项卡');
-  await page.locator('#catalog-query').press('Enter');
+  await page.getByRole('dialog', { name: '导航面板' }).getByRole('searchbox').fill('选项卡');
+  await page.getByRole('dialog', { name: '导航面板' }).getByRole('searchbox').press('Enter');
   const tabs = page.locator('#tabs-specimen > ml-tabs');
   const bar = tabs.getByRole('tablist', { name: '素材记录' });
   const overview = bar.getByRole('tab', { name: '概览' });
@@ -97,11 +98,8 @@ try {
       for (const motion of grades) {
         await choose('motion', motion);
         await frames();
-        const painted = material === 'high' || motion === 'high';
-        assert.equal(await layer.count(), Number(painted), [theme, material, motion].join('/'));
-        if (painted) {
-          assert(await layer.evaluate(el => getComputedStyle(el).borderRadius === getComputedStyle(el.parentElement).borderRadius));
-        }
+        assert.equal(await layer.count(), 1, [theme, material, motion].join('/'));
+        assert(await layer.evaluate(el => getComputedStyle(el).borderRadius === getComputedStyle(el.parentElement).borderRadius));
         const seconds = await marker.evaluate(el => parseFloat(getComputedStyle(el).transitionDuration));
         assert.equal(seconds > 0, motion === 'medium' || motion === 'high');
       }

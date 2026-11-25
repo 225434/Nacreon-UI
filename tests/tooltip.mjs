@@ -1,3 +1,4 @@
+import { launchBrowser } from './helpers/browser.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, unlink, rmdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -9,7 +10,7 @@ const engine = process.argv[2] === 'firefox' ? firefox : chromium;
 const root = new URL('../', import.meta.url);
 const temp = await mkdtemp(join(tmpdir(), 'ml-tooltip-'));
 const file = join(temp, 'example.html');
-const browser = await engine.launch({ executablePath: engine.executablePath() });
+const browser = await launchBrowser(engine);
 const errors = [];
 function track(page) {
   page.setDefaultTimeout(10000);
@@ -185,7 +186,7 @@ try {
     const detail = JSON.stringify(appearance);
     assert(appearance.open, detail);
     if (material === 'high') assert(['webgl', 'svg'].includes(renderer), detail);
-    else assert.equal(lighting, motion === 'high' ? material : undefined, detail);
+    else assert.equal(lighting, material, detail);
     assert.equal(parseFloat(duration) === 0, motion === 'base', detail);
   }
   await fixture.locator('#scope').evaluate(el => el.dataset.mlMaterial = 'medium');

@@ -11,7 +11,7 @@
   grid-area: 1 / 1;
   position: relative; z-index: 1;
   display: grid; align-content: center; gap: var(--ml-space-1);
-  min-inline-size: 0; padding: .68rem .85rem;
+  min-inline-size: 0; padding: .68rem var(--ml-control-padding-inline);
   color: var(--ml-muted); font-size: var(--ml-size-caption); font-weight: var(--ml-weight-medium);
   overflow-wrap: anywhere;
 }
@@ -26,7 +26,7 @@
 }
 :is(ml-date-picker, ml-time-picker) > input {
   grid-area: 1 / 1;
-  min-block-size: 44px; padding: .35rem .85rem;
+  min-block-size: max(44px, var(--ml-control-height)); padding: .35rem var(--ml-control-padding-inline);
 }
 :is(ml-date-picker, ml-time-picker):has(> label + input) > label { padding-block-end: 0; }
 :is(ml-date-picker, ml-time-picker) > label + input { grid-row: 2; min-block-size: 0; padding-block: .3rem .65rem; }

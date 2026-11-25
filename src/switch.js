@@ -39,6 +39,7 @@
     });
 
     connectedCallback() {
+      globalThis[Symbol.for('material-lib.motion-frames.v1')].watch(this.getRootNode());
       // A template cloned from a live component can contain another instance's SVG IDs.
       for (const child of this.querySelectorAll(':scope > :is(.ml-hit, .ml-selection, .ml-optical)')) {
         if (child !== this.#button && child !== this.#selection) child.remove();
@@ -140,21 +141,22 @@
     #paintGlass = (pointer, now) => {
       if (!this.#bed) return;
       const style = getComputedStyle(this);
-      const dynamic = !this.disabled && !this.closest('[inert], [aria-disabled="true"]')
-        && style.getPropertyValue('--ml-follow').trim() === '1';
-      const tier = GlassSurface.lightingTier(style, dynamic);
+      const enabled = !this.disabled && !this.closest('[inert], [aria-disabled="true"]');
+      const dynamic = enabled && style.getPropertyValue('--ml-follow').trim() === '1';
+      const light = GlassSurface.lighting(style, this.#scene.media.matches, enabled);
+      const tier = GlassSurface.lightingTier(style, light);
       if (!tier) {
         if (this.#glass.length) this.#clearGlass();
         return;
       }
       if (!this.getClientRects().length) return;
-      this.#glass[0] = GlassSurface.forTier(this.#glass[0], this.#bed, false, tier);
-      this.#glass[1] = GlassSurface.forTier(this.#glass[1], this.#lens, true, tier);
+      this.#glass[0] = GlassSurface.forTier(this.#glass[0], this.#bed, false, tier, light);
+      this.#glass[1] = GlassSurface.forTier(this.#glass[1], this.#lens, true, tier, light);
       if (tier !== 'high' || !dynamic || (this.#pulse && now - this.#pulse.start >= waveDuration)) this.#pulse = null;
-      for (const surface of this.#glass) surface.paint(dynamic ? pointer : null, this.#pulse, now);
-      if (dynamic && [this.#lens, this.#bed].some(element => element.getAnimations().some(
+      for (const surface of this.#glass) surface.paint(pointer, this.#pulse, now);
+      if (light.mode === 'pointer' && [this.#lens, this.#bed].some(element => element.getAnimations().some(
         animation => animation.transitionProperty && animation.playState === 'running'))) this.#scene.wake();
-      return dynamic;
+      return light.mode === 'pointer';
     };
 
     #disturb(x, y) {

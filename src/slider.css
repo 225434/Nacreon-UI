@@ -1,38 +1,86 @@
-ml-slider { --ml-thumb: 1.55rem; inline-size: 100%; grid-template-columns: minmax(0, 1fr) auto; }
+ml-slider {
+  --ml-thumb: 1.55rem;
+  --ml-slider-knob-width: calc(var(--ml-thumb) * 1.42);
+  --ml-slider-knob-height: calc(var(--ml-thumb) * .84);
+  inline-size: 100%; grid-template-columns: minmax(0, 1fr) auto;
+}
 ml-slider > label { grid-column: 1; }
 ml-slider > input[type="range"] { min-inline-size: 0; accent-color: var(--ml-value-accent); }
 ml-slider[data-ml-ready] > input[type="range"] {
   grid-area: 2 / 1 / 3 / -1; position: relative; z-index: 1; appearance: none; opacity: 0;
   display: block; width: 100%; height: 44px; margin: 0; padding: 0; border: 0; cursor: pointer; touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
 }
 ml-slider > input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none; box-sizing: border-box; width: var(--ml-thumb); height: var(--ml-thumb); border: 0;
+  -webkit-appearance: none; box-sizing: border-box; width: var(--ml-slider-knob-width); height: var(--ml-slider-knob-height); border: 0;
 }
 ml-slider > input[type="range"]::-moz-range-thumb {
-  box-sizing: border-box; width: var(--ml-thumb); height: var(--ml-thumb); border: 0;
+  box-sizing: border-box; width: var(--ml-slider-knob-width); height: var(--ml-slider-knob-height); border: 0;
 }
 ml-slider > [data-ml-part="track"] {
-  grid-area: 2 / 1 / 3 / -1; align-self: center; position: relative; height: .38rem;
-  margin-inline: calc(var(--ml-thumb) / 2); border-radius: var(--ml-radius-lg);
-  background: color-mix(in srgb, var(--ml-color-fill) 30%, var(--ml-muted)); box-shadow: var(--ml-rail-relief); pointer-events: none;
+  grid-area: 2 / 1 / 3 / -1; align-self: center; position: relative; height: .3125rem;
+  margin-inline: calc(var(--ml-slider-knob-width) / 2); border-radius: var(--ml-radius-lg);
+  pointer-events: none;
+}
+/* The rail and fill gain thickness around the same axis. The value coordinate never eases. */
+ml-slider > [data-ml-part="track"]::before, ml-slider [data-ml-part="fill"] {
+  position: absolute; inset-block: 0; border-radius: inherit;
+  transform: scaleY(1); transition: transform var(--ml-slider-settle) var(--ml-slider-release-ease);
+}
+ml-slider > [data-ml-part="track"]::before {
+  content: ""; inset-inline: 0;
+  background: color-mix(in srgb, var(--ml-color-fill) 72%, var(--ml-muted));
 }
 ml-slider [data-ml-part="fill"] {
-  display: block; height: 100%; width: var(--ml-position); border-radius: inherit;
-  background-color: var(--ml-value-accent); background-image: var(--ml-skin);
+  inset-inline-start: 0; inline-size: var(--ml-position);
+  background: var(--ml-value-accent);
 }
 ml-slider ml-value-surface {
   position: absolute; z-index: 1; inset-block-start: 50%; inset-inline-start: var(--ml-position);
-  width: var(--ml-thumb); height: var(--ml-thumb); margin-inline-start: calc(var(--ml-thumb) / -2);
-  margin-block-start: calc(var(--ml-thumb) / -2); border-radius: 50%; border-color: color-mix(in srgb, var(--ml-edge) 52%, transparent);
-  background-color: color-mix(in srgb, var(--ml-pearl) var(--ml-opacity), transparent); box-shadow: var(--ml-highlight-relief);
-  transition: scale var(--ml-travel) var(--ml-ease), border-color var(--ml-tone);
+  width: var(--ml-slider-knob-width); height: var(--ml-slider-knob-height);
+  margin-inline-start: calc(var(--ml-slider-knob-width) / -2); margin-block-start: calc(var(--ml-slider-knob-height) / -2);
+  border-radius: var(--ml-thumb); border-color: color-mix(in srgb, var(--ml-edge) 30%, transparent);
+  background-color: var(--ml-pearl);
+  box-shadow: 0 1px 2px rgb(var(--ml-glass-shadow-rgb) / .18), 0 3px 7px -2px rgb(var(--ml-glass-shadow-rgb) / .22);
+  scale: 1;
+  transition: scale var(--ml-slider-settle) var(--ml-slider-release-ease), background-color var(--ml-tone) ease-out,
+    border-color var(--ml-tone) ease-out, box-shadow var(--ml-tone) ease-out;
 }
-ml-slider:has(input:active:enabled) ml-value-surface { scale: var(--ml-value-grip-x) var(--ml-value-grip-y); border-color: var(--ml-value-accent); }
-@media (hover: hover) { ml-slider:has(input:hover:enabled) ml-value-surface { border-color: var(--ml-value-accent); } }
+ml-slider ml-value-surface > .ml-optical:not([data-ml-light]) {
+  opacity: var(--ml-slider-contact, 0);
+  transition: opacity var(--ml-tone) ease-out;
+}
+/* Keep the narrow rail legible through the liquid lens. Frosted glass uses its material blur. */
+ml-slider ml-value-surface.ml-refractive { backdrop-filter: var(--ml-bend) blur(.85px) saturate(1.16); }
+@media (hover: hover) and (pointer: fine) {
+  ml-slider:has(> input:hover:enabled) ml-value-surface { scale: var(--ml-slider-hover); }
+}
+ml-slider[data-ml-adjust="pointer"]:has(> input:enabled) ml-value-surface,
+ml-slider[data-ml-adjust="key"]:has(> input:focus:enabled) ml-value-surface {
+  --ml-slider-contact: 1;
+  --ml-slider-elongation: calc(var(--ml-slider-speed, 0) * var(--ml-slider-stretch));
+  background-color: color-mix(in srgb, var(--ml-pearl) var(--ml-material-fill-opacity), transparent);
+  border-color: color-mix(in srgb, var(--ml-pearl) 72%, var(--ml-edge));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .22), 0 2px 4px rgb(var(--ml-glass-shadow-rgb) / .19),
+    0 5px 11px -3px rgb(var(--ml-glass-shadow-rgb) / .27);
+  scale: calc(var(--ml-value-grip-x) + var(--ml-slider-elongation)) calc(var(--ml-value-grip-y) - var(--ml-slider-elongation) * .44);
+  transition-duration: var(--ml-slider-engage), var(--ml-tone), var(--ml-tone), var(--ml-tone);
+  transition-timing-function: ease-out;
+}
+ml-slider[data-ml-adjust="key"]:has(> input:focus:enabled) ml-value-surface { scale: var(--ml-slider-key-grip); }
+ml-slider[data-ml-adjust="pointer"]:has(> input:enabled) > [data-ml-part="track"]::before,
+ml-slider[data-ml-adjust="pointer"]:has(> input:enabled) [data-ml-part="fill"] {
+  transform: scaleY(var(--ml-slider-rail-grip));
+  transition: transform var(--ml-slider-engage) ease-out;
+}
 ml-slider:has(input:focus-visible) ml-value-surface { outline: var(--ml-focus-width) solid var(--ml-focus); outline-offset: var(--ml-focus-offset); }
 ml-slider [data-ml-part="ticks"] i {
-  position: absolute; inset-block-start: .7rem; width: 2px; height: .23rem; border-radius: 1px;
-  background: var(--ml-edge); margin-inline-start: -1px;
+  position: absolute; inset-block-start: max(.75rem, calc(var(--ml-slider-knob-height) / 2 + 3px)); width: 2px; height: 3px;
+  margin-inline-start: -1px; border-radius: 2px; background: var(--ml-edge); transform-origin: center top;
+  transition: scale var(--ml-slider-engage) ease-out, background-color var(--ml-tone) ease-out;
+}
+ml-slider [data-ml-part="ticks"] i[data-ml-current] {
+  background: var(--ml-accent-ink); scale: var(--ml-slider-tick-grip);
 }
 ml-slider > [data-ml-part="ends"] {
   display: flex; grid-column: 1 / -1; justify-content: space-between; gap: .6rem;
@@ -40,8 +88,17 @@ ml-slider > [data-ml-part="ends"] {
 }
 ml-slider:has(input:disabled) { opacity: .54; }
 ml-slider[data-ml-ready] > input:disabled { cursor: default; }
+@media (prefers-reduced-motion: reduce) {
+  ml-slider > [data-ml-part="track"]::before,
+  ml-slider [data-ml-part="fill"], ml-slider [data-ml-part="ticks"] i { transition: none !important; transform: none !important; }
+}
 @media (forced-colors: active) {
-  ml-slider > [data-ml-part="track"] { background: GrayText; forced-color-adjust: none; }
+  ml-slider > [data-ml-part="track"]::before, ml-slider [data-ml-part="ticks"] i { background: GrayText; forced-color-adjust: none; }
+  ml-slider [data-ml-part="ticks"] i[data-ml-current] { background: Highlight; }
   ml-slider [data-ml-part="fill"] { background: Highlight; forced-color-adjust: none; }
-  ml-slider ml-value-surface { background: ButtonFace; border-color: ButtonText; }
+  ml-slider ml-value-surface, ml-slider[data-ml-adjust]:has(> input:enabled) ml-value-surface {
+    background: ButtonFace; border-color: ButtonText; box-shadow: none; --ml-optics: none; forced-color-adjust: none;
+  }
+  ml-slider ml-value-surface.ml-refractive { backdrop-filter: none; }
+  ml-slider:has(> input:focus-visible) ml-value-surface { outline-color: Highlight; }
 }

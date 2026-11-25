@@ -14,7 +14,7 @@ ml-tree {
   padding: var(--ml-space-1);
   border: var(--ml-border-width) solid color-mix(in srgb, var(--ml-color-separator) var(--ml-material-border-opacity), transparent);
   border-radius: var(--ml-tree-radius, var(--ml-radius-lg));
-  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-opacity), transparent);
+  background-color: color-mix(in srgb, var(--ml-color-surface) var(--ml-material-content-opacity), transparent);
   background-image: var(--ml-skin);
   box-shadow: var(--ml-segment-relief);
   -webkit-backdrop-filter: var(--ml-filter);
@@ -94,7 +94,7 @@ ml-tree [aria-expanded] > .ml-tree-row .ml-tree-toggle::before { visibility: vis
 ml-tree [aria-expanded="false"]:dir(rtl) > .ml-tree-row .ml-tree-toggle::before { scale: -1 1; }
 ml-tree [aria-expanded="true"] > .ml-tree-row .ml-tree-toggle::before { rotate: 90deg; }
 ml-tree [aria-selected="true"] > .ml-tree-row {
-  background-color: color-mix(in srgb, var(--ml-tree-ink) 14%, transparent);
+  background-color: var(--ml-color-selection);
   color: var(--ml-tree-ink);
   font-weight: var(--ml-weight-semibold);
 }

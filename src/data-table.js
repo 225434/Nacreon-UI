@@ -40,6 +40,171 @@
     wrap.append(box); cell.append(wrap); row.prepend(cell);
     return cell;
   }
+
+  // Keep the original SVG for foreground caustics, printing, and the handoff between strips.
+  // Chrome transports the displacement bitmap with compositor updates, even for clipped tables.
+  class TableRefraction {
+    constructor(host, glass) {
+      this.host = host;
+      this.glass = glass;
+      this.shape = glass.shape;
+      this.pointer = glass.scene.pointer;
+      this.tiles = new Map();
+      this.events = new AbortController();
+      this.scrolling = new Set();
+      this.resize = new ResizeObserver(() => glass.scene.wake());
+      this.source = new Image();
+      this.source.onload = () => glass.scene.wake();
+      this.source.src = glass.maps[0].getAttribute('href');
+      this.filter = glass.displacement.parentNode.cloneNode(true);
+      this.filter.id += '-viewport';
+      this.map = this.filter.querySelector('feImage');
+      this.bend = this.filter.querySelector('feDisplacementMap');
+      glass.displacement.parentNode.after(this.filter);
+      this.url = 'url("#' + this.filter.id + '")';
+      const track = event => {
+        for (let node = host; node; node = node.assignedSlot || node.parentNode || node.host) {
+          if (node !== event.target) continue;
+          if (event.type === 'scrollend') this.scrolling.delete(node);
+          else this.scrolling.add(node);
+          glass.scene.wake();
+          break;
+        }
+      };
+      const options = { capture: true, passive: true, signal: this.events.signal };
+      for (let root = host.getRootNode(); root; root = root.host?.getRootNode()) {
+        if ('onscrollend' in host.ownerDocument) {
+          root.addEventListener('scroll', track, options);
+          root.addEventListener('scrollend', track, options);
+        } else if (root.host) {
+          root.addEventListener('scroll', () => glass.scene.wake(), options);
+        }
+      }
+    }
+
+    useFull() {
+      if (this.active) this.host.style.removeProperty('--ml-table-window');
+      this.active = null;
+    }
+
+    remove() {
+      this.useFull();
+      this.glass.scene.win.clearTimeout(this.pointerTimer);
+      this.source.onload = null;
+      this.events.abort();
+      this.resize.disconnect();
+      this.tiles.clear();
+      this.filter.remove();
+    }
+
+    // Pointer input can arrive much faster than the browser presents frames.
+    // Schedule a single wake after the final change to restore the native grid.
+    endPointer = () => {
+      const win = this.glass.scene.win;
+      const remaining = this.pointerUntil - win.performance.now();
+      if (remaining > 0) {
+        this.pointerTimer = win.setTimeout(this.endPointer, remaining);
+      } else {
+        this.pointerTimer = 0;
+        this.glass.scene.wake();
+      }
+    };
+
+    tile(first, last) {
+      const key = first + '/' + last;
+      if (this.tiles.has(key)) return this.tiles.get(key);
+      const { naturalWidth: width, naturalHeight: height } = this.source;
+      const canvas = this.host.ownerDocument.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height * (last - first) / 16;
+      const context = canvas.getContext('2d');
+      context.drawImage(this.source, 0, height * first / 16, width, canvas.height, 0, 0, width, canvas.height);
+      const image = new Image(), tile = { first, last, image, ready: false };
+      image.src = canvas.toDataURL();
+      if (this.tiles.size >= 8) this.tiles.delete(this.tiles.keys().next().value);
+      this.tiles.set(key, tile);
+      image.decode().then(() => {
+        if (this.tiles.get(key) === tile) { tile.ready = true; this.glass.scene.wake(); }
+      }, () => {});
+      return tile;
+    }
+
+    update() {
+      if (!this.source.complete || !this.source.naturalHeight || this.source.naturalHeight % 16) return;
+      const host = this.host, win = host.ownerDocument.defaultView, box = host.getBoundingClientRect();
+      const pointer = this.glass.light.mode === 'pointer' ? this.glass.scene.pointer : null;
+      const moved = pointer && this.pointer && (pointer.x !== this.pointer.x || pointer.y !== this.pointer.y);
+      this.pointer = pointer;
+      if (!pointer && this.pointerTimer) {
+        win.clearTimeout(this.pointerTimer);
+        this.pointerTimer = 0;
+      }
+      let top = 0, bottom = win.innerHeight, clip = null;
+      for (let el = host; el; el = el.assignedSlot || el.parentElement || el.getRootNode().host) {
+        const style = win.getComputedStyle(el);
+        // The original filter also handles rotated, scaled and perspective-transformed layouts.
+        if (style.transform !== 'none' || style.rotate !== 'none' || style.scale !== 'none' || style.perspective !== 'none'
+          || Number(style.zoom || 1) !== 1) {
+          this.useFull();
+          return;
+        }
+        if (el !== host && style.overflowY !== 'visible') {
+          const bounds = el.getBoundingClientRect();
+          top = Math.max(top, bounds.top);
+          bottom = Math.min(bottom, bounds.bottom);
+          clip ||= el;
+        }
+      }
+      if (this.clip !== clip) {
+        this.resize.disconnect();
+        if (clip) this.resize.observe(clip);
+        this.clip = clip;
+      }
+      const start = Math.max(0, top - box.top), end = Math.min(box.height, bottom - box.top);
+      if (end <= start) { this.useFull(); return; }
+      const unit = box.height / 16, guard = Math.max(128, end - start);
+      // With display scaling, moving the bitmap origin can change interpolation at
+      // the same texel. A power-of-two prefix keeps the native origin and scale.
+      const hi = Math.min(16, Math.ceil((end + guard) / unit));
+      let anchored = win.devicePixelRatio !== 1;
+      if (anchored && hi > 4) {
+        // The scrollport or its pointer light can move independently. The full
+        // filter restores the native sampling grid once both have settled.
+        const motion = !this.glass.scene.media.matches
+          && win.getComputedStyle(host).getPropertyValue('--ml-motion-level').trim();
+        if (motion !== 'high' && motion !== 'medium') { this.useFull(); return; }
+        if (moved) {
+          this.pointerUntil = win.performance.now() + 80;
+          if (!this.pointerTimer) this.pointerTimer = win.setTimeout(this.endPointer, 80);
+        }
+        if (!this.scrolling.size && !(pointer && this.pointerTimer)) { this.useFull(); return; }
+        anchored = false;
+      }
+      const lo = anchored ? 0 : Math.max(0, Math.floor((start - guard) / unit));
+      // Use original texels and power-of-two scales so sampling keeps its pixel phase.
+      const span = 2 ** Math.ceil(Math.log2(Math.max(2, hi - lo)));
+      const first = anchored ? 0 : Math.max(0, Math.min(16 - span, Math.floor((lo + hi - span) / 2)));
+      if (span >= 16 || !box.width) { this.useFull(); return; }
+      const tile = this.tile(first, first + span);
+      const scale = this.glass.displacement.getAttribute('scale');
+      if (this.bend.getAttribute('scale') !== scale) this.bend.setAttribute('scale', scale);
+      if (!tile.ready) {
+        if (this.active && (start < this.active.first * unit || end > this.active.last * unit)) this.useFull();
+        return;
+      }
+      if (this.active === tile && this.width === box.width && this.height === box.height) return;
+      this.map.setAttribute('x', 0);
+      this.map.setAttribute('y', unit * first);
+      this.map.setAttribute('width', box.width);
+      this.map.setAttribute('height', unit * span);
+      this.map.setAttribute('href', tile.image.src);
+      this.host.style.setProperty('--ml-table-window', this.url);
+      this.active = tile;
+      this.width = box.width;
+      this.height = box.height;
+    }
+  }
+
   class DataTable extends GlassControl {
     static observedAttributes = ['selectable', 'sort-by', 'sort-direction', 'empty-text'];
     #table;
@@ -54,6 +219,7 @@
     #sorted = false;
     #busy = false;
     #connected = false;
+    #refraction;
     #resizes = new ResizeObserver(() => this.#overflow());
     #changes = new MutationObserver(records => {
       const sourceChanged = records.some(r =>
@@ -64,6 +230,17 @@
     });
     get table() { return this.#table; }
     get glassContent() { return this.#table; }
+    updateGlassViewport(glass) {
+      const eligible = glass?.layer.dataset.mlRenderer === 'webgl'
+        && glass.layer.clientHeight > Math.max(2048, 4 * this.ownerDocument.defaultView.innerHeight);
+      if (this.#refraction && (!eligible || this.#refraction.glass !== glass || this.#refraction.shape !== glass.shape)) {
+        this.#refraction.remove();
+        this.#refraction = null;
+      }
+      if (!eligible) return;
+      this.#refraction ||= new TableRefraction(this, glass);
+      this.#refraction.update();
+    }
     get visibleRows() { return this.#onPage.slice(); }
     get selectedRows() {
       return this.#table ? [...this.#table.tBodies].flatMap(body => [...body.rows]).filter(row => row.hasAttribute('data-selected')) : [];
@@ -74,6 +251,7 @@
     }
     connectedCallback() {
       this.#connected = true;
+      this.style.removeProperty('--ml-table-window');
       super.connectedCallback();
       this.addEventListener('click', this.#click);
       this.addEventListener('change', this.#check);
